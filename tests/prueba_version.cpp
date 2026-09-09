@@ -1,0 +1,60 @@
+#include "capturia/version.hpp"
+
+#include "comprobar.hpp"
+
+using capturia::Version;
+
+int main() {
+    // Casos normales.
+    {
+        const auto v = Version::desde_texto("5.4.1");
+        COMPROBAR(v.has_value());
+        COMPROBAR(v && *v == (Version{5, 4, 1}));
+    }
+    {
+        const auto v = Version::desde_texto("GPU Screen Recorder 5.4.1\n");
+        COMPROBAR(v && *v == (Version{5, 4, 1}));
+    }
+    {
+        // Dos componentes bastan; el tercero queda a cero.
+        const auto v = Version::desde_texto("version 5.4");
+        COMPROBAR(v && *v == (Version{5, 4, 0}));
+    }
+    {
+        const auto v = Version::desde_texto("v1.2.3-rc1");
+        COMPROBAR(v && *v == (Version{1, 2, 3}));
+    }
+    {
+        // Un cuarto componente se ignora: nuestro modelo tiene tres.
+        const auto v = Version::desde_texto("1.2.3.4");
+        COMPROBAR(v && *v == (Version{1, 2, 3}));
+    }
+
+    // Casos en los que NO debe reconocerse nada.
+    COMPROBAR(!Version::desde_texto("").has_value());
+    COMPROBAR(!Version::desde_texto("sin numeros por ninguna parte").has_value());
+    // Un numero suelto no es una version: por eso se exigen dos componentes.
+    COMPROBAR(!Version::desde_texto("compilado en 2026").has_value());
+    COMPROBAR(!Version::desde_texto("command not found").has_value());
+    // Un numero suelto seguido de otro tampoco, si no van unidos por un punto.
+    COMPROBAR(!Version::desde_texto("line 45: error 127").has_value());
+
+    // Un numero suelto delante no debe tapar la version que viene detras.
+    {
+        const auto v = Version::desde_texto("build 7 de gsr 5.4.1");
+        COMPROBAR(v && *v == (Version{5, 4, 1}));
+    }
+
+    // Orden. Es lo que usara --check cuando se fije la version minima.
+    COMPROBAR((Version{1, 2, 3}) < (Version{5, 0, 0}));
+    COMPROBAR((Version{5, 4, 1}) > (Version{5, 4, 0}));
+    COMPROBAR((Version{5, 4, 1}) == (Version{5, 4, 1}));
+    COMPROBAR(!((Version{5, 10, 0}) < (Version{5, 9, 0})));  // 10 va despues de 9
+
+    COMPROBAR((Version{5, 4, 1}).texto() == "5.4.1");
+
+    // Mientras siga sin decidirse, --check no puede dar por fallada una version.
+    COMPROBAR(!capturia::version_minima_gsr().has_value());
+
+    return prueba::resumen("prueba_version");
+}

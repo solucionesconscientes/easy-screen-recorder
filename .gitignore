@@ -1,1 +1,6 @@
+# GSR de referencia: GPL-3.0 de terceros, solo lectura, fuera del remoto.
 third_party/gpu-screen-recorder/
+
+build/
+compile_commands.json
+.cache/

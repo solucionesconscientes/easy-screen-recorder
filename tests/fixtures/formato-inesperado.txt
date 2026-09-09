@@ -1,0 +1,4 @@
+Segmentation fault (core dumped)
+zsh: command not found: gpu-screen-recorder
+{"esto": "es json, no un volcado"}
+--- 8< ---

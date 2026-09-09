@@ -1,0 +1,10 @@
+# SINTETICO. GSR esta instalado pero la sonda revienta (sin sesion grafica,
+# por ejemplo). No debe traducirse en «cero dispositivos», sino en un aviso.
+### comando: gpu-screen-recorder --version
+### codigo: 0
+5.4.1
+### fin
+### comando: gpu-screen-recorder --list-audio-devices
+### codigo: 1
+error: failed to connect to pipewire
+### fin

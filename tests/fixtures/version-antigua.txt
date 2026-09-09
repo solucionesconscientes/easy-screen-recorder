@@ -1,0 +1,10 @@
+# SINTETICO. El numero 1.2.3 esta inventado: sirve para comprobar el orden
+# entre versiones, no para afirmar que exista una version 1.2.3 de GSR.
+### comando: gpu-screen-recorder --version
+### codigo: 0
+1.2.3
+### fin
+### comando: gpu-screen-recorder --list-capture-options
+### codigo: 0
+DP-1|1920x1080
+### fin

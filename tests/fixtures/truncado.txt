@@ -1,0 +1,8 @@
+# SINTETICO. Volcado cortado a media: falta el «### fin» del ultimo bloque.
+### comando: gpu-screen-recorder --version
+### codigo: 0
+5.4.1
+### fin
+### comando: gpu-screen-recorder --list-capture-options
+### codigo: 0
+DP-1|2560x1440

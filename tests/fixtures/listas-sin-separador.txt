@@ -1,0 +1,11 @@
+# SINTETICO. Caso en que GSR imprime una entrada por linea sin separador: el
+# parser debe quedarse con la linea entera y dejar aviso, no inventar campos.
+### comando: gpu-screen-recorder --version
+### codigo: 0
+5.4.1
+### fin
+### comando: gpu-screen-recorder --list-audio-devices
+### codigo: 0
+default_output
+default_input
+### fin

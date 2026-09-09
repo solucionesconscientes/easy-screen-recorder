@@ -1,0 +1,27 @@
+# SINTETICO. El separador «|» es la heuristica del parser, no un formato
+# verificado contra el codigo de GSR.
+### comando: gpu-screen-recorder --version
+### codigo: 0
+GPU Screen Recorder 5.4.1
+### fin
+### comando: gpu-screen-recorder --list-capture-options
+### codigo: 0
+DP-1|2560x1440
+HDMI-A-1|1920x1080
+portal|
+focused|
+### fin
+### comando: gpu-screen-recorder --list-audio-devices
+### codigo: 0
+default_output|Altavoces
+default_input|Microfono interno
+### fin
+### comando: gpu-screen-recorder --list-application-audio
+### codigo: 0
+firefox|
+mpv|
+### fin
+### comando: gsr-cli --help
+### codigo: 0
+usage: gsr-cli <comando>
+### fin
