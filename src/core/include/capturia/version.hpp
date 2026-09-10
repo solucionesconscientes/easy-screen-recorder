@@ -28,10 +28,8 @@ struct Version {
     friend bool operator==(const Version&, const Version&) = default;
 };
 
-// Version minima de GSR soportada. SIN DECIDIR todavia: fijarla exige leer
-// project.conf del arbol de GSR, que no esta disponible (ver ESTADO.md, bloqueo
-// B1). Devuelve nullopt mientras siga sin decidirse, y --check informa de la
-// version detectada sin dar por fallado nada.
+// Version minima de GSR soportada: 6.0.0. El razonamiento y las fuentes estan
+// en CLAUDE.md y en docs/gsr-ipc.md. Ya no devuelve nullopt.
 std::optional<Version> version_minima_gsr();
 
 }  // namespace capturia

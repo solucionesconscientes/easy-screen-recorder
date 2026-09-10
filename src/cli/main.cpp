@@ -42,6 +42,12 @@ void imprimir_herramienta(const capturia::Herramienta& h) {
     } else if (h.presente && !h.ruta.empty()) {
         cola = h.ruta;
     }
+    // Por que via se encontro. Importa: un GSR en flatpak no ve el /tmp del
+    // sistema, asi que el socket y el fichero de salida tienen que ir a una
+    // ruta compartida (docs/gsr-ipc.md).
+    if (h.presente && !h.origen.empty() && h.origen != "PATH") {
+        cola += "  [" + h.origen + "]";
+    }
     if (!h.diagnostico.empty()) {
         if (!cola.empty()) cola += "  ";
         cola += h.diagnostico;
@@ -72,7 +78,7 @@ int comprobar() {
     if (const auto minima = capturia::version_minima_gsr()) {
         std::printf("  minima soportada: %s\n", minima->texto().c_str());
     } else {
-        std::printf("  minima soportada: sin decidir (ver ESTADO.md, bloqueo B1)\n");
+        std::printf("  minima soportada: sin decidir\n");
     }
 
     std::printf("\nCapacidades leidas del volcado\n");
@@ -101,8 +107,11 @@ int comprobar() {
     }
 
     std::printf("\nGrabacion de pantalla: %s\n", e.graba_pantalla() ? "posible" : "NO posible");
+    // GSR no graba audio sin video: exige -w siempre (docs/gsr-audio-only.md).
+    // El modo audio-only sale de ffmpeg o no sale.
     std::printf("Audio sin video:       %s\n",
-                e.graba_audio_solo() ? "posible con backend propio" : "NO posible");
+                e.graba_audio_solo() ? "posible con ffmpeg (backend sin escribir)"
+                                     : "NO posible: falta ffmpeg");
     std::printf("\nResultado: %s\n", e.listo() ? "LISTO" : "NO LISTO");
 
     return e.listo() ? 0 : 1;

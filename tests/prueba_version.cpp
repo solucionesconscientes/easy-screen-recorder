@@ -53,8 +53,14 @@ int main() {
 
     COMPROBAR((Version{5, 4, 1}).texto() == "5.4.1");
 
-    // Mientras siga sin decidirse, --check no puede dar por fallada una version.
-    COMPROBAR(!capturia::version_minima_gsr().has_value());
+    // Ya esta decidida: 6.0.0, la version cuyo IPC se ha podido comprobar
+    // entero en la maquina de desarrollo (ver CLAUDE.md y docs/gsr-ipc.md).
+    const auto minima = capturia::version_minima_gsr();
+    COMPROBAR(minima.has_value());
+    COMPROBAR(minima && *minima == (Version{6, 0, 0}));
+    // Y ordena como debe: 5.15.3 se queda corta, 6.0.1 pasa.
+    COMPROBAR(minima && (Version{5, 15, 3}) < *minima);
+    COMPROBAR(minima && !((Version{6, 0, 1}) < *minima));
 
     return prueba::resumen("prueba_version");
 }

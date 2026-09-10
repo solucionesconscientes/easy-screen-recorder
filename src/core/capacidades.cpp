@@ -27,13 +27,26 @@ bool empieza_por(std::string_view s, std::string_view prefijo) {
     return s.size() >= prefijo.size() && s.compare(0, prefijo.size(), prefijo) == 0;
 }
 
-// El comando del bloque es "programa arg arg...". Se comprueba el programa por
-// prefijo y la opcion por contenido, para no depender del orden.
+// El comando del bloque ya no empieza siempre por el nombre del programa:
+// cuando GSR viene en flatpak la linea es «flatpak run --command=X <app-id> ...».
+// Por eso se busca el nombre en cualquier posicion. No hay ambiguedad porque el
+// id de la aplicacion lleva guiones bajos («com.dec05eba.gpu_screen_recorder»)
+// y el binario guiones («gpu-screen-recorder»), asi que no se confunden.
 bool comando_es(const BloqueVolcado& b, std::string_view programa, std::string_view opcion) {
-    return empieza_por(b.comando, programa) && b.comando.find(opcion) != std::string::npos;
+    return b.comando.find(programa) != std::string::npos &&
+           b.comando.find(opcion) != std::string::npos;
 }
 
 }  // namespace
+
+std::string Opcion::detalle() const {
+    std::string texto;
+    for (const auto& c : campos) {
+        if (!texto.empty()) texto.push_back(' ');
+        texto += c;
+    }
+    return texto;
+}
 
 std::vector<BloqueVolcado> partir_volcado(std::string_view volcado) {
     std::vector<BloqueVolcado> bloques;
@@ -81,7 +94,8 @@ std::vector<BloqueVolcado> partir_volcado(std::string_view volcado) {
 }
 
 std::vector<Opcion> interpretar_lista(const BloqueVolcado& bloque,
-                                      std::vector<std::string>& avisos) {
+                                      std::vector<std::string>& avisos,
+                                      FormatoLista formato) {
     if (!bloque.tiene_codigo || bloque.codigo != 0) {
         avisos.push_back("«" + bloque.comando + "» no termino bien (codigo " +
                          (bloque.tiene_codigo ? std::to_string(bloque.codigo) : std::string("desconocido")) +
@@ -94,33 +108,55 @@ std::vector<Opcion> interpretar_lista(const BloqueVolcado& bloque,
         const std::string_view limpia = recortar(linea);
         if (limpia.empty()) return;
         if (limpia.front() == '#') return;
+        // GSR escribe sus errores por stderr y el volcado los mezcla con la
+        // salida. Una linea de error no es una opcion de captura.
+        if (empieza_por(limpia, "gsr error:") || empieza_por(limpia, "gsr warning:")) return;
         lineas.push_back(limpia);
     });
 
     if (lineas.empty()) {
-        avisos.push_back("«" + bloque.comando + "» no devolvio ninguna entrada");
+        if (!formato.vacio_normal) {
+            avisos.push_back("«" + bloque.comando + "» no devolvio ninguna entrada");
+        }
         return {};
     }
 
-    const bool hay_separador =
-        std::any_of(lineas.begin(), lineas.end(),
-                    [](std::string_view l) { return l.find('|') != std::string_view::npos; });
-    if (!hay_separador) {
-        avisos.push_back("formato inesperado en «" + bloque.comando +
-                         "»: ninguna linea trae separador «|»; se toma la linea entera como "
-                         "identificador");
+    if (formato.exige_separador) {
+        const auto sin = std::find_if(lineas.begin(), lineas.end(), [](std::string_view l) {
+            return l.find('|') == std::string_view::npos;
+        });
+        if (sin != lineas.end()) {
+            avisos.push_back("formato inesperado en «" + bloque.comando +
+                             "»: se esperaba «id|detalle» en toda linea y «" + std::string(*sin) +
+                             "» no trae separador; se toma la linea entera como identificador");
+        }
     }
 
     std::vector<Opcion> opciones;
     opciones.reserve(lineas.size());
     for (std::string_view l : lineas) {
-        const auto corte = l.find('|');
-        if (corte == std::string_view::npos) {
-            opciones.push_back(Opcion{std::string(l), {}});
-        } else {
-            opciones.push_back(Opcion{std::string(recortar(l.substr(0, corte))),
-                                      std::string(recortar(l.substr(corte + 1)))});
+        Opcion o;
+        std::string_view resto = l;
+        const auto primer_corte = resto.find('|');
+        o.id = std::string(recortar(resto.substr(0, primer_corte)));
+        if (primer_corte == std::string_view::npos) {
+            opciones.push_back(std::move(o));
+            continue;
         }
+        resto.remove_prefix(primer_corte + 1);
+        // Se parte por todos los «|», no solo por el primero: una camara imprime
+        // «/dev/video0|640x480@30hz|mjpeg» y la resolucion y el formato son dos
+        // datos distintos, no uno con una barra dentro.
+        for (;;) {
+            const auto corte = resto.find('|');
+            o.campos.push_back(std::string(recortar(resto.substr(0, corte))));
+            if (corte == std::string_view::npos) break;
+            resto.remove_prefix(corte + 1);
+        }
+        // «portal|» trae separador pero nada detras: eso no es un campo vacio,
+        // es una linea sin detalle.
+        if (o.campos.size() == 1 && o.campos.front().empty()) o.campos.clear();
+        opciones.push_back(std::move(o));
     }
     return opciones;
 }
@@ -144,16 +180,22 @@ Capacidades interpretar_volcado(std::string_view volcado) {
                     "«" + b.comando + "» respondio pero no se reconoce un numero de version en su salida");
             }
         } else if (comando_es(b, "gpu-screen-recorder", "--list-capture-options")) {
-            c.fuentes_captura = interpretar_lista(b, c.avisos);
+            // Mezcla lineas de uno, dos y tres campos (commands.c:198-229), asi
+            // que no se le exige separador. Vacia si que seria raro: significa
+            // que la maquina no ofrece ni monitor ni portal ni camara.
+            c.fuentes_captura = interpretar_lista(b, c.avisos, FormatoLista{});
         } else if (comando_es(b, "gpu-screen-recorder", "--list-audio-devices")) {
-            c.dispositivos_audio = interpretar_lista(b, c.avisos);
+            c.dispositivos_audio = interpretar_lista(b, c.avisos, FormatoLista{true, false});
         } else if (comando_es(b, "gpu-screen-recorder", "--list-application-audio")) {
-            c.audio_por_aplicacion = interpretar_lista(b, c.avisos);
-        } else if (empieza_por(b.comando, "gsr-cli")) {
+            // Imprime el nombre pelado de cada aplicacion que suena, sin
+            // separador, y nada cuando no suena ninguna (commands.c:296-316).
+            c.audio_por_aplicacion = interpretar_lista(b, c.avisos, FormatoLista{false, true});
+        } else if (b.comando.find("gsr-cli") != std::string::npos) {
             c.gsr_cli_respondio = b.tiene_codigo && b.codigo == 0;
         }
-        // «--info» se vuelca pero no se interpreta: su formato no esta
-        // verificado contra el codigo de GSR (ESTADO.md, bloqueo B1).
+        // «--info» se vuelca pero no se interpreta. Su formato ya se conoce
+        // (secciones «section=nombre» y lineas «clave|valor», commands.c:238-274)
+        // pero de ahi salen los codecs, y eso es trabajo de la Fase 1.
     }
     return c;
 }

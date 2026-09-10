@@ -1,80 +1,164 @@
 # ¿Puede GSR grabar audio sin vídeo?
 
-**Estado: SIN RESPUESTA. Bloqueado (bloqueo B1 de ESTADO.md).**
+**Estado: RESPONDIDO.** Bloqueo B1 cerrado.
 
-Esta era la investigación que podía cambiar el alcance del proyecto. No se ha
-podido hacer: el código de GSR, sus páginas de manual y sus binarios no están
-en el entorno donde se ejecutó la Tanda 1. El detalle de lo comprobado está en
-`gsr-ipc.md`, sección "Por qué está bloqueado", y no se repite aquí.
+**No. GSR exige una fuente de vídeo siempre.** Comprobado ejecutándolo, no
+deducido. Eso deja el modo audio-only en manos de un backend propio con ffmpeg,
+que es la tercera fila del árbol de decisión que ya estaba escrito.
 
-Lo que sí se puede dejar hecho es que la respuesta, cuando llegue, no tenga que
-pelearse con el código ya escrito. Eso está resuelto: **hoy no existe ni una
-línea de backend de audio con ffmpeg.** La única dependencia de ffmpeg que hay
-es `Entorno::graba_audio_solo()`, tres líneas en `src/core/entorno.cpp`, con el
-comentario que dice que esa condición cambia según lo que salga de aquí.
+Versión analizada: GSR 6.0.0, el árbol de `third_party/gpu-screen-recorder/`,
+instalado como flatpak en la máquina de desarrollo. Comprobado el 2026-09-10.
 
-## Las tres preguntas, sin responder
+## a) ¿Puede GSR grabar audio sin fuente de vídeo, hoy?
 
-**a) ¿Puede GSR grabar audio sin fuente de vídeo, hoy?** Sin respuesta.
+**No.**
 
-**b) Si no, ¿qué lo impide exactamente a nivel de código?** Sin respuesta.
+```
+$ gpu-screen-recorder -a default_output -ac opus -o /tmp/solo-audio.opus
+gsr error: missing argument '-w'
+usage: gpu-screen-recorder -w <window_id|monitor|focused|portal|region|v4l2_device_path> ...
+```
 
-**c) ¿Qué códecs de audio soporta de verdad y en qué contenedores?** Sin
-respuesta.
+Sale con código 1 y no crea ningún fichero. Da igual qué audio se le pida: se
+niega antes de mirar nada más.
 
-Del encargo salen dos afirmaciones que hay que tratar como hipótesis, no como
-datos: que GSR trae Opus y AAC nativos, y que en su historial existen las
-opciones `-aa` y `-aai` para audio de aplicaciones seleccionadas. Ninguna está
-comprobada.
+### Dos erratas del comando que traía el encargo
 
-## Cómo responderlas
+El encargo proponía esta prueba:
 
-En la máquina de desarrollo:
+```
+gpu-screen-recorder -a default_output -c opus -o /tmp/solo-audio.opus
+```
 
-1. `grep -n '"-aa"\|"-aai"\|"-a"' third_party/gpu-screen-recorder/src/args_parser.c`.
-   Ahí está qué opciones existen de verdad y cuáles son obligatorias.
-2. Buscar en ese mismo fichero la validación que exige una fuente de vídeo.
-   Si existe, esa línea es la respuesta a la pregunta (b): es el sitio exacto
-   donde GSR se niega. Anotar `fichero:línea`.
-3. `man gpu-screen-recorder` y `man gsr-cli`, y contrastarlos con
-   `args_parser.c`: cuando el manpage y el código no coinciden, manda el código.
-4. `include/recorder/audio_codec.h` y `codec_select.h` para la pregunta (c), más
-   `meson_options.txt` para saber qué códecs son opcionales de compilación. Un
-   códec que existe en el código pero está desactivado en el paquete instalado
-   es, para el usuario, un códec que no existe: por eso `--check` tiene que
-   leerlo de la máquina, no de la lista de códecs del proyecto.
-5. **La prueba que decide.** Intentar la grabación de verdad y mirar el
-   resultado con ffprobe:
+Tiene dos fallos, y conviene dejarlos escritos para que nadie los repita:
 
-   ```
-   gpu-screen-recorder -a default_output -c opus -o /tmp/solo-audio.opus
-   ffprobe -v error -show_entries stream=codec_type,codec_name /tmp/solo-audio.opus
-   ```
+1. **`-c` no es el códec de audio, es el contenedor.** El códec de audio es
+   `-ac` (`gpu-screen-recorder --help`, y `-ac aac|opus|flac` en el uso). Con
+   `-c opus` se le está pidiendo un contenedor llamado "opus".
+2. **`.opus` no vale como extensión para el códec opus.** GSR solo acepta opus
+   en `.mp4`, `.mkv`, `.webm`, `.ts` y `.whip`; con cualquier otra extensión
+   cambia a AAC y avisa (`src/recorder/codec_select.c:168-174`).
 
-   Un fichero con un único stream de tipo `audio` responde a (a) que sí. Un
-   error de "falta la fuente de vídeo" responde que no, y el texto del error
-   lleva al sitio del código que pide (b). Esto vale más que cualquier lectura:
-   la lectura dice qué debería pasar, ffprobe dice qué pasa.
+La prueba se repitió con `-ac opus`, que es lo correcto, y el resultado es el
+mismo: `missing argument '-w'`. O sea que la respuesta no depende de la errata.
 
-## Qué haremos con cada respuesta
+## b) ¿Qué lo impide exactamente a nivel de código?
 
-Escrito de antemano para que la Tanda 2 no tenga que discutirlo:
+Una sola línea. `-w` está declarado **no opcional**:
+
+`third_party/gpu-screen-recorder/src/args_parser.c:536`
+
+```c
+self->args[arg_index++] = (Arg){ .key = "-w", .optional = false, .list = false, .type = ARG_TYPE_STRING };
+```
+
+Y el bucle que valida los argumentos rechaza cualquier obligatorio sin valor,
+que es de donde sale literalmente el mensaje del error:
+
+`third_party/gpu-screen-recorder/src/args_parser.c:673-676`
+
+```c
+for(int i = 0; i < NUM_ARGS; ++i) {
+    const Arg *arg = &self->args[i];
+    if(!arg->optional && arg->num_values == 0) {
+        gsr_log(GSR_LOG_LEVEL_ERROR, "missing argument '%s'", arg->key);
+```
+
+No es una comprobación semántica en mitad de la grabación ni un efecto lateral
+del pipeline: es el parser de argumentos, lo primero que corre. Cambiarlo sería
+tocar GSR, y eso está prohibido.
+
+### El apaño que no vamos a hacer
+
+Se podría pasar una fuente de vídeo mínima, grabar y tirar la pista de vídeo
+después. Se descarta:
+
+- Sigue encendiendo la captura y el codificador de vídeo. Para un modo cuya
+  gracia es ser ligero, es justo lo contrario.
+- Necesita una fuente válida. En Wayland eso significa portal, o sea un diálogo
+  de compartir pantalla para grabar un audio. Absurdo de cara al usuario.
+- Deja un post-proceso obligatorio para quitar lo que no debió grabarse.
+
+## c) ¿Qué códecs de audio soporta de verdad y en qué contenedores?
+
+**Tres, y los tres están activos en el paquete instalado:** AAC, Opus y FLAC.
+
+El enum no tiene más (`include/defs.h:77-79`):
+
+```c
+GSR_AUDIO_CODEC_AAC,
+GSR_AUDIO_CODEC_OPUS,
+GSR_AUDIO_CODEC_FLAC,
+```
+
+Y ninguno es opcional de compilación. `meson_options.txt` tiene siete opciones
+(`systemd`, `capabilities`, `nvidia_suspend_fix`, `portal`, `app_audio`,
+`plugin_examples`, `ffmpeg_static`) y **ninguna toca los códecs de audio**. Lo
+que sí es opcional es el audio por aplicación (`app_audio`), que aquí está
+activo: `project.conf:13` define `GSR_APP_AUDIO` y `--info` responde
+`supports_app_audio|yes`.
+
+En el flatpak, ffmpeg va estático y su lista de codificadores se fija en
+`extra/build_ffmpeg.sh:117`:
+
+```
+encoders=aac,flac,libx264,libopus,h264_nvenc,...
+```
+
+Los tres están. Comprobado además a la salida: la grabación de prueba con
+`-ac opus` produjo un stream `opus` según ffprobe.
+
+### La restricción real no es el códec, es el contenedor
+
+De `src/recorder/codec_select.c:158-196`. GSR no falla, **cambia el códec por
+detrás y avisa**, que para una UI es peor que fallar: el usuario pide una cosa y
+recibe otra.
+
+| Códec pedido | Contenedores donde se respeta | Si no |
+|---|---|---|
+| AAC | todos menos `.webm` | en `.webm` pasa a Opus |
+| Opus | `.mp4`, `.mkv`, `.webm`, `.ts`, `.whip` | en cualquier otro pasa a AAC |
+| FLAC | `.mp4` y `.mkv` | en `.webm` pasa a Opus, en el resto a AAC |
+
+Y una más: **FLAC no sobrevive a mezclar varias fuentes de audio**. Con `amix`
+activo pasa a Opus (`src/recorder/codec_select.c:186-191`).
+
+Consecuencia para la UI, cuando llegue: la pareja contenedor + códec hay que
+validarla antes de ofrecerla, o Capturia enseñará "FLAC" y entregará AAC. Encaja
+con el principio de solo exponer lo que la máquina soporta de verdad.
+
+## Recomendación sobre el backend ffmpeg
+
+**Hay que escribirlo. No sobra.**
+
+Es la tercera fila del árbol de decisión, la que decía "backend propio
+ffmpeg+PipeWire para todo el modo audio-only, tal como estaba previsto en la
+arquitectura". No hay reparto posible con GSR: no es que le falten códecs, es
+que no arranca sin vídeo.
+
+Por eso **`graba_audio_solo()` se queda** en `src/core/entorno.cpp`. El encargo
+pedía borrarla si la conclusión era que sobraba; la conclusión es la contraria.
+Lo que sí se ha corregido es su comentario, que daba la pregunta por abierta, y
+ahora cita el sitio del código que la cierra.
+
+Lo que esto significa en la práctica:
+
+- ffmpeg pasa de "quizá" a **dependencia real del modo audio-only**. Sigue
+  siendo proceso externo, nunca enlazado, igual que GSR.
+- `--check` ya lo refleja: sin ffmpeg dice "Audio sin video: NO posible".
+- El backend en sí sigue sin escribir. Esto es una tanda de investigación, no de
+  features. Que haga falta no es permiso para empezarlo.
+
+Antes de escribirlo hay una decisión que sigue siendo del titular y que esta
+investigación no zanja: **qué formatos ofrece el modo audio-only**. Opus cubre
+el caso general y FLAC el de calidad, pero MP3 obliga a otro codificador y
+puede que no le haga falta a nadie. Es la pregunta que había en la segunda fila
+del árbol y sigue viva.
+
+## El árbol de decisión, resuelto
 
 | Si resulta que... | Entonces el backend ffmpeg es... | Y hacemos |
 |---|---|---|
-| GSR graba audio sin vídeo, con Opus, AAC, MP3 y FLAC | **innecesario** | nada de ffmpeg. Un backend menos que mantener, un proceso menos, arranque más rápido. Se borra `graba_audio_solo()` y su dependencia |
-| GSR graba audio sin vídeo, pero solo en Opus y AAC | **parcial** | GSR para Opus y AAC; ffmpeg solo para MP3 y FLAC. Antes de escribirlo, preguntar al titular si MP3 y FLAC merecen un segundo backend, o si con Opus y AAC basta |
-| GSR exige fuente de vídeo siempre | **imprescindible** | backend propio ffmpeg+PipeWire para todo el modo audio-only, tal como estaba previsto en la arquitectura |
-
-## Recomendación provisional
-
-**No escribir ni una línea del backend ffmpeg hasta responder (a).** Es la
-recomendación clara que pide el encargo, y no es una forma de aplazar la
-decisión: en dos de los tres desenlaces ese backend sobra entero o casi entero,
-y el proyecto tiene como principio de diseño no añadir lo que no es
-imprescindible. Escribirlo antes de saberlo es apostar a la rama menos probable
-de las tres y arriesgarse a tirar el trabajo.
-
-Coste de esperar: una tarde de lectura en la máquina buena. Coste de
-equivocarse: un backend de audio entero, con su dependencia de libav y su
-proceso extra, mantenido para siempre sin hacer falta.
+| GSR graba audio sin vídeo, con Opus, AAC, MP3 y FLAC | innecesario | — |
+| GSR graba audio sin vídeo, pero solo en Opus y AAC | parcial | — |
+| **GSR exige fuente de vídeo siempre** | **imprescindible** | **backend propio ffmpeg+PipeWire para todo el modo audio-only. Es lo que toca** |

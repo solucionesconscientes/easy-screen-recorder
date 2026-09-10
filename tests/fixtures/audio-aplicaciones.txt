@@ -1,0 +1,15 @@
+# SINTETICO. --list-application-audio imprime el nombre pelado de cada
+# aplicacion que esta sonando, sin separador (commands.c:296-300 de GSR 6.0.0).
+# El volcado real de esta maquina sale vacio porque no habia nada sonando, asi
+# que este fixture cubre el caso contrario: hay entradas y NINGUNA trae «|».
+# No debe salir ni un aviso: ese formato es el correcto, no una anomalia.
+### comando: gpu-screen-recorder --version
+### codigo: 0
+6.0.0
+### fin
+### comando: gpu-screen-recorder --list-application-audio
+### codigo: 0
+firefox
+mpv
+Telegram Desktop
+### fin

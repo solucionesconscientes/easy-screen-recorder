@@ -11,8 +11,9 @@ sobre cómo funciona GSR. Si no lo has ejecutado, no está hecho. Si no puedes
 comprobarlo, escríbelo como "sin verificar" en vez de rellenarlo.
 
 Esto no es retórica: la Tanda 1 se quedó sin tres entregables por no tener
-acceso al código de GSR, y la alternativa habría sido inventárselos. Ver
-ESTADO.md, bloqueo B1.
+acceso al código de GSR, y la alternativa habría sido inventárselos. Se
+entregaron en la Tanda 2, ya con el código y los binarios delante, y el bloqueo
+B1 quedó cerrado. Esperar salió más barato que inventar.
 
 ## Qué es esto
 
@@ -106,25 +107,37 @@ Antes de dar una tanda por terminada:
 pruebe.** Si un error te bloquea dos veces seguidas, documéntalo en ESTADO.md y
 para.
 
-## Versión mínima de GSR: sin decidir
+## Versión mínima de GSR: 6.0.0
 
-`capturia::version_minima_gsr()` devuelve `nullopt` a propósito. Para fijarla
-hace falta leer `third_party/gpu-screen-recorder/project.conf` y la salida real
-de `gpu-screen-recorder --version` en la máquina de desarrollo, y ninguna de las
-dos ha estado disponible todavía.
+`capturia::version_minima_gsr()` devuelve `Version{6, 0, 0}`.
 
-El criterio para decidirla, cuando se pueda: la versión más antigua que ya traiga
-el IPC de `gsr-cli` completo, porque de eso depende toda nuestra capa de
-control. Una versión anterior no nos sirve por mucho que grabe bien. Fíjala aquí
-con el número y la razón, y quita el `nullopt`.
+El criterio era: la versión más antigua que ya traiga el IPC de `gsr-cli`
+completo, porque de eso depende toda nuestra capa de control. **6.0.0 es la más
+antigua que se ha podido comprobar que lo trae**, y de ahí sale el número:
+
+- `third_party/gpu-screen-recorder/project.conf:4` dice `version = "6.0.0"`.
+- `gpu-screen-recorder --version` responde `6.0.0` en la máquina de desarrollo.
+- Sobre esa versión se ejecutó el protocolo entero, incluida la respuesta
+  diferida de `stop` que devuelve la ruta del fichero guardado. Está en
+  `docs/gsr-ipc.md`, con la transcripción.
+
+`gsr-cli.1:1` lleva sellado `5.15.3`, así que `gsr-cli` ya existía antes. **No se
+baja el mínimo por eso**: que existiera el binario no dice que su IPC estuviera
+completo, y sin ese árbol delante sería suponer. Se baja el día que se lea ese
+código, no antes.
 
 ## Licencia
 
-GSR es GPL-3.0. Lo usamos como **proceso externo por IPC**, sin enlazar su
+GSR es GPL-3.0-only. Lo usamos como **proceso externo por IPC**, sin enlazar su
 código, y esa distinción es la que mantiene nuestra UI fuera de la GPL-3.0.
-Pendiente de escribir `docs/LICENSING.md` con el razonamiento completo y con qué
-cambiaría si algún día enlazáramos su código. No lo enlaces; el documento es
-para explicar el riesgo, no para abrir la puerta.
+
+El razonamiento completo está en `docs/LICENSING.md`, con lo que cambiaría si
+algún día enlazáramos su código. No lo enlaces; el documento explica el riesgo,
+no abre la puerta. Sus cuatro reglas, en corto: GSR solo como proceso externo,
+`third_party/` de lectura, ni un `#include` que apunte ahí, y releerlo antes de
+empaquetar GSR con Capturia.
+
+La licencia de **Capturia** sigue sin elegirse. Es decisión del titular.
 
 ## Datos y cifras
 

@@ -44,9 +44,18 @@ std::string Version::texto() const {
 }
 
 std::optional<Version> version_minima_gsr() {
-    // Sin decidir. Ver ESTADO.md, bloqueo B1: hace falta project.conf de GSR y
-    // la salida real de `gpu-screen-recorder --version` para razonarla.
-    return std::nullopt;
+    // 6.0.0. El criterio es "la mas antigua que ya traiga el IPC de gsr-cli
+    // completo", y 6.0.0 es la mas antigua que se ha podido *comprobar* que lo
+    // trae: es la del arbol de third_party/ (project.conf, version = "6.0.0"),
+    // la que responde a --version en esta maquina, y sobre ella se ejecuto el
+    // protocolo entero, incluida la respuesta diferida de «stop» que devuelve la
+    // ruta del fichero guardado.
+    //
+    // La pagina de manual gsr-cli.1:1 lleva sellado "5.15.3", asi que gsr-cli ya
+    // existia antes. No se baja el minimo por eso: que existiera el binario no
+    // dice que el IPC estuviera completo, y sin ese arbol delante seria suponer.
+    // Se baja el dia que se lea ese codigo, no antes.
+    return Version{6, 0, 0};
 }
 
 }  // namespace capturia
