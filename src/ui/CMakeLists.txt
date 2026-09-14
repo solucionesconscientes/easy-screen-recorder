@@ -31,6 +31,7 @@ qt_add_qml_module(capturia_ui
   NO_IMPORT_SCAN
   QML_FILES
     qml/Main.qml
+    qml/SelectorRegion.qml
 )
 
 target_link_libraries(capturia_ui PRIVATE

@@ -5,6 +5,7 @@
 
 #include <cstdio>
 #include <ctime>
+#include <filesystem>
 
 #include "capturia/ajustes.hpp"
 #include "capturia/audio.hpp"
@@ -72,7 +73,17 @@ void Controlador::autoprueba(const QString& fuente) {
             QTimer::singleShot(3000, this, [this] { parar(); });
         }
     });
-    grabar(fuente, QStringLiteral("very_high"), 60, QStringLiteral("sistema"));
+    QVariantMap opciones;
+    const QByteArray region = qgetenv("CAPTURIA_AUTOPRUEBA_REGION");
+    if (!region.isEmpty()) opciones[QStringLiteral("region")] = QString::fromUtf8(region);
+    // CAPTURIA_AUTOPRUEBA_OPCIONES="clave=valor,clave=valor": el mismo mapa
+    // que arma el QML, para verificar que las opciones llegan hasta GSR.
+    const QString extra = QString::fromUtf8(qgetenv("CAPTURIA_AUTOPRUEBA_OPCIONES"));
+    for (const QString& par : extra.split(QLatin1Char(','), Qt::SkipEmptyParts)) {
+        const auto corte = par.indexOf(QLatin1Char('='));
+        if (corte > 0) opciones[par.left(corte)] = par.mid(corte + 1);
+    }
+    grabar(fuente, opciones);
 }
 
 void Controlador::detectarEnSegundoPlano() {
@@ -88,8 +99,30 @@ void Controlador::detectarEnSegundoPlano() {
     vigilante->setFuture(QtConcurrent::run([] { return capturia::detectar(); }));
 }
 
+QStringList Controlador::contenedores() const {
+    QStringList lista;
+    for (const auto& c : capturia::contenedores_soportados()) lista << QString::fromStdString(c);
+    return lista;
+}
+
+QStringList Controlador::codecsAudioPara(const QString& contenedor) const {
+    QStringList lista;
+    for (const auto& c : capturia::codecs_audio_para(contenedor.toStdString())) {
+        lista << QString::fromStdString(c);
+    }
+    return lista;
+}
+
 void Controlador::aplicarEntorno(const capturia::Entorno& e) {
     fuentes_.clear();
+    codecs_video_.clear();
+    // «auto» delante: delega en GSR, que es el criterio probado. El resto,
+    // tal como la maquina los nombra; el sufijo _software se enseña como CPU
+    // para que nadie lo confunda con hardware.
+    codecs_video_ << QStringLiteral("auto");
+    for (const auto& c : e.capacidades.info.codecs_video) {
+        codecs_video_ << QString::fromStdString(c);
+    }
     for (const auto& f : e.capacidades.fuentes_captura) {
         QString etiqueta = QString::fromStdString(f.id);
         // Una camara con N modos es UNA fuente para el usuario; el modo lo
@@ -120,35 +153,67 @@ void Controlador::aplicarEntorno(const capturia::Entorno& e) {
     if (estado_ == QStringLiteral("detectando")) ponerEstado(QStringLiteral("listo"));
 }
 
-void Controlador::grabar(const QString& fuente, const QString& calidad, int fps,
-                         const QString& audio) {
+void Controlador::grabar(const QString& fuente, const QVariantMap& opciones) {
     ponerError({});
     ruta_guardada_.clear();
     emit rutaGuardadaCambiada();
 
-    // Las dos entradas de solo-audio van por ffmpeg, no por GSR.
+    // Las dos entradas de solo-audio van por ffmpeg, no por GSR. Tambien en
+    // hilo aparte: resolver el dispositivo pregunta a pactl y ffmpeg tarda
+    // en confirmar que arranco.
     if (fuente == kAudioSistema || fuente == kAudioMicro) {
         capturia::AjustesAudio a;
         a.dispositivo = fuente == kAudioMicro ? "default_input" : "default_output";
-        a.salida = capturia::nombre_por_defecto(capturia::carpeta_musica(), "opus");
-        const auto r = capturia::empezar_audio(a, capturia::sesion_audio_por_defecto());
-        if (!r.bien) {
-            ponerError(QString::fromStdString(r.motivo));
-            return;
-        }
-        audio_en_curso_ = true;
-        segundos_ = 0;
-        emit segundosCambiados();
-        reloj_.start();
-        ponerEstado(QStringLiteral("grabandoAudio"));
+        a.formato = opciones.value(QStringLiteral("formatoAudio"), QStringLiteral("opus"))
+                        .toString()
+                        .toStdString();
+        const std::string carpeta = capturia::carpeta_musica();
+        a.salida = capturia::nombre_por_defecto(carpeta, a.formato == "flac" ? "flac" : "opus");
+
+        ponerEstado(QStringLiteral("arrancando"));
+        auto* vigilante = new QFutureWatcher<capturia::ResultadoAudio>(this);
+        connect(vigilante, &QFutureWatcher<capturia::ResultadoAudio>::finished, this,
+                [this, vigilante] {
+                    const auto r = vigilante->result();
+                    vigilante->deleteLater();
+                    if (!r.bien) {
+                        ponerError(QString::fromStdString(r.motivo));
+                        ponerEstado(QStringLiteral("listo"));
+                        return;
+                    }
+                    audio_en_curso_ = true;
+                    segundos_ = 0;
+                    emit segundosCambiados();
+                    reloj_.start();
+                    ponerEstado(QStringLiteral("grabandoAudio"));
+                });
+        vigilante->setFuture(QtConcurrent::run([a, carpeta] {
+            // La carpeta por defecto del usuario se crea si falta: es la que
+            // el ya tiene configurada en XDG, no una inventada.
+            std::error_code ec;
+            std::filesystem::create_directories(carpeta, ec);
+            return capturia::empezar_audio(a, capturia::sesion_audio_por_defecto());
+        }));
         return;
     }
 
     capturia::AjustesGrabacion a;
     a.fuente = fuente.toStdString();
-    a.salida = capturia::nombre_por_defecto(capturia::carpeta_videos());
-    a.calidad = calidad.toStdString();
-    a.fps = fps;
+    const std::string carpeta_v = capturia::carpeta_videos();
+    const QString contenedor =
+        opciones.value(QStringLiteral("contenedor"), QStringLiteral("mkv")).toString();
+    a.salida = capturia::nombre_por_defecto(carpeta_v, contenedor.toStdString());
+    a.calidad = opciones.value(QStringLiteral("calidad"), QStringLiteral("very_high"))
+                    .toString()
+                    .toStdString();
+    a.fps = opciones.value(QStringLiteral("fps"), 60).toInt();
+    a.codec_video =
+        opciones.value(QStringLiteral("codecVideo"), QStringLiteral("auto")).toString().toStdString();
+    a.codec_audio =
+        opciones.value(QStringLiteral("codecAudio"), QStringLiteral("opus")).toString().toStdString();
+    a.region = opciones.value(QStringLiteral("region")).toString().toStdString();
+
+    const QString audio = opciones.value(QStringLiteral("audio"), QStringLiteral("sistema")).toString();
     if (audio == QStringLiteral("micro")) {
         a.audios = {"default_input"};
     } else if (audio == QStringLiteral("ambos")) {
@@ -159,6 +224,10 @@ void Controlador::grabar(const QString& fuente, const QString& calidad, int fps,
     } else if (audio == QStringLiteral("nada")) {
         a.audios.clear();
         a.sin_audio = true;
+    }
+    {
+        std::error_code ec;
+        std::filesystem::create_directories(carpeta_v, ec);
     }
 
     // empezar_grabacion espera al socket del grabador (hasta 15 s si el

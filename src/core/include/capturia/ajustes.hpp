@@ -33,6 +33,16 @@ struct AjustesGrabacion {
 // La extension de la ruta, sin el punto y en minusculas. Vacia si no hay.
 std::string extension_de(std::string_view ruta);
 
+// Los contenedores que Capturia ofrece. mkv es el default de CLAUDE.md;
+// mp4 y webm son los otros dos con reglas conocidas en codec_select.c.
+// No es deteccion: es la lista de lo que este proyecto decide soportar.
+std::vector<std::string> contenedores_soportados();
+
+// Los codecs de audio que GSR respeta en ese contenedor, sin cambiarlos por
+// detras (codec_select.c:158-196). La UI llena su selector con esto: asi es
+// imposible pedir una pareja que saldria distinta de lo pedido.
+std::vector<std::string> codecs_audio_para(std::string_view extension);
+
 // Comprueba la pareja contenedor + codec de audio contra las reglas de
 // codec_select.c:158-196 de GSR 6.0.0. GSR no falla ante una pareja invalida:
 // cambia el codec por detras y avisa por stderr, que para el usuario es

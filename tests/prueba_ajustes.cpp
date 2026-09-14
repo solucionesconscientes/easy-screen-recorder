@@ -97,6 +97,25 @@ int main() {
         COMPROBAR(algun_problema_contiene(p, "salida"));
     }
 
+    // La regla que llena los selectores de la UI. Coherencia exigida: todo
+    // lo que codecs_audio_para devuelve tiene que pasar validar(), y lo que
+    // no devuelve tiene que fallarla. Si las dos fuentes divergen, este test
+    // lo caza.
+    for (const std::string& cont : contenedores_soportados()) {
+        const auto codecs = codecs_audio_para(cont);
+        COMPROBAR_NOTA(!codecs.empty(), cont);
+        COMPROBAR(codecs.front() == "opus");  // el default del proyecto, delante
+        for (const std::string& codec : {std::string("aac"), std::string("opus"), std::string("flac")}) {
+            auto a = base();
+            a.salida = "/x/v." + cont;
+            a.codec_audio = codec;
+            const bool permitido =
+                std::find(codecs.begin(), codecs.end(), codec) != codecs.end();
+            COMPROBAR_NOTA(validar(a).empty() == permitido, cont + "+" + codec);
+        }
+    }
+    COMPROBAR(codecs_audio_para("flv").empty());
+
     // La linea de comandos que ve GSR. El orden de -w primero no es manía:
     // es el argumento obligatorio (args_parser.c:536) y asi los errores de
     // GSR lo citan el primero.

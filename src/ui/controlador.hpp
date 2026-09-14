@@ -2,6 +2,7 @@
 
 #include <QObject>
 #include <QStringList>
+#include <QVariantMap>
 #include <QTimer>
 #include <qqmlregistration.h>
 
@@ -18,6 +19,10 @@ class Controlador : public QObject {
 
     // "detectando" | "listo" | "grabando" | "pausado" | "grabandoAudio" | "sinGsr"
     Q_PROPERTY(QString estado READ estado NOTIFY estadoCambiado)
+    // Lo que la maquina soporta de verdad: el selector de codecs se llena de
+    // aqui, nunca de una lista escrita en el QML.
+    Q_PROPERTY(QStringList codecsVideo READ codecsVideo NOTIFY fuentesCambiadas)
+    Q_PROPERTY(QStringList contenedores READ contenedores CONSTANT)
     Q_PROPERTY(QStringList fuentes READ fuentes NOTIFY fuentesCambiadas)
     Q_PROPERTY(QString diagnostico READ diagnostico NOTIFY estadoCambiado)
     Q_PROPERTY(QString rutaGuardada READ rutaGuardada NOTIFY rutaGuardadaCambiada)
@@ -29,14 +34,20 @@ public:
 
     QString estado() const { return estado_; }
     QStringList fuentes() const { return fuentes_; }
+    QStringList codecsVideo() const { return codecs_video_; }
+    QStringList contenedores() const;
+    Q_INVOKABLE QStringList codecsAudioPara(const QString& contenedor) const;
     QString diagnostico() const { return diagnostico_; }
     QString rutaGuardada() const { return ruta_guardada_; }
     QString error() const { return error_; }
     int segundos() const { return segundos_; }
 
-    // calidad: medium|high|very_high|ultra. audio: sistema|micro|ambos|nada.
-    Q_INVOKABLE void grabar(const QString& fuente, const QString& calidad, int fps,
-                            const QString& audio);
+    // opciones: calidad (medium|high|very_high|ultra), fps, audio
+    // (sistema|micro|ambos|nada), contenedor (mkv|mp4|webm), codecVideo
+    // ("auto" o uno detectado), codecAudio, region ("WxH+X+Y", solo con
+    // fuente «region») y formatoAudio (opus|flac, solo para solo-audio).
+    // Lo ausente cae al default del proyecto.
+    Q_INVOKABLE void grabar(const QString& fuente, const QVariantMap& opciones);
     Q_INVOKABLE void parar();
     Q_INVOKABLE void pausar();
     Q_INVOKABLE void reanudar();
@@ -58,6 +69,7 @@ private:
 
     QString estado_ = QStringLiteral("detectando");
     QStringList fuentes_;
+    QStringList codecs_video_;
     QString diagnostico_;
     QString ruta_guardada_;
     QString error_;

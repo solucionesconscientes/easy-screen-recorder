@@ -26,6 +26,18 @@ std::string extension_de(std::string_view ruta) {
     return ext;
 }
 
+std::vector<std::string> contenedores_soportados() { return {"mkv", "mp4", "webm"}; }
+
+std::vector<std::string> codecs_audio_para(std::string_view extension) {
+    // opus: mp4, mkv, webm, ts, whip. flac: mp4, mkv. aac: todos menos webm.
+    // El orden importa: el primero es el que la UI preselecciona, y opus
+    // delante en todos es el default del proyecto.
+    if (extension == "mkv" || extension == "mp4") return {"opus", "aac", "flac"};
+    if (extension == "webm") return {"opus"};
+    if (extension == "ts" || extension == "whip") return {"opus", "aac"};
+    return {};
+}
+
 std::vector<std::string> validar(const AjustesGrabacion& a) {
     std::vector<std::string> problemas;
 

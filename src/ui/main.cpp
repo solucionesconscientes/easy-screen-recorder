@@ -61,8 +61,9 @@ int main(int argc, char** argv) {
                                                          Qt::SingleShotConnection));
     }
 
-    // La bandeja: indicador permanente y notificacion nativa al guardar.
-    QSystemTrayIcon bandeja(QIcon::fromTheme(QStringLiteral("media-record")));
+    // La bandeja: el acceso permanente y el indicador de grabacion. El punto
+    // rojo SOLO cuando se graba: un indicador siempre encendido miente.
+    QSystemTrayIcon bandeja(QIcon::fromTheme(QStringLiteral("camera-video-symbolic")));
     bandeja.setToolTip(QStringLiteral("Capturia"));
     bandeja.show();
 
@@ -85,7 +86,24 @@ int main(int argc, char** argv) {
                              bandeja.showMessage(QStringLiteral("Grabación guardada"), ruta,
                                                  QSystemTrayIcon::Information, 6000);
                          });
+        QObject::connect(controlador, &Controlador::estadoCambiado, &bandeja,
+                         [&bandeja, controlador] {
+                             const QString estado = controlador->estado();
+                             const bool grabando = estado == QStringLiteral("grabando") ||
+                                                   estado == QStringLiteral("grabandoAudio") ||
+                                                   estado == QStringLiteral("pausado");
+                             bandeja.setIcon(QIcon::fromTheme(
+                                 grabando ? QStringLiteral("media-record")
+                                          : QStringLiteral("camera-video-symbolic")));
+                             bandeja.setToolTip(grabando
+                                                    ? QStringLiteral("Capturia: grabando")
+                                                    : QStringLiteral("Capturia"));
+                         });
     }
+
+    // Cerrar la ventana sin grabacion sale del todo; el QML gestiona el
+    // resto. Sin esto, Qt saldria al ocultar la ventana al empezar a grabar.
+    app.setQuitOnLastWindowClosed(false);
 
     return app.exec();
 }

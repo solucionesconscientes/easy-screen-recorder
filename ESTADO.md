@@ -1,6 +1,6 @@
 # Estado del proyecto
 
-Fecha: 2026-09-15. Última tanda ejecutada: **Tanda 7, completa: la UI existe, graba y cumple el contrato.**
+Fecha: 2026-09-15. Última tanda ejecutada: **Tanda 9: región, formatos y códecs en la UI, tras la prueba a mano del titular.**
 
 ## Resumen en una línea
 
@@ -80,6 +80,31 @@ Ninguno abierto.
   Sin él, los nombres cómodos no se resuelven pero uno explícito funciona.
 - `libcapturia` sigue en C++20 y POSIX, ahora con `std::thread` de la
   biblioteca estándar para las sondas.
+
+## Tanda 9: lo que pidió el titular tras probarla
+
+El titular confirmó a mano que la grabación va, y pidió tres cosas. Las tres
+hechas y verificadas ejecutando, el 2026-09-15:
+
+| Qué | Cómo se comprobó |
+|---|---|
+| **Región desde la UI** | selector propio a pantalla completa (arrastrar elige, Esc cancela), estilo Spectacle. El camino entero por autoprueba: `region 800x600+100+100` → ffprobe dice 800x600 exactos |
+| **Formatos y códecs en Avanzado** | formato (mkv/mp4/webm), códec de vídeo (detectado de la máquina, «auto» delante), códec de audio **filtrado por formato**: una pareja que GSR cambiaría por detrás ni se puede pedir. `codecs_audio_para()` vive en libcapturia con test de coherencia contra `validar()` (53 comprobaciones) |
+| **Solo-audio con formato** | opus/flac elegible; verificado grabando flac del micrófono por el camino de la UI. La carpeta por defecto (Música/Vídeos) se crea si falta: es la del usuario en XDG, no una inventada |
+| webm con códec auto | salió **vp8+opus**, el criterio del upstream aplicado solo |
+| La ventana se aparta al grabar pantalla | si no, salía dentro del vídeo. Vuelve sola al guardar; en solo-audio se queda con su reloj |
+| La bandeja dice la verdad | punto rojo solo grabando; en reposo, icono neutro. Cerrar la ventana grabando la manda a la bandeja; sin nada en marcha, cierra del todo |
+| La ventana crece con el Avanzado | antes cortaba las últimas filas |
+| Regresión | ctest 11/11, arnés pantalla+audio en verde, arranque de la UI en ~0,75 s |
+
+Nota sobre el «solo audio» del encargo del titular: el camino ya funcionaba
+(la autoprueba grabó a Música a la primera). Lo que faltaba era poder elegir
+formato y que la carpeta se cree si falta; si el titular vio un error
+concreto, sigue interesando el texto exacto.
+
+Sin verificar, y dicho: el arrastre humano del selector (autoprueba cubre el
+camino con la región ya elegida; falta tu arrastre), multimonitor
+(virtualX/Y escrito pero con un solo monitor aquí) y escala fraccionaria.
 
 ## Tanda 7: la UI
 

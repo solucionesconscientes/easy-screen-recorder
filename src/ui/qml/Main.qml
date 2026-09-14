@@ -17,13 +17,65 @@ Kirigami.ApplicationWindow {
     readonly property bool grabando: Controlador.estado === "grabando"
                                      || Controlador.estado === "grabandoAudio"
                                      || Controlador.estado === "pausado"
+
+    // Al grabar pantalla, la ventana se aparta: si no, sale en el video.
+    // Vuelve sola al guardar. En solo-audio se queda, que no estorba a nadie
+    // y el reloj se agradece. La bandeja la recupera en cualquier momento.
+    Connections {
+        target: Controlador
+        function onEstadoCambiado() {
+            if (Controlador.estado === "grabando") raiz.hide()
+            else if (Controlador.estado === "listo" && !raiz.visible) raiz.show()
+        }
+    }
+    onClosing: function(cierre) {
+        // Cerrar la ventana con una grabacion en marcha no la corta: se va a
+        // la bandeja. Sin nada en marcha, cerrar es salir, como manda la
+        // sencillez: nada de procesos residentes porque si.
+        if (raiz.grabando || ocupado) {
+            cierre.accepted = false
+            raiz.hide()
+        } else {
+            Qt.quit()
+        }
+    }
     readonly property bool ocupado: Controlador.estado === "arrancando"
                                     || Controlador.estado === "guardando"
+
+    function lanzarGrabacion(region) {
+        var opciones = {
+            calidad: calidad.currentValue,
+            fps: parseInt(fps.currentText),
+            audio: audio.currentValue,
+            contenedor: contenedor.currentText,
+            codecVideo: codecVideo.currentText,
+            codecAudio: codecAudio.currentText,
+            formatoAudio: formatoAudio.currentText
+        }
+        if (region !== "") opciones.region = region
+        Controlador.grabar(fuente.currentText, opciones)
+    }
 
     function tiempoBonito(s) {
         var m = Math.floor(s / 60)
         var r = s % 60
         return (m < 10 ? "0" : "") + m + ":" + (r < 10 ? "0" : "") + r
+    }
+
+    SelectorRegion {
+        id: selectorRegion
+        onElegida: function(region) { raiz.lanzarGrabacion(region) }
+    }
+
+    // Arnes de capturas: sin inyeccion de entrada no hay clic que abra estos
+    // estados, asi que dos argumentos ocultos los abren para fotografiarlos.
+    Component.onCompleted: {
+        if (Qt.application.arguments.indexOf("--avanzado") !== -1) {
+            avanzado.checked = true
+        }
+        if (Qt.application.arguments.indexOf("--selector") !== -1) {
+            selectorRegion.abrir()
+        }
     }
 
     pageStack.initialPage: Kirigami.Page {
@@ -67,6 +119,7 @@ Kirigami.ApplicationWindow {
                     Layout.fillWidth: true
                     model: Controlador.fuentes
                     enabled: !ocupado
+                    readonly property bool esAudio: currentText.indexOf("Solo audio") === 0
                 }
 
                 QQC2.Button {
@@ -77,8 +130,13 @@ Kirigami.ApplicationWindow {
                         : Controlador.estado === "guardando" ? qsTr("Guardando…")
                         : qsTr("Grabar")
                     enabled: !ocupado && fuente.currentText !== ""
-                    onClicked: Controlador.grabar(fuente.currentText, calidad.currentValue,
-                                                  parseInt(fps.currentText), audio.currentValue)
+                    onClicked: {
+                        if (fuente.currentText === "region") {
+                            selectorRegion.abrir()
+                        } else {
+                            raiz.lanzarGrabacion("")
+                        }
+                    }
                 }
 
                 // Todo lo que no es Fuente y Grabar vive aqui, plegado. Es
@@ -90,6 +148,10 @@ Kirigami.ApplicationWindow {
                     checkable: true
                     icon.name: checked ? "collapse" : "expand"
                     text: qsTr("Avanzado")
+                    // La ventana crece con el desplegable: sin esto, las
+                    // ultimas filas quedaban cortadas y ni se veian.
+                    onCheckedChanged: raiz.height = checked
+                        ? Kirigami.Units.gridUnit * 32 : Kirigami.Units.gridUnit * 21
                 }
                 Kirigami.FormLayout {
                     Layout.fillWidth: true
@@ -97,7 +159,39 @@ Kirigami.ApplicationWindow {
                     enabled: !ocupado
 
                     QQC2.ComboBox {
+                        id: formatoAudio
+                        visible: fuente.esAudio
+                        Kirigami.FormData.label: qsTr("Formato:")
+                        // opus para el caso general, flac para calidad. La
+                        // decision y el porque, en ESTADO.md de la Tanda 5.
+                        model: ["opus", "flac"]
+                    }
+                    QQC2.ComboBox {
+                        id: contenedor
+                        visible: !fuente.esAudio
+                        Kirigami.FormData.label: qsTr("Formato:")
+                        model: Controlador.contenedores
+                    }
+                    QQC2.ComboBox {
+                        id: codecVideo
+                        visible: !fuente.esAudio
+                        Kirigami.FormData.label: qsTr("Códec de vídeo:")
+                        // Lo que la maquina soporta de verdad, detectado; el
+                        // sufijo _software es CPU y GSR lo nombra asi.
+                        model: Controlador.codecsVideo
+                    }
+                    QQC2.ComboBox {
+                        id: codecAudio
+                        visible: !fuente.esAudio
+                        Kirigami.FormData.label: qsTr("Códec de audio:")
+                        // Solo los que GSR respeta en el formato elegido: una
+                        // pareja invalida ni se puede pedir.
+                        model: Controlador.codecsAudioPara(contenedor.currentText)
+                        onModelChanged: currentIndex = 0
+                    }
+                    QQC2.ComboBox {
                         id: calidad
+                        visible: !fuente.esAudio
                         Kirigami.FormData.label: qsTr("Calidad:")
                         textRole: "texto"
                         valueRole: "valor"
@@ -111,12 +205,14 @@ Kirigami.ApplicationWindow {
                     }
                     QQC2.ComboBox {
                         id: fps
+                        visible: !fuente.esAudio
                         Kirigami.FormData.label: qsTr("Imágenes por segundo:")
                         model: ["30", "60"]
                         currentIndex: 1
                     }
                     QQC2.ComboBox {
                         id: audio
+                        visible: !fuente.esAudio
                         Kirigami.FormData.label: qsTr("Audio:")
                         textRole: "texto"
                         valueRole: "valor"
