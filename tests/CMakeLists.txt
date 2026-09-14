@@ -5,13 +5,18 @@ function(capturia_prueba nombre)
   target_include_directories(${nombre} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
   target_compile_definitions(${nombre} PRIVATE
     CAPTURIA_DIR_FIXTURES="${CMAKE_CURRENT_SOURCE_DIR}/fixtures"
-    CAPTURIA_VOLCADO_REAL="${CMAKE_SOURCE_DIR}/docs/gsr-capabilities.txt")
+    CAPTURIA_VOLCADO_REAL="${CMAKE_SOURCE_DIR}/docs/gsr-capabilities.txt"
+    # La version de project() llega al test para compararla con
+    # kVersionCapturia: estan duplicadas a pelo y sin esto se separan sin que
+    # nadie lo note.
+    CAPTURIA_VERSION_CMAKE="${PROJECT_VERSION}")
   add_test(NAME ${nombre} COMMAND ${nombre})
 endfunction()
 
 capturia_prueba(prueba_version)
 capturia_prueba(prueba_proceso)
 capturia_prueba(prueba_capacidades)
+capturia_prueba(prueba_entorno)
 
 # El CLI tiene que responder a --version y --check sin reventar aunque no haya
 # nada instalado. --check devuelve 1 en una maquina sin GSR, y eso es correcto:

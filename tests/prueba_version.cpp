@@ -53,6 +53,13 @@ int main() {
 
     COMPROBAR((Version{5, 4, 1}).texto() == "5.4.1");
 
+    // La version de Capturia vive duplicada: kVersionCapturia y el VERSION de
+    // project() en CMakeLists.txt. Aqui se exige que coincidan; sin esto se
+    // separan en el primer olvido y --version miente.
+    COMPROBAR_NOTA(capturia::kVersionCapturia == std::string_view(CAPTURIA_VERSION_CMAKE),
+                   std::string("version.hpp dice ") + std::string(capturia::kVersionCapturia) +
+                       " y CMakeLists.txt dice " CAPTURIA_VERSION_CMAKE);
+
     // Ya esta decidida: 6.0.0, la version cuyo IPC se ha podido comprobar
     // entero en la maquina de desarrollo (ver CLAUDE.md y docs/gsr-ipc.md).
     const auto minima = capturia::version_minima_gsr();

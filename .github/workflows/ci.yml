@@ -1,0 +1,38 @@
+# CI de Capturia: compilar sin un solo warning y pasar los tests.
+#
+# En el runner NO hay GSR ni sesion grafica, y eso esta bien: los tests son
+# hermeticos sobre fixtures, y el test cli_check acepta "NO LISTO" como
+# respuesta correcta de una maquina sin GSR.
+#
+# Lo que este CI no cubre, a proposito:
+#   - scripts/verify-recording.sh: graba de verdad, solo tiene sentido en una
+#     maquina con GSR, GPU y sesion Wayland. Es verificacion local.
+#   - scripts/volcar-capacidades.sh: idem, el volcado sale de la maquina real.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  compilar-y-probar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instalar ninja
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build
+
+      - name: Configurar
+        run: cmake -S . -B build -G Ninja
+
+      # CAPTURIA_WERROR esta ON por defecto: un warning aqui rompe el build,
+      # que es exactamente lo que manda CLAUDE.md.
+      - name: Compilar
+        run: cmake --build build
+
+      - name: Tests
+        run: ctest --test-dir build --output-on-failure
