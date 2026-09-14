@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "capturia/ajustes.hpp"
+#include "capturia/audio.hpp"
 #include "capturia/entorno.hpp"
 #include "capturia/grabacion.hpp"
 #include "capturia/version.hpp"
@@ -28,7 +29,8 @@ void uso() {
         "capturia %s: grabador de pantalla sobre gpu-screen-recorder\n"
         "\n"
         "Uso:\n"
-        "  capturia grabar [opciones]  empieza a grabar y vuelve al instante\n"
+        "  capturia grabar [opciones]  empieza a grabar la pantalla y vuelve al instante\n"
+        "  capturia audio [opciones]   graba solo audio, sin video (via ffmpeg)\n"
         "  capturia parar              para, guarda e imprime la ruta del fichero\n"
         "  capturia pausar             pausa la grabacion en marcha\n"
         "  capturia reanudar           reanuda la grabacion pausada\n"
@@ -50,6 +52,12 @@ void uso() {
         "  --sin-audio       grabar sin ninguna pista de audio\n"
         "  --fps N           por defecto 60\n"
         "  --calidad Q       medium, high, very_high o ultra. Por defecto very_high\n"
+        "\n"
+        "Opciones de audio:\n"
+        "  --dispositivo D   default_output (lo que suena), default_input (el micro)\n"
+        "                    o un nombre de «capturia dispositivos». Por defecto lo que suena\n"
+        "  --formato F       opus o flac. Por defecto opus\n"
+        "  --salida FICHERO  el destino. Sin el: capturia-FECHA.opus en Musica\n"
         "\n"
         "Codigos de salida: 0 bien, 1 fallo de la operacion, 2 orden mal escrita.\n",
         std::string(capturia::kVersionCapturia).c_str());
@@ -254,7 +262,53 @@ int grabar(const std::vector<std::string_view>& args) {
     return kBien;
 }
 
+int audio(const std::vector<std::string_view>& args) {
+    capturia::AjustesAudio a;
+    for (std::size_t i = 1; i < args.size(); ++i) {
+        const std::string_view opcion = args[i];
+        const auto valor = [&]() -> std::string_view {
+            return i + 1 < args.size() ? args[++i] : std::string_view{};
+        };
+        if (opcion == "--dispositivo") a.dispositivo = std::string(valor());
+        else if (opcion == "--formato") a.formato = std::string(valor());
+        else if (opcion == "--salida") a.salida = std::string(valor());
+        else {
+            std::fprintf(stderr, "capturia: no entiendo «%.*s»\n\n",
+                         static_cast<int>(opcion.size()), opcion.data());
+            uso();
+            return kMalUso;
+        }
+    }
+    if (a.salida.empty()) {
+        a.salida = capturia::nombre_por_defecto(capturia::carpeta_musica(),
+                                                a.formato == "flac" ? "flac" : "opus");
+    }
+
+    const auto r = capturia::empezar_audio(a, capturia::sesion_audio_por_defecto());
+    if (!r.bien) {
+        std::fprintf(stderr, "capturia: no se pudo empezar: %s\n", r.motivo.c_str());
+        return kFallo;
+    }
+    std::printf("grabando audio (%s) -> %s\n", a.dispositivo.c_str(), r.ruta_fichero.c_str());
+    std::printf("para y guarda con: capturia parar\n");
+    return kBien;
+}
+
 int parar() {
+    // Puede haber una grabacion de pantalla o una de audio; se para la que
+    // este. Las dos a la vez tambien: primero la pantalla.
+    const auto sesion_audio = capturia::sesion_audio_por_defecto();
+    if (!capturia::grabacion_en_marcha(capturia::sesion_por_defecto()) &&
+        capturia::audio_en_marcha(sesion_audio)) {
+        const auto ra = capturia::parar_audio(sesion_audio);
+        if (!ra.bien) {
+            std::fprintf(stderr, "capturia: %s\n", ra.motivo.c_str());
+            return kFallo;
+        }
+        std::printf("%s\n", ra.ruta_fichero.c_str());
+        return kBien;
+    }
+
     const auto r = capturia::parar_grabacion(capturia::sesion_por_defecto());
     if (!r.parado) {
         std::fprintf(stderr, "capturia: %s\n", r.motivo.c_str());
@@ -280,8 +334,18 @@ int pausar(bool pausada) {
 }
 
 int estado() {
-    if (capturia::grabacion_en_marcha(capturia::sesion_por_defecto())) {
+    const bool pantalla = capturia::grabacion_en_marcha(capturia::sesion_por_defecto());
+    const bool audio_solo = capturia::audio_en_marcha(capturia::sesion_audio_por_defecto());
+    if (pantalla && audio_solo) {
+        std::printf("grabando pantalla y audio\n");
+        return kBien;
+    }
+    if (pantalla) {
         std::printf("grabando\n");
+        return kBien;
+    }
+    if (audio_solo) {
+        std::printf("grabando audio\n");
         return kBien;
     }
     std::printf("sin grabacion\n");
@@ -308,8 +372,20 @@ int fuentes() {
 int dispositivos() {
     const capturia::Entorno e = capturia::detectar();
     if (!e.gsr.presente) {
-        std::fprintf(stderr, "capturia: gpu-screen-recorder no esta; ejecuta «capturia --check»\n");
-        return kFallo;
+        // Sin GSR el modo audio-only sigue en pie, asi que la lista sale de
+        // pactl y sirve para --dispositivo.
+        std::string motivo;
+        const auto fuentes_pactl = capturia::fuentes_audio_pactl(motivo);
+        if (fuentes_pactl.empty()) {
+            std::fprintf(stderr, "capturia: sin GSR y sin pactl no hay lista: %s\n",
+                         motivo.c_str());
+            return kFallo;
+        }
+        std::printf("dispositivos de audio segun pactl (GSR no esta):\n");
+        for (const auto& f : fuentes_pactl) {
+            std::printf("  %s%s\n", rellenar(f.nombre, 52).c_str(), f.detalle.c_str());
+        }
+        return kBien;
     }
     std::printf("dispositivos de audio (--audio):\n");
     for (const auto& d : e.capacidades.dispositivos_audio) {
@@ -345,6 +421,7 @@ int main(int argc, char** argv) {
     }
     if (orden == "--check") return comprobar(args);
     if (orden == "grabar") return grabar(args);
+    if (orden == "audio") return audio(args);
     if (orden == "parar") return parar();
     if (orden == "pausar") return pausar(true);
     if (orden == "reanudar") return pausar(false);

@@ -2,6 +2,7 @@
 
 #include <cstdlib>
 #include <filesystem>
+#include <thread>
 
 #include "capturia/proceso.hpp"
 
@@ -105,33 +106,51 @@ std::vector<Sonda> sondas() {
 }
 
 std::string volcar() {
-    std::string texto;
-    for (const auto& s : sondas()) {
-        const auto inv = localizar_gsr(s.programa);
-
-        // Sin invocacion no hay nada que ejecutar, pero el bloque se escribe
-        // igual: un hueco silencioso en el volcado seria peor que un error.
+    // Las sondas corren a la vez y el volcado se arma en orden al final. En
+    // serie el coste era la suma (1,3 s medidos con el flatpak, ESTADO.md);
+    // en paralelo es el de la sonda mas lenta. Cada una es un proceso
+    // independiente que solo escribe en su propio hueco, asi que no comparten
+    // nada que proteger.
+    const auto lista = sondas();
+    struct Hueco {
         std::string linea;
         ResultadoProceso r;
-        if (inv) {
-            linea = inv->linea(s.args);
-            std::vector<std::string> args = inv->prefijo;
-            args.insert(args.end(), s.args.begin(), s.args.end());
-            r = ejecutar(inv->programa, args, limite_sonda_ms(*inv));
-        } else {
-            linea = s.programa;
-            for (const auto& a : s.args) linea += " " + a;
-            r.motivo = "no se encuentra «" + s.programa + "» ni en PATH ni como flatpak";
-        }
+    };
+    std::vector<Hueco> huecos(lista.size());
 
-        texto += std::string(kMarcaComando) + linea + "\n";
-        texto += std::string(kMarcaCodigo) + std::to_string(r.ejecutado ? r.codigo : -1) + "\n";
-        if (!r.ejecutado) {
-            texto += "(no ejecutado) " + r.motivo + "\n";
+    std::vector<std::thread> hilos;
+    hilos.reserve(lista.size());
+    for (std::size_t i = 0; i < lista.size(); ++i) {
+        hilos.emplace_back([&lista, &huecos, i] {
+            const Sonda& s = lista[i];
+            Hueco& h = huecos[i];
+            const auto inv = localizar_gsr(s.programa);
+            if (inv) {
+                h.linea = inv->linea(s.args);
+                std::vector<std::string> args = inv->prefijo;
+                args.insert(args.end(), s.args.begin(), s.args.end());
+                h.r = ejecutar(inv->programa, args, limite_sonda_ms(*inv));
+            } else {
+                h.linea = s.programa;
+                for (const auto& a : s.args) h.linea += " " + a;
+                h.r.motivo = "no se encuentra «" + s.programa + "» ni en PATH ni como flatpak";
+            }
+        });
+    }
+    for (auto& hilo : hilos) hilo.join();
+
+    std::string texto;
+    for (const auto& h : huecos) {
+        // Sin invocacion no hay nada que ejecutar, pero el bloque se escribe
+        // igual: un hueco silencioso en el volcado seria peor que un error.
+        texto += std::string(kMarcaComando) + h.linea + "\n";
+        texto += std::string(kMarcaCodigo) + std::to_string(h.r.ejecutado ? h.r.codigo : -1) + "\n";
+        if (!h.r.ejecutado) {
+            texto += "(no ejecutado) " + h.r.motivo + "\n";
         } else {
-            texto += r.salida;
+            texto += h.r.salida;
             if (!texto.empty() && texto.back() != '\n') texto += "\n";
-            if (r.expirado) texto += "(expirado) " + r.motivo + "\n";
+            if (h.r.expirado) texto += "(expirado) " + h.r.motivo + "\n";
         }
         texto += std::string(kMarcaFin) + "\n";
     }

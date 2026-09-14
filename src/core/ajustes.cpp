@@ -110,7 +110,9 @@ std::vector<std::string> argumentos_gsr(const AjustesGrabacion& a) {
     return args;
 }
 
-std::string carpeta_videos() {
+namespace {
+
+std::string carpeta_usuario(const std::string& clave_xdg) {
     const char* hogar = std::getenv("HOME");
     const std::string casa = (hogar != nullptr && hogar[0] != '\0') ? hogar : ".";
 
@@ -126,7 +128,7 @@ std::string carpeta_videos() {
     while (std::getline(f, linea)) {
         // Formato: XDG_VIDEOS_DIR="$HOME/Vídeos". Solo se expande $HOME, que
         // es lo unico que xdg-user-dirs escribe ahi.
-        const std::string clave = "XDG_VIDEOS_DIR=\"";
+        const std::string clave = clave_xdg + "=\"";
         const auto pos = linea.find(clave);
         if (pos == std::string::npos) continue;
         std::string valor = linea.substr(pos + clave.size());
@@ -140,13 +142,19 @@ std::string carpeta_videos() {
     return casa;
 }
 
-std::string nombre_por_defecto(const std::string& carpeta) {
+}  // namespace
+
+std::string carpeta_videos() { return carpeta_usuario("XDG_VIDEOS_DIR"); }
+
+std::string carpeta_musica() { return carpeta_usuario("XDG_MUSIC_DIR"); }
+
+std::string nombre_por_defecto(const std::string& carpeta, const std::string& extension) {
     std::time_t ahora = std::time(nullptr);
     std::tm desglosado{};
     localtime_r(&ahora, &desglosado);
     char sello[32];
     std::strftime(sello, sizeof(sello), "%Y%m%d-%H%M%S", &desglosado);
-    return carpeta + "/capturia-" + sello + ".mkv";
+    return carpeta + "/capturia-" + sello + "." + extension;
 }
 
 }  // namespace capturia

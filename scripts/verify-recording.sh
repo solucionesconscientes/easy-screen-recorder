@@ -108,6 +108,39 @@ if ! awk "BEGIN{exit !($duracion >= 2.0)}"; then
 fi
 
 echo
-echo "VERIFICADO: $ruta ($duracion s, video + audio segun ffprobe)"
+echo "VERIFICADO pantalla: $ruta ($duracion s, video + audio segun ffprobe)"
 rm -f "$ruta"
+
+# --- Modo audio-only ---------------------------------------------------------
+# Va por ffmpeg, no por GSR (docs/gsr-audio-only.md), asi que se verifica
+# aparte y con sus propias herramientas.
+command -v ffmpeg >/dev/null 2>&1 || fallo "ffmpeg no esta en PATH: el modo audio-only no se puede verificar"
+
+destino_audio="$HOME/.cache/capturia/verify/prueba.opus"
+rm -f "$destino_audio"
+
+echo
+echo "grabando 2 segundos de audio de prueba..."
+"$binario" audio --salida "$destino_audio" || fallo "«capturia audio» devolvio error"
+sleep 2
+
+ruta_audio="$("$binario" parar)" || fallo "«capturia parar» devolvio error con el audio"
+[ "$ruta_audio" = "$destino_audio" ] || fallo "parar dijo «$ruta_audio» y se pidio «$destino_audio»"
+[ -s "$ruta_audio" ] || fallo "el audio guardado no existe o esta vacio: $ruta_audio"
+
+codec_audio="$(ffprobe -v error -show_entries stream=codec_name -of csv=p=0 "$ruta_audio")" \
+  || fallo "ffprobe no puede leer $ruta_audio"
+[ "$codec_audio" = "opus" ] || fallo "se pidio opus y el fichero trae «$codec_audio»"
+
+duracion_audio="$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$ruta_audio")"
+case "$duracion_audio" in
+  ''|N/A) fallo "ffprobe no da duracion para $ruta_audio" ;;
+esac
+if ! awk "BEGIN{exit !($duracion_audio >= 1.0)}"; then
+  fallo "duracion del audio $duracion_audio s, se esperaba al menos 1 s"
+fi
+
+echo
+echo "VERIFICADO audio: $ruta_audio ($duracion_audio s, $codec_audio segun ffprobe)"
+rm -f "$ruta_audio"
 exit 0

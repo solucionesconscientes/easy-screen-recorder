@@ -45,12 +45,13 @@ std::vector<std::string> validar(const AjustesGrabacion& a);
 // se ejecuto en la prueba real de docs/gsr-ipc.md.
 std::vector<std::string> argumentos_gsr(const AjustesGrabacion& a);
 
-// La carpeta de Videos del usuario, leida de ~/.config/user-dirs.dirs
-// (XDG_VIDEOS_DIR). Sin ese dato se devuelve el home: no se inventa una
-// carpeta que no existe.
-std::string carpeta_videos();
+// Las carpetas del usuario, leidas de ~/.config/user-dirs.dirs. Sin ese
+// dato se devuelve el home: no se inventa una carpeta que no existe.
+std::string carpeta_videos();   // XDG_VIDEOS_DIR, para las grabaciones de pantalla
+std::string carpeta_musica();   // XDG_MUSIC_DIR, para el modo audio-only
 
-// capturia-AAAAMMDD-HHMMSS.mkv dentro de la carpeta dada.
-std::string nombre_por_defecto(const std::string& carpeta);
+// capturia-AAAAMMDD-HHMMSS.<extension> dentro de la carpeta dada.
+std::string nombre_por_defecto(const std::string& carpeta,
+                               const std::string& extension = "mkv");
 
 }  // namespace capturia
