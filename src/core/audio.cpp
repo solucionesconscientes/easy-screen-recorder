@@ -3,6 +3,7 @@
 #include <signal.h>
 
 #include <cstdlib>
+#include <ctime>
 #include <filesystem>
 #include <fstream>
 #include <thread>
@@ -127,6 +128,7 @@ SesionAudio sesion_audio_por_defecto() {
     s.ruta_pid = s.dir + "/ffmpeg.pid";
     s.ruta_log = s.dir + "/ffmpeg.log";
     s.ruta_destino = s.dir + "/destino.txt";
+    s.ruta_inicio = s.dir + "/inicio.txt";
     return s;
 }
 
@@ -177,6 +179,7 @@ ResultadoAudio empezar_audio(const AjustesAudio& a, const SesionAudio& sesion) {
 
     std::ofstream(sesion.ruta_pid) << lanzado.pid << "\n";
     std::ofstream(sesion.ruta_destino) << a.salida << "\n";
+    std::ofstream(sesion.ruta_inicio) << std::time(nullptr) << "\n";
 
     // Darle un momento: si el dispositivo no existe, ffmpeg muere ya mismo y
     // es mejor decirlo aqui que dejar un "grabando" falso.
@@ -236,6 +239,7 @@ ResultadoAudio parar_audio(const SesionAudio& sesion) {
     r.bien = true;
     std::filesystem::remove(sesion.ruta_pid, ec);
     std::filesystem::remove(sesion.ruta_destino, ec);
+    std::filesystem::remove(sesion.ruta_inicio, ec);
     return r;
 }
 

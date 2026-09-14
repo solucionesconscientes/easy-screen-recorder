@@ -1,6 +1,6 @@
 # Estado del proyecto
 
-Fecha: 2026-09-15. Última tanda ejecutada: **Tanda 6, completa: la investigación del post-proceso está escrita y espera al titular.**
+Fecha: 2026-09-15. Última tanda ejecutada: **Tanda 7, completa: la UI existe, graba y cumple el contrato.**
 
 ## Resumen en una línea
 
@@ -79,6 +79,47 @@ Ninguno abierto.
   Sin él, los nombres cómodos no se resuelven pero uno explícito funciona.
 - `libcapturia` sigue en C++20 y POSIX, ahora con `std::thread` de la
   biblioteca estándar para las sondas.
+
+## Tanda 7: la UI
+
+Qt6/QML + Kirigami sobre libcapturia, enlazada directamente (capa 3 sobre
+capa 1; el CLI es un hermano, no un intermediario). Verificado ejecutando,
+el 2026-09-15:
+
+| Qué | Cómo se comprobó |
+|---|---|
+| Ventana de dos clics: Fuente, Grabar, "Avanzado" plegado | capturas de pantalla con spectacle; Breeze nativo |
+| Detección en segundo plano | la ventana pinta ya y el combo se llena solo; ffmpeg pasa por QtConcurrent |
+| **Arranque < 1 s** | **0,73-0,89 s hasta el primer frame pintado**, instrumentado en el binario (`CAPTURIA_MEDIR_ARRANQUE=1`), 4 medidas |
+| RAM | 160-172 MiB de pico con la deteccion incluida; es el precio del runtime QML |
+| **La UI graba por su camino real** | autoprueba `CAPTURIA_AUTOPRUEBA=eDP-1`: grabó 3,05 s (h264+opus, ffprobe) a la carpeta Vídeos por XDG, con parar por IPC en hilo aparte |
+| Estado compartido con el CLI | el CLI grababa y la UI abierta a mitad enseñó "Grabando 00:07" con el reloj real (inicio.txt de la sesión) |
+| Avanzado | calidad, fps y qué audio (sistema/micro/ambos en pistas separadas/sin audio). Nada más, a propósito |
+| Bandeja y notificación | QSystemTrayIcon (StatusNotifierItem en Plasma); notificación con la ruta al guardar |
+| `.desktop`, icono SVG propio y metainfo | desktop-file-validate y appstreamcli validate: 0 errores; reglas de `install()` escritas |
+| Build limpio | configuración y compilación sin un aviso; la UI es opcional: sin Qt (el CI) se salta con un mensaje y el resto compila |
+
+Decisiones de la tanda:
+
+1. **La UI enlaza libcapturia, no llama al CLI.** Es lo que dibuja CLAUDE.md
+   y evita parsear nuestra propia salida.
+2. **Solo-audio como dos entradas más del selector de fuente** ("Solo audio:
+   lo que suena" / "micrófono"): dos clics también para una nota de voz.
+3. **Sin caché tampoco aquí**: la ventana pinta al instante y la detección
+   (0,7-0,9 s) llega por detrás. Estado "detectando" honesto mientras tanto.
+4. **Autoprueba dentro del binario** (`CAPTURIA_AUTOPRUEBA`): el clic no se
+   puede automatizar sin inyección de entrada; esto verifica el camino real
+   del controlador (hilos y señales) grabando de verdad. Es arnés, no feature.
+
+Sin hacer de la tanda, y dicho:
+
+- **Atajos globales**: exigen `libkf6globalaccel-dev`, que no está instalado.
+  Una línea de apt el día que se quiera.
+- **i18n**: las cadenas están preparadas con qsTr(); la extracción y carga de
+  catálogos reales (KI18n) queda para cuando haya una segunda lengua.
+- **El clic humano**: la autoprueba cubre el camino del controlador; un
+  recorrido a mano del titular (clic en Grabar, pausa, parar, abrir carpeta)
+  sigue pendiente y es bienvenido.
 
 ## Tanda 6: el post-proceso, investigado y ejecutado
 

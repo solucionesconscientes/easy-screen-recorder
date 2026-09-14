@@ -15,7 +15,13 @@ struct SesionGrabacion {
     std::string ruta_socket;  // dir/ipc.sock
     std::string ruta_log;     // dir/gsr.log
     std::string ruta_pid;     // dir/gsr.pid
+    // Epoch (segundos) de cuando arranco la grabacion. Existe para que una
+    // UI que se abra a mitad enseñe el tiempo real y no un reloj a cero.
+    std::string ruta_inicio;  // dir/inicio.txt
 };
+
+// Lee ese instante. 0 si no hay grabacion o no se puede leer.
+long inicio_grabacion(const std::string& ruta_inicio);
 
 SesionGrabacion sesion_por_defecto();
 

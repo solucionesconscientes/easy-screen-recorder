@@ -3,6 +3,7 @@
 #include <unistd.h>
 
 #include <cstdlib>
+#include <ctime>
 #include <filesystem>
 #include <fstream>
 #include <thread>
@@ -52,6 +53,13 @@ std::string traducir_error_ipc(const std::string& data) {
 
 }  // namespace
 
+long inicio_grabacion(const std::string& ruta_inicio) {
+    std::ifstream f(ruta_inicio);
+    long t = 0;
+    f >> t;
+    return f ? t : 0;
+}
+
 SesionGrabacion sesion_por_defecto() {
     const char* hogar = std::getenv("HOME");
     const std::string casa = (hogar != nullptr && hogar[0] != '\0') ? hogar : ".";
@@ -60,6 +68,7 @@ SesionGrabacion sesion_por_defecto() {
     s.ruta_socket = s.dir + "/ipc.sock";
     s.ruta_log = s.dir + "/gsr.log";
     s.ruta_pid = s.dir + "/gsr.pid";
+    s.ruta_inicio = s.dir + "/inicio.txt";
     return s;
 }
 
@@ -162,6 +171,7 @@ ResultadoLanzamiento empezar_grabacion(const AjustesGrabacion& ajustes,
     }
 
     std::ofstream(sesion.ruta_pid) << lanzado.pid << "\n";
+    std::ofstream(sesion.ruta_inicio) << std::time(nullptr) << "\n";
 
     // Esperar a que el socket escuche. Si GSR muere antes, el log dice por que.
     for (int esperado = 0; esperado < kEsperaSocketMs; esperado += kPasoEsperaMs) {
@@ -217,6 +227,7 @@ ResultadoParada parar_grabacion(const SesionGrabacion& sesion) {
 
     std::error_code ec;
     std::filesystem::remove(sesion.ruta_pid, ec);
+    std::filesystem::remove(sesion.ruta_inicio, ec);
     return r;
 }
 

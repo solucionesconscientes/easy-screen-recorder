@@ -47,6 +47,7 @@ struct SesionAudio {
     std::string ruta_pid;
     std::string ruta_log;
     std::string ruta_destino;  // apunta el fichero que se esta grabando
+    std::string ruta_inicio;   // epoch de cuando empezo, para el reloj de la UI
 };
 SesionAudio sesion_audio_por_defecto();
 
