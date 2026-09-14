@@ -1,6 +1,6 @@
 # Estado del proyecto
 
-Fecha: 2026-09-15. Última tanda ejecutada: **Tanda 5, completa.**
+Fecha: 2026-09-15. Última tanda ejecutada: **Tanda 6, completa: la investigación del post-proceso está escrita y espera al titular.**
 
 ## Resumen en una línea
 
@@ -80,11 +80,36 @@ Ninguno abierto.
 - `libcapturia` sigue en C++20 y POSIX, ahora con `std::thread` de la
   biblioteca estándar para las sondas.
 
-## Lo primero de la Tanda 6
+## Tanda 6: el post-proceso, investigado y ejecutado
 
-Escribir `docs/post-proceso.md`: qué puede ser el post-proceso de Capturia y
-qué no. La pregunta dura es la telemetría del puntero para un auto-zoom: GSR
-no la exporta (`-cursor` solo decide si lo dibuja) y en Wayland capturarla en
-paralelo no es trivial (¿KWin? ¿libinput? ¿portal?). Investigación con citas,
-"sin verificar" donde no se llegue, y **parada obligatoria**: el titular lo
-lee antes de que exista una línea de código de post-proceso.
+`docs/post-proceso.md` responde la pregunta dura: **la telemetría del puntero
+en Wayland/KDE se puede capturar, y las cuatro piezas están comprobadas
+ejecutándolas** en esta máquina el 2026-09-15:
+
+1. Un script de KWin lee `workspace.cursorPos` (salió `566,405`).
+2. `QTimer` muestrea periódicamente (5 muestras a 99-106 ms).
+3. `callDBus` saca cada muestra del compositor a un proceso nuestro
+   (capturado con dbus-monitor delante).
+4. GSR ancla la sincronización: `-write-first-frame-ts yes` escribe
+   `<salida>.ts` con CLOCK_MONOTONIC y CLOCK_REALTIME del primer frame
+   (`encoder.c:24-40`), pensado por el upstream justo para esto.
+
+Sin verificar y dicho en el documento: el re-render con ffmpeg (la otra
+mitad del trabajo), GNOME (iría por el portal con cursor_mode=metadata),
+muestreo a 60 Hz y pantallas con escala fraccionaria.
+
+**Parada obligatoria en vigor**: ni una línea de código de post-proceso
+hasta que el titular lea el documento y elija alcance (A auto-zoom /
+B solo cortes / C posponer).
+
+## Lo primero de la Tanda 7 (UI)
+
+1. El titular instala los paquetes dev de Qt6/KF6 (la línea está en
+   ENCARGO.md y abajo).
+2. `src/ui` entra en el build con extra-cmake-modules.
+3. Ventana Kirigami: Fuente y Grabar, dos clics, "Avanzado" plegado.
+4. Puente QML sobre libcapturia y medición de arranque y RAM con arnés.
+
+Paquetes que faltan (comprobado con dpkg el 2026-09-14): qt6-base-dev,
+qt6-declarative-dev, extra-cmake-modules, libkf6kirigami-dev,
+kirigami-addons-dev, libkf6coreaddons-dev, libkf6i18n-dev.
