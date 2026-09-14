@@ -98,9 +98,11 @@ Sin verificar y dicho en el documento: el re-render con ffmpeg (la otra
 mitad del trabajo), GNOME (iría por el portal con cursor_mode=metadata),
 muestreo a 60 Hz y pantallas con escala fraccionaria.
 
-**Parada obligatoria en vigor**: ni una línea de código de post-proceso
-hasta que el titular lea el documento y elija alcance (A auto-zoom /
-B solo cortes / C posponer).
+**Decisión del titular (2026-09-15): alcance C, posponer.** Nada de
+post-proceso hasta después de la UI. La investigación queda escrita y no
+caduca. La licencia también se decidió aplazar: el repo sigue sin LICENSE
+y la Tanda 8 (empaquetado y publicación) queda bloqueada por ella; el
+README lo dice sin adornos.
 
 ## Lo primero de la Tanda 7 (UI)
 

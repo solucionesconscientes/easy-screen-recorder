@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=Capturia
+GenericName=Grabador de pantalla
+GenericName[en]=Screen Recorder
+Comment=Graba la pantalla en dos clics, con la captura de gpu-screen-recorder
+Comment[en]=Record your screen in two clicks, powered by gpu-screen-recorder
+Exec=capturia-ui
+Icon=org.capturia.Capturia
+Terminal=false
+Categories=AudioVideo;Recorder;Qt;KDE;
+Keywords=grabar;pantalla;captura;video;audio;
+Keywords[en]=record;screen;capture;video;audio;
