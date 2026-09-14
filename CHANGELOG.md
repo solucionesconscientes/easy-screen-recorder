@@ -5,6 +5,15 @@ máquina de desarrollo.
 
 ## Sin publicar
 
+### Tanda 7 (2026-09-15)
+- La interfaz gráfica: Qt6/QML + Kirigami, dos clics (Fuente, Grabar),
+  "Avanzado" plegado con calidad, fps y qué audio. Arranque medido en
+  0,73-0,89 s hasta el primer frame.
+- Graba de verdad por su propio camino (verificado con ffprobe) y comparte
+  estado con el CLI: abierta a mitad de una grabación enseña el reloj real.
+- Bandeja con notificación al guardar, .desktop, icono y metainfo validados,
+  y reglas de instalación comprobadas con un install de ensayo.
+
 ### Tanda 6 (2026-09-15)
 - Investigación del post-proceso (`docs/post-proceso.md`): la telemetría del
   puntero para auto-zoom es viable en KDE y las cuatro piezas están

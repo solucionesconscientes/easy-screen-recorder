@@ -62,9 +62,10 @@ json_ipc 20, ajustes 37, grabacion 21, audio 15, más los 3 del CLI.
 | Qué | Por qué |
 |---|---|
 | Verificar portal, ventana y `focused` | siguen modeladas y **sin verificar**: el portal exige un diálogo interactivo |
-| Documento de post-proceso | **Tanda 6, lo siguiente.** Requiere lectura del titular antes de escribir código |
-| UI (Tanda 7) y empaquetado (Tanda 8) | por orden; la 8 depende de la licencia |
-| Replay buffer | sin decidir; se decidirá con la UI delante |
+| Empaquetado distribuible (Tanda 8) | **bloqueado por la licencia**, que el titular aplazó. Las reglas de `install()` están escritas y comprobadas con un install de ensayo (los dos binarios y los tres ficheros de datos en sus rutas FHS) |
+| Post-proceso | **pospuesto por decisión del titular** (2026-09-15); la investigación está en docs/post-proceso.md |
+| Replay buffer | sin decidir; con la UI ya delante, es la siguiente conversación de alcance |
+| Atajos globales | falta libkf6globalaccel-dev; una línea de apt el día que se quiera |
 | Licencia de Capturia | **decisión del titular**, sigue pendiente |
 
 ## Bloqueos
