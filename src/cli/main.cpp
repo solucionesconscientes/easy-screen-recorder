@@ -1,22 +1,57 @@
+// Capa 2: el CLI. Regla dura del proyecto: si algo no funciona por aqui, no
+// se toca la UI. Todo lo que hace sale de libcapturia; este fichero solo
+// interpreta ordenes e imprime.
+
 #include <cstdio>
+#include <cstdlib>
+#include <fstream>
+#include <sstream>
 #include <string>
 #include <string_view>
 #include <vector>
 
+#include "capturia/ajustes.hpp"
 #include "capturia/entorno.hpp"
+#include "capturia/grabacion.hpp"
 #include "capturia/version.hpp"
 
 namespace {
 
+// Convenio de codigos de salida, para que los scripts se fien:
+//   0 = bien; 1 = la operacion fallo; 2 = la orden esta mal escrita.
+constexpr int kBien = 0;
+constexpr int kFallo = 1;
+constexpr int kMalUso = 2;
+
 void uso() {
     std::printf(
-        "capturia %s\n"
+        "capturia %s: grabador de pantalla sobre gpu-screen-recorder\n"
         "\n"
         "Uso:\n"
-        "  capturia --version   version de capturia\n"
-        "  capturia --check     comprueba el entorno y dice que falta\n"
+        "  capturia grabar [opciones]  empieza a grabar y vuelve al instante\n"
+        "  capturia parar              para, guarda e imprime la ruta del fichero\n"
+        "  capturia pausar             pausa la grabacion en marcha\n"
+        "  capturia reanudar           reanuda la grabacion pausada\n"
+        "  capturia estado             dice si hay una grabacion en marcha\n"
+        "  capturia fuentes            lista las fuentes de captura de esta maquina\n"
+        "  capturia dispositivos       lista los dispositivos de audio\n"
+        "  capturia --check [--volcado FICHERO]\n"
+        "                              comprueba el entorno y dice que falta\n"
+        "  capturia --version\n"
         "\n"
-        "Todavia no graba nada. Ver ESTADO.md.\n",
+        "Opciones de grabar (todas con default sensato):\n"
+        "  --fuente F        un monitor (p. ej. eDP-1), «region», «portal», «focused»\n"
+        "                    o una camara /dev/videoN. Sin ella: el primer monitor\n"
+        "  --region WxH+X+Y  el recorte, solo con --fuente region\n"
+        "  --salida FICHERO  el destino. Sin el: capturia-FECHA.mkv en Videos\n"
+        "  --codec C         codec de video (h264, hevc, av1...). Sin el decide GSR\n"
+        "  --codec-audio C   aac, opus o flac. Por defecto opus\n"
+        "  --audio DISP      una pista de audio; repetible. Por defecto default_output\n"
+        "  --sin-audio       grabar sin ninguna pista de audio\n"
+        "  --fps N           por defecto 60\n"
+        "  --calidad Q       medium, high, very_high o ultra. Por defecto very_high\n"
+        "\n"
+        "Codigos de salida: 0 bien, 1 fallo de la operacion, 2 orden mal escrita.\n",
         std::string(capturia::kVersionCapturia).c_str());
 }
 
@@ -43,8 +78,7 @@ void imprimir_herramienta(const capturia::Herramienta& h) {
         cola = h.ruta;
     }
     // Por que via se encontro. Importa: un GSR en flatpak no ve el /tmp del
-    // sistema, asi que el socket y el fichero de salida tienen que ir a una
-    // ruta compartida (docs/gsr-ipc.md).
+    // sistema, asi que el fichero de salida no puede ir alli (docs/gsr-ipc.md).
     if (h.presente && !h.origen.empty() && h.origen != "PATH") {
         cola += "  [" + h.origen + "]";
     }
@@ -57,9 +91,7 @@ void imprimir_herramienta(const capturia::Herramienta& h) {
                 cola.c_str());
 }
 
-int comprobar() {
-    const capturia::Entorno e = capturia::detectar();
-
+int imprimir_check(const capturia::Entorno& e) {
     std::printf("capturia %s: comprobacion del entorno\n\n",
                 std::string(capturia::kVersionCapturia).c_str());
 
@@ -77,8 +109,6 @@ int comprobar() {
     }
     if (const auto minima = capturia::version_minima_gsr()) {
         std::printf("  minima soportada: %s\n", minima->texto().c_str());
-    } else {
-        std::printf("  minima soportada: sin decidir\n");
     }
 
     std::printf("\nCapacidades leidas del volcado\n");
@@ -88,6 +118,21 @@ int comprobar() {
                 e.capacidades.dispositivos_audio.size());
     std::printf("  %s%zu\n", rellenar("audio por aplicacion", 24).c_str(),
                 e.capacidades.audio_por_aplicacion.size());
+    if (e.capacidades.info.presente) {
+        std::string codecs;
+        for (const auto& c : e.capacidades.info.codecs_video) {
+            if (!codecs.empty()) codecs += ", ";
+            codecs += c;
+        }
+        std::printf("  %s%s\n", rellenar("codecs de video", 24).c_str(), codecs.c_str());
+        if (const auto mejor = capturia::mejor_codec_hardware(e.capacidades.info)) {
+            std::printf("  %s%s\n", rellenar("por defecto (hardware)", 24).c_str(),
+                        mejor->c_str());
+        } else {
+            std::printf("  %sninguno por hardware: se grabaria por CPU\n",
+                        rellenar("por defecto", 24).c_str());
+        }
+    }
 
     // Si GSR no esta instalado, los avisos del parser solo repiten esa misma
     // noticia con otras palabras. El diagnostico util es el de mas abajo.
@@ -114,7 +159,169 @@ int comprobar() {
                                      : "NO posible: falta ffmpeg");
     std::printf("\nResultado: %s\n", e.listo() ? "LISTO" : "NO LISTO");
 
-    return e.listo() ? 0 : 1;
+    return e.listo() ? kBien : kFallo;
+}
+
+int comprobar(const std::vector<std::string_view>& args) {
+    if (args.size() == 3 && args[1] == "--volcado") {
+        std::ifstream f{std::string(args[2])};
+        if (!f) {
+            std::fprintf(stderr, "capturia: no se puede leer %s\n", std::string(args[2]).c_str());
+            return kFallo;
+        }
+        std::ostringstream ss;
+        ss << f.rdbuf();
+        return imprimir_check(capturia::detectar_desde_volcado(ss.str()));
+    }
+    if (args.size() != 1) {
+        std::fprintf(stderr, "capturia: --check va solo o con --volcado FICHERO\n");
+        return kMalUso;
+    }
+    return imprimir_check(capturia::detectar());
+}
+
+// El primer monitor de la lista de fuentes: lo que no es un modo especial ni
+// una camara. Es el default de --fuente.
+std::string primer_monitor(const capturia::Capacidades& c) {
+    for (const auto& f : c.fuentes_captura) {
+        if (f.id == "region" || f.id == "portal" || f.id == "focused") continue;
+        if (f.id.rfind("/dev/", 0) == 0) continue;
+        return f.id;
+    }
+    return {};
+}
+
+int grabar(const std::vector<std::string_view>& args) {
+    capturia::AjustesGrabacion a;
+    a.fuente.clear();
+    bool audio_explicito = false;
+
+    for (std::size_t i = 1; i < args.size(); ++i) {
+        const std::string_view opcion = args[i];
+        const auto valor = [&]() -> std::string_view {
+            return i + 1 < args.size() ? args[++i] : std::string_view{};
+        };
+        if (opcion == "--fuente") a.fuente = std::string(valor());
+        else if (opcion == "--region") a.region = std::string(valor());
+        else if (opcion == "--salida") a.salida = std::string(valor());
+        else if (opcion == "--codec") a.codec_video = std::string(valor());
+        else if (opcion == "--codec-audio") a.codec_audio = std::string(valor());
+        else if (opcion == "--audio") {
+            if (!audio_explicito) a.audios.clear();
+            audio_explicito = true;
+            a.audios.emplace_back(valor());
+        } else if (opcion == "--sin-audio") {
+            a.sin_audio = true;
+            if (!audio_explicito) a.audios.clear();
+        } else if (opcion == "--fps") {
+            a.fps = std::atoi(std::string(valor()).c_str());
+        } else if (opcion == "--calidad") {
+            a.calidad = std::string(valor());
+        } else {
+            std::fprintf(stderr, "capturia: no entiendo «%.*s»\n\n",
+                         static_cast<int>(opcion.size()), opcion.data());
+            uso();
+            return kMalUso;
+        }
+    }
+
+    // Los dos defaults que necesitan mirar la maquina se resuelven solo si
+    // hacen falta: la deteccion cuesta mas de un segundo con el flatpak.
+    if (a.fuente.empty()) {
+        const capturia::Entorno e = capturia::detectar();
+        a.fuente = primer_monitor(e.capacidades);
+        if (a.fuente.empty()) {
+            std::fprintf(stderr,
+                         "capturia: no se detecta ningun monitor que grabar.\n"
+                         "Mira «capturia fuentes» y elige una con --fuente. Si la lista\n"
+                         "esta vacia y la pantalla esta encendida, ejecuta «capturia --check»\n");
+            return kFallo;
+        }
+    }
+    if (a.salida.empty()) {
+        a.salida = capturia::nombre_por_defecto(capturia::carpeta_videos());
+    }
+
+    const auto sesion = capturia::sesion_por_defecto();
+    const auto r = capturia::empezar_grabacion(a, sesion);
+    if (!r.en_marcha) {
+        std::fprintf(stderr, "capturia: no se pudo empezar: %s\n", r.motivo.c_str());
+        return kFallo;
+    }
+
+    std::printf("grabando %s -> %s\n", a.fuente.c_str(), a.salida.c_str());
+    std::printf("para y guarda con: capturia parar\n");
+    return kBien;
+}
+
+int parar() {
+    const auto r = capturia::parar_grabacion(capturia::sesion_por_defecto());
+    if (!r.parado) {
+        std::fprintf(stderr, "capturia: %s\n", r.motivo.c_str());
+        return kFallo;
+    }
+    if (r.ruta_fichero.empty()) {
+        // El stop de un replay no guarda fichero (docs/gsr-ipc.md).
+        std::printf("parado; esta grabacion no guardaba fichero\n");
+    } else {
+        std::printf("%s\n", r.ruta_fichero.c_str());
+    }
+    return kBien;
+}
+
+int pausar(bool pausada) {
+    std::string motivo;
+    if (!capturia::poner_pausa(capturia::sesion_por_defecto(), pausada, motivo)) {
+        std::fprintf(stderr, "capturia: %s\n", motivo.c_str());
+        return kFallo;
+    }
+    std::printf("%s\n", pausada ? "pausada" : "grabando otra vez");
+    return kBien;
+}
+
+int estado() {
+    if (capturia::grabacion_en_marcha(capturia::sesion_por_defecto())) {
+        std::printf("grabando\n");
+        return kBien;
+    }
+    std::printf("sin grabacion\n");
+    return kFallo;
+}
+
+int fuentes() {
+    const capturia::Entorno e = capturia::detectar();
+    if (!e.gsr.presente) {
+        std::fprintf(stderr, "capturia: gpu-screen-recorder no esta; ejecuta «capturia --check»\n");
+        return kFallo;
+    }
+    if (e.capacidades.fuentes_captura.empty()) {
+        std::printf("ninguna fuente. Si la pantalla estaba apagada, enciendela y repite:\n"
+                    "sin plano de video activo GSR no lista el monitor\n");
+        return kFallo;
+    }
+    for (const auto& f : e.capacidades.fuentes_captura) {
+        std::printf("  %s%s\n", rellenar(f.id, 16).c_str(), f.detalle().c_str());
+    }
+    return kBien;
+}
+
+int dispositivos() {
+    const capturia::Entorno e = capturia::detectar();
+    if (!e.gsr.presente) {
+        std::fprintf(stderr, "capturia: gpu-screen-recorder no esta; ejecuta «capturia --check»\n");
+        return kFallo;
+    }
+    std::printf("dispositivos de audio (--audio):\n");
+    for (const auto& d : e.capacidades.dispositivos_audio) {
+        std::printf("  %s%s\n", rellenar(d.id, 52).c_str(), d.detalle().c_str());
+    }
+    if (!e.capacidades.audio_por_aplicacion.empty()) {
+        std::printf("\naplicaciones sonando ahora (--audio app:NOMBRE):\n");
+        for (const auto& d : e.capacidades.audio_por_aplicacion) {
+            std::printf("  %s\n", d.id.c_str());
+        }
+    }
+    return kBien;
 }
 
 }  // namespace
@@ -124,23 +331,28 @@ int main(int argc, char** argv) {
 
     if (args.empty()) {
         uso();
-        return 0;
+        return kBien;
     }
-    if (args.size() == 1) {
-        if (args[0] == "--version" || args[0] == "-v") {
-            std::printf("capturia %s\n", std::string(capturia::kVersionCapturia).c_str());
-            return 0;
-        }
-        if (args[0] == "--check") {
-            return comprobar();
-        }
-        if (args[0] == "--help" || args[0] == "-h") {
-            uso();
-            return 0;
-        }
+
+    const std::string_view orden = args[0];
+    if (orden == "--version" || orden == "-v") {
+        std::printf("capturia %s\n", std::string(capturia::kVersionCapturia).c_str());
+        return kBien;
     }
+    if (orden == "--help" || orden == "-h") {
+        uso();
+        return kBien;
+    }
+    if (orden == "--check") return comprobar(args);
+    if (orden == "grabar") return grabar(args);
+    if (orden == "parar") return parar();
+    if (orden == "pausar") return pausar(true);
+    if (orden == "reanudar") return pausar(false);
+    if (orden == "estado") return estado();
+    if (orden == "fuentes") return fuentes();
+    if (orden == "dispositivos") return dispositivos();
 
     std::fprintf(stderr, "capturia: no entiendo esa orden\n\n");
     uso();
-    return 2;
+    return kMalUso;
 }

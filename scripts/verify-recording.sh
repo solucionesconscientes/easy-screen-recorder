@@ -65,11 +65,49 @@ if [ ${#faltan[@]} -gt 0 ]; then
   exit 1
 fi
 
-# Aqui van las comprobaciones reales (Tanda 4): grabar unos segundos, y con
-# ffprobe exigir duracion, numero de flujos y codec. Hasta que existan, tener
-# la orden «grabar» sin verificarla es exactamente el agujero que este script
-# tapa, asi que se falla a proposito.
-echo "FALLO: capturia anuncia «grabar» pero las comprobaciones de grabacion"
-echo "de este arnes no estan escritas. Se escriben en la Tanda 4, junto a la"
-echo "orden. Un exito silencioso aqui seria verde por construccion otra vez."
-exit 1
+# Las comprobaciones reales: grabar unos segundos de verdad y exigirle al
+# resultado duracion, un flujo de video y uno de audio. Una grabacion que
+# "parece" ir es exactamente el fallo que no nos podemos permitir.
+#
+# El destino va bajo el home y no bajo /tmp: el /tmp de un GSR en flatpak es
+# privado del sandbox (docs/gsr-ipc.md, "La trampa del flatpak").
+destino="$HOME/.cache/capturia/verify/prueba.mkv"
+mkdir -p "$(dirname "$destino")"
+rm -f "$destino"
+
+fallo() {
+  echo "FALLO: $1"
+  exit 1
+}
+
+if "$binario" estado >/dev/null 2>&1; then
+  fallo "ya hay una grabacion en marcha; este arnes no la toca. Parala y repite"
+fi
+
+echo "grabando 3 segundos de prueba..."
+"$binario" grabar --salida "$destino" || fallo "«capturia grabar» devolvio error"
+sleep 3
+
+ruta="$("$binario" parar)" || fallo "«capturia parar» devolvio error"
+[ "$ruta" = "$destino" ] || fallo "parar dijo «$ruta» y se pidio «$destino»"
+[ -s "$ruta" ] || fallo "el fichero guardado no existe o esta vacio: $ruta"
+
+# Lo grabado, contra ffprobe. Un solo aviso de ffprobe tambien es fallo.
+flujos="$(ffprobe -v error -show_entries stream=codec_type -of csv=p=0 "$ruta")" \
+  || fallo "ffprobe no puede leer $ruta"
+echo "$flujos" | grep -qx "video" || fallo "no hay flujo de video en $ruta"
+echo "$flujos" | grep -qx "audio" || fallo "no hay flujo de audio en $ruta"
+
+duracion="$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$ruta")"
+case "$duracion" in
+  ''|N/A) fallo "ffprobe no da duracion para $ruta" ;;
+esac
+# Se pidieron 3 s; menos de 2 significa que algo corto la grabacion.
+if ! awk "BEGIN{exit !($duracion >= 2.0)}"; then
+  fallo "duracion $duracion s, se esperaban al menos 2 s"
+fi
+
+echo
+echo "VERIFICADO: $ruta ($duracion s, video + audio segun ffprobe)"
+rm -f "$ruta"
+exit 0

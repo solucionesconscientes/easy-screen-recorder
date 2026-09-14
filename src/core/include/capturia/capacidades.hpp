@@ -48,10 +48,36 @@ struct FormatoLista {
     bool vacio_normal = false;
 };
 
+// Lo que --info dice de esta maquina. El formato sale de info_command en
+// src/cli/commands.c:238-274 de GSR: lineas «section=nombre» y dentro de cada
+// seccion o bien «clave|valor» o bien nombres pelados.
+struct InfoGsr {
+    bool presente = false;  // hubo un bloque --info valido en el volcado
+    std::string servidor_grafico;      // display_server: «wayland» o «x11»
+    bool audio_por_aplicacion = false; // supports_app_audio|yes
+    std::string vendedor_gpu;          // vendor, seccion gpu_info
+    // Tal cual los nombra GSR («h264», «h264_software», «hevc», ...). No se
+    // normalizan: la UI enseña lo que la maquina dice, no lo que esperamos.
+    std::vector<std::string> codecs_video;
+    std::vector<std::string> formatos_imagen;
+};
+
+// «h264_software» sale de --info solo porque existe libx264
+// (src/cli/commands.c:75-76 de GSR): codifica en CPU. Tratarlo como los demas
+// haria caer el default "mejor codec de hardware" en software sin avisar.
+bool codec_es_hardware(std::string_view nombre);
+
+// El codec de hardware que usara «-k auto» de GSR, o nullopt si no hay
+// ninguno. Copia el orden del upstream (select_appropriate_video_codec
+// _automatically, src/recorder/codec_select.c): h264, luego hevc, luego av1.
+// Alli h264 solo se descarta por resolucion maxima, que aqui no se conoce.
+std::optional<std::string> mejor_codec_hardware(const InfoGsr& info);
+
 struct Capacidades {
     bool gsr_respondio = false;
     bool gsr_cli_respondio = false;
     std::optional<Version> version_gsr;
+    InfoGsr info;
     std::vector<Opcion> fuentes_captura;
     std::vector<Opcion> dispositivos_audio;
     std::vector<Opcion> audio_por_aplicacion;

@@ -1,5 +1,5 @@
 # Volcado de capacidades de Capturia
-# fecha:    2026-09-10T05:46:47Z
+# fecha:    2026-09-14T21:51:07Z
 # host:     pc-latitude5480
 # kernel:   Linux 7.0.0-30-generic
 # sistema:  Ubuntu 26.04 LTS
@@ -31,20 +31,6 @@ section=image_formats
 jpeg
 png
 section=capture_options
-eDP-1|1366x768
-region
-/dev/video0|1280x720@30hz|mjpeg
-/dev/video0|1280x720@10hz|yuyv
-/dev/video0|960x540@30hz|mjpeg
-/dev/video0|848x480@30hz|mjpeg
-/dev/video0|640x480@30hz|yuyv
-/dev/video0|640x480@30hz|mjpeg
-/dev/video0|640x360@30hz|yuyv
-/dev/video0|640x360@30hz|mjpeg
-portal
-### fin
-### comando: flatpak run --command=gpu-screen-recorder com.dec05eba.gpu_screen_recorder --list-capture-options
-### codigo: 0
 eDP-1|1366x768
 region
 /dev/video0|1280x720@30hz|mjpeg

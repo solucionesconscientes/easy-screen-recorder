@@ -1,0 +1,4 @@
+# SINTETICO: fixture para prueba_ajustes. El formato es el que escribe
+# xdg-user-dirs en ~/.config/user-dirs.dirs.
+XDG_DESKTOP_DIR="$HOME/Escritorio"
+XDG_VIDEOS_DIR="$HOME/Vídeos"

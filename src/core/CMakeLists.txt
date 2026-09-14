@@ -4,6 +4,10 @@
 add_library(libcapturia STATIC
   capacidades.cpp
   entorno.cpp
+  grabacion.cpp
+  ajustes.cpp
+  ipc.cpp
+  json_ipc.cpp
   proceso.cpp
   version.cpp
 )

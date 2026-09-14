@@ -50,7 +50,6 @@ gsr_cli="$(resolver gsr-cli)"
 comandos=(
   "$gsr --version"
   "$gsr --info"
-  "$gsr --list-capture-options"
   "$gsr --list-audio-devices"
   "$gsr --list-application-audio"
   "$gsr_cli --help"

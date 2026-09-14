@@ -37,7 +37,109 @@ bool comando_es(const BloqueVolcado& b, std::string_view programa, std::string_v
            b.comando.find(opcion) != std::string::npos;
 }
 
+// Interpreta el bloque de --info. Las secciones que no se conocen se saltan
+// con un aviso: un GSR mas nuevo puede añadir una y eso no es un fallo, pero
+// tampoco se interpreta a ciegas.
+InfoGsr interpretar_info(const BloqueVolcado& bloque, std::vector<std::string>& avisos,
+                         std::vector<Opcion>& fuentes) {
+    InfoGsr info;
+    if (!bloque.tiene_codigo || bloque.codigo != 0) {
+        avisos.push_back("«" + bloque.comando + "» no termino bien (codigo " +
+                         (bloque.tiene_codigo ? std::to_string(bloque.codigo)
+                                              : std::string("desconocido")) +
+                         "); su salida no se interpreta");
+        return info;
+    }
+
+    std::string seccion;
+    bool seccion_conocida = false;
+    por_lineas(bloque.salida, [&](std::string_view linea) {
+        const std::string_view limpia = recortar(linea);
+        if (limpia.empty() || limpia.front() == '#') return;
+        if (empieza_por(limpia, "gsr error:") || empieza_por(limpia, "gsr warning:")) return;
+
+        if (empieza_por(limpia, "section=")) {
+            seccion = std::string(limpia.substr(std::string_view("section=").size()));
+            seccion_conocida = seccion == "system_info" || seccion == "gpu_info" ||
+                               seccion == "video_codecs" || seccion == "image_formats" ||
+                               seccion == "capture_options";
+            if (!seccion_conocida) {
+                avisos.push_back("seccion desconocida «" + seccion +
+                                 "» en «--info»; se salta sin interpretar");
+            }
+            info.presente = true;
+            return;
+        }
+        if (!seccion_conocida) return;
+
+        if (seccion == "video_codecs") {
+            info.codecs_video.emplace_back(limpia);
+            return;
+        }
+        if (seccion == "image_formats") {
+            info.formatos_imagen.emplace_back(limpia);
+            return;
+        }
+        if (seccion == "capture_options") {
+            // Mismo formato que --list-capture-options, que ya no se sondea
+            // aparte: --info trae la seccion identica y sondear dos veces
+            // costaba cientos de milisegundos de arranque.
+            Opcion o;
+            std::string_view resto = limpia;
+            const auto corte = resto.find('|');
+            o.id = std::string(recortar(resto.substr(0, corte)));
+            if (corte != std::string_view::npos) {
+                resto.remove_prefix(corte + 1);
+                for (;;) {
+                    const auto c2 = resto.find('|');
+                    o.campos.push_back(std::string(recortar(resto.substr(0, c2))));
+                    if (c2 == std::string_view::npos) break;
+                    resto.remove_prefix(c2 + 1);
+                }
+                if (o.campos.size() == 1 && o.campos.front().empty()) o.campos.clear();
+            }
+            fuentes.push_back(std::move(o));
+            return;
+        }
+
+        // system_info y gpu_info: clave|valor.
+        const auto corte = limpia.find('|');
+        const std::string_view clave = recortar(limpia.substr(0, corte));
+        const std::string_view valor =
+            corte == std::string_view::npos ? std::string_view{} : recortar(limpia.substr(corte + 1));
+        if (clave == "display_server") info.servidor_grafico = std::string(valor);
+        else if (clave == "supports_app_audio") info.audio_por_aplicacion = (valor == "yes");
+        else if (clave == "vendor") info.vendedor_gpu = std::string(valor);
+        // El resto de claves (gsr_version, card_path, is_steam_deck...) no se
+        // necesitan hoy; se leen del volcado el dia que hagan falta.
+    });
+
+    if (!info.presente) {
+        avisos.push_back("«" + bloque.comando + "» respondio pero sin ninguna seccion; no se interpreta");
+    }
+    return info;
+}
+
 }  // namespace
+
+bool codec_es_hardware(std::string_view nombre) {
+    // El unico sufijo que marca CPU en GSR 6.0.0 es «_software». Si el dia de
+    // mañana aparece otro, este predicado es el unico sitio que tocar.
+    constexpr std::string_view sufijo = "_software";
+    return !(nombre.size() >= sufijo.size() &&
+             nombre.substr(nombre.size() - sufijo.size()) == sufijo);
+}
+
+std::optional<std::string> mejor_codec_hardware(const InfoGsr& info) {
+    const auto tiene = [&](std::string_view nombre) {
+        return std::find(info.codecs_video.begin(), info.codecs_video.end(), nombre) !=
+               info.codecs_video.end();
+    };
+    for (std::string_view candidato : {"h264", "hevc", "av1"}) {
+        if (tiene(candidato)) return std::string(candidato);
+    }
+    return std::nullopt;
+}
 
 std::string Opcion::detalle() const {
     std::string texto;
@@ -179,10 +281,18 @@ Capacidades interpretar_volcado(std::string_view volcado) {
                 c.avisos.push_back(
                     "«" + b.comando + "» respondio pero no se reconoce un numero de version en su salida");
             }
+        } else if (comando_es(b, "gpu-screen-recorder", "--info")) {
+            // De aqui salen los codecs y, desde la Tanda 4, tambien las
+            // fuentes de captura: su seccion capture_options es identica a la
+            // salida de --list-capture-options y sondear dos veces costaba
+            // arranque.
+            std::vector<Opcion> fuentes;
+            c.info = interpretar_info(b, c.avisos, fuentes);
+            if (c.fuentes_captura.empty()) c.fuentes_captura = std::move(fuentes);
         } else if (comando_es(b, "gpu-screen-recorder", "--list-capture-options")) {
-            // Mezcla lineas de uno, dos y tres campos (commands.c:198-229), asi
-            // que no se le exige separador. Vacia si que seria raro: significa
-            // que la maquina no ofrece ni monitor ni portal ni camara.
+            // Ya no se sondea, pero los volcados viejos y los fixtures lo
+            // traen y se sigue entendiendo. Pisa a lo leido de --info: es la
+            // salida especifica.
             c.fuentes_captura = interpretar_lista(b, c.avisos, FormatoLista{});
         } else if (comando_es(b, "gpu-screen-recorder", "--list-audio-devices")) {
             c.dispositivos_audio = interpretar_lista(b, c.avisos, FormatoLista{true, false});
@@ -193,9 +303,6 @@ Capacidades interpretar_volcado(std::string_view volcado) {
         } else if (b.comando.find("gsr-cli") != std::string::npos) {
             c.gsr_cli_respondio = b.tiene_codigo && b.codigo == 0;
         }
-        // «--info» se vuelca pero no se interpreta. Su formato ya se conoce
-        // (secciones «section=nombre» y lineas «clave|valor», commands.c:238-274)
-        // pero de ahi salen los codecs, y eso es trabajo de la Fase 1.
     }
     return c;
 }

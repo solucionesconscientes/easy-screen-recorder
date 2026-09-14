@@ -1,5 +1,6 @@
 #include "capturia/proceso.hpp"
 
+#include <fcntl.h>
 #include <poll.h>
 #include <signal.h>
 #include <sys/wait.h>
@@ -121,6 +122,68 @@ ResultadoProceso ejecutar(const std::string& programa,
     ::waitpid(hijo, &estado, 0);
     r.codigo = WIFEXITED(estado) ? WEXITSTATUS(estado) : -1;
     return r;
+}
+
+}  // namespace capturia
+
+namespace capturia {
+
+ProcesoLanzado lanzar_desatendido(const std::string& programa,
+                                  const std::vector<std::string>& args,
+                                  const std::string& fichero_log) {
+    ProcesoLanzado r;
+
+    const auto ruta = localizar(programa);
+    if (!ruta) {
+        r.motivo = "no se encuentra «" + programa + "» en PATH";
+        return r;
+    }
+
+    // El log se abre antes del fork: asi un fallo de permisos se diagnostica
+    // aqui, con errno, y no como un hijo que muere mudo.
+    const int log_fd = ::open(fichero_log.c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC, 0600);
+    if (log_fd < 0) {
+        r.motivo = "no se puede escribir el log en " + fichero_log + ": " + std::strerror(errno);
+        return r;
+    }
+
+    std::vector<char*> argv;
+    argv.reserve(args.size() + 2);
+    argv.push_back(const_cast<char*>(ruta->c_str()));
+    for (const auto& a : args) argv.push_back(const_cast<char*>(a.c_str()));
+    argv.push_back(nullptr);
+
+    const pid_t hijo = ::fork();
+    if (hijo < 0) {
+        ::close(log_fd);
+        r.motivo = std::string("fork: ") + std::strerror(errno);
+        return r;
+    }
+
+    if (hijo == 0) {
+        // Sesion propia: el grabador no muere con la terminal de quien lo
+        // lanzo ni recibe su Ctrl+C, que en GSR significa "para y guarda".
+        ::setsid();
+        ::dup2(log_fd, STDOUT_FILENO);
+        ::dup2(log_fd, STDERR_FILENO);
+        ::close(log_fd);
+        ::execv(ruta->c_str(), argv.data());
+        ::_exit(127);
+    }
+
+    ::close(log_fd);
+    r.ejecutado = true;
+    r.pid = hijo;
+    return r;
+}
+
+bool proceso_vivo(long pid) {
+    if (pid <= 0) return false;
+    // Los hijos muertos sin recoger siguen "existiendo" como zombis: waitpid
+    // sin colgarse los recoge si son nuestros, y si no lo son no toca nada.
+    int estado = 0;
+    ::waitpid(static_cast<pid_t>(pid), &estado, WNOHANG);
+    return ::kill(static_cast<pid_t>(pid), 0) == 0;
 }
 
 }  // namespace capturia

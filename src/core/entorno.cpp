@@ -88,14 +88,16 @@ std::optional<Invocacion> localizar_gsr(const std::string& binario) {
 }
 
 std::vector<Sonda> sondas() {
-    // Las seis estan verificadas contra GSR 6.0.0: las cinco opciones de
-    // gpu-screen-recorder salen de args_parser.c y las imprime commands.c;
-    // gsr-cli responde a --help. Ninguna fallo en el volcado de
-    // docs/gsr-capabilities.txt.
+    // Verificadas contra GSR 6.0.0: salen de args_parser.c y las imprime
+    // commands.c; gsr-cli responde a --help.
+    //
+    // --list-capture-options se quito en la Tanda 4: --info trae la seccion
+    // capture_options identica (commands.c:268-269) y sondear dos veces
+    // costaba entre 217 y 746 ms de arranque con el flatpak. El parser sigue
+    // entendiendo esa lista si un volcado viejo la trae.
     return {
         {"gpu-screen-recorder", {"--version"}},
         {"gpu-screen-recorder", {"--info"}},
-        {"gpu-screen-recorder", {"--list-capture-options"}},
         {"gpu-screen-recorder", {"--list-audio-devices"}},
         {"gpu-screen-recorder", {"--list-application-audio"}},
         {"gsr-cli", {"--help"}},

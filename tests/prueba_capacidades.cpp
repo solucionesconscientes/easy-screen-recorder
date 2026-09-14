@@ -33,8 +33,10 @@ void volcado_real() {
     const std::string texto = prueba::leer(CAPTURIA_VOLCADO_REAL);
     COMPROBAR_NOTA(!texto.empty(), "docs/gsr-capabilities.txt no deberia estar vacio");
 
+    // Cinco desde la Tanda 4: --list-capture-options ya no se sondea porque
+    // --info trae la seccion capture_options identica (commands.c:268-269).
     const auto bloques = partir_volcado(texto);
-    COMPROBAR_NOTA(bloques.size() == 6, "bloques=" + std::to_string(bloques.size()));
+    COMPROBAR_NOTA(bloques.size() == 5, "bloques=" + std::to_string(bloques.size()));
 
     const auto c = interpretar_volcado(texto);
     COMPROBAR(c.gsr_respondio);
@@ -97,6 +99,57 @@ void volcado_real() {
     COMPROBAR(e.graba_pantalla());
     // ffmpeg no sale en el volcado: "sin mirar" no es "ausente".
     COMPROBAR(!e.ffmpeg.evaluada);
+
+    // --- Lo que --info dice de esta maquina ---------------------------------
+    COMPROBAR(c.info.presente);
+    COMPROBAR_NOTA(c.info.servidor_grafico == "wayland", c.info.servidor_grafico);
+    COMPROBAR(c.info.audio_por_aplicacion);
+    COMPROBAR_NOTA(c.info.vendedor_gpu == "intel", c.info.vendedor_gpu);
+    // Los codecs del volcado real: h264, h264_software, hevc, vp8. Sin AV1,
+    // que esta GPU Intel no trae.
+    COMPROBAR_NOTA(c.info.codecs_video.size() == 4,
+                   "codecs=" + std::to_string(c.info.codecs_video.size()));
+    COMPROBAR(std::find(c.info.codecs_video.begin(), c.info.codecs_video.end(), "hevc") !=
+              c.info.codecs_video.end());
+    COMPROBAR(c.info.formatos_imagen.size() == 2);
+
+    // h264_software codifica en CPU (commands.c:75-76: sale solo porque
+    // existe libx264). El default "mejor codec de hardware" no puede caer ahi.
+    COMPROBAR(codec_es_hardware("h264"));
+    COMPROBAR(codec_es_hardware("hevc_10bit_vulkan"));
+    COMPROBAR(!codec_es_hardware("h264_software"));
+
+    // El orden copia al upstream: h264 primero, como -k auto.
+    const auto mejor = mejor_codec_hardware(c.info);
+    COMPROBAR_NOTA(mejor && *mejor == "h264", mejor ? *mejor : "ninguno");
+}
+
+// Una seccion que no conocemos en --info no rompe, pero tampoco se interpreta
+// en silencio. Y una maquina cuyo unico codec es software no tiene "mejor
+// codec de hardware": inventarlo seria ofrecer algo que va a decepcionar.
+void info_seccion_desconocida_y_solo_software() {
+    const std::string texto =
+        "### comando: gpu-screen-recorder --info\n"
+        "### codigo: 0\n"
+        "section=system_info\n"
+        "display_server|x11\n"
+        "supports_app_audio|no\n"
+        "section=seccion_del_futuro\n"
+        "dato|raro\n"
+        "section=video_codecs\n"
+        "h264_software\n"
+        "### fin\n";
+    const auto c = interpretar_volcado(texto);
+    COMPROBAR(c.info.presente);
+    COMPROBAR(c.info.servidor_grafico == "x11");
+    COMPROBAR(!c.info.audio_por_aplicacion);
+    COMPROBAR(c.info.codecs_video.size() == 1);
+    COMPROBAR(algun_aviso_contiene(c, "seccion_del_futuro"));
+    COMPROBAR(!mejor_codec_hardware(c.info).has_value());
+
+    // Sin --list-capture-options, las fuentes salen de --info; aqui no habia
+    // seccion capture_options y la lista queda vacia sin inventar nada.
+    COMPROBAR(c.fuentes_captura.empty());
 }
 
 // --- Casos sinteticos --------------------------------------------------------
@@ -113,8 +166,9 @@ void sin_nada_instalado() {
     COMPROBAR(c.fuentes_captura.empty());
     COMPROBAR(c.dispositivos_audio.empty());
     COMPROBAR(c.audio_por_aplicacion.empty());
-    // Tres listas que no se pudieron leer, tres avisos. Silencio seria mentira.
-    COMPROBAR_NOTA(c.avisos.size() == 3, "avisos=" + std::to_string(c.avisos.size()));
+    // Cuatro salidas que no se pudieron leer (--info y las tres listas),
+    // cuatro avisos. Silencio seria mentira.
+    COMPROBAR_NOTA(c.avisos.size() == 4, "avisos=" + std::to_string(c.avisos.size()));
 
     const Entorno e = detectar_desde_volcado(texto);
     COMPROBAR(!e.graba_pantalla());
@@ -301,6 +355,7 @@ void errores_de_gsr_no_son_opciones() {
 
 int main() {
     volcado_real();
+    info_seccion_desconocida_y_solo_software();
     sin_nada_instalado();
     volcado_de_flatpak();
     entrada_vacia();
