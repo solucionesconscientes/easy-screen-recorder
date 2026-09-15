@@ -1,0 +1,74 @@
+.\" SPDX-FileCopyrightText: 2026 Dalmau Romaní (Soluciones Conscientes)
+.\"
+.\" SPDX-License-Identifier: GPL-3.0-or-later
+.TH EASY-SCREEN-RECORDER 1 "2026-09-16" "easy-screen-recorder 0.1.0" "Comandos de usuario"
+.SH NOMBRE
+easy\-screen\-recorder \- graba la pantalla en dos clics, con la codificación en la GPU
+.SH SINOPSIS
+.B easy\-screen\-recorder
+.SH DESCRIPCIÓN
+Interfaz gráfica para grabar la pantalla en KDE Plasma sobre Wayland. La captura
+se queda en la GPU, así que no calienta la CPU.
+.PP
+No tiene opciones de línea de comandos: todo se elige en la ventana. Para
+guionizar una grabación está
+.BR easy\-screen\-recorder\-cli (1),
+que hace lo mismo y es la capa sobre la que va esta.
+.PP
+Graba cualquier monitor, un recorte que se elige arrastrando, la ventana en foco
+o una cámara. Tiene un modo de solo audio que no enciende la captura de vídeo,
+pausa y reanudación, un atajo global para empezar y parar, y varias pistas de
+audio.
+.SH REQUISITOS
+.TP
+.BR gpu\-screen\-recorder (1)
+Hace la captura de pantalla.
+.B Tiene que estar instalado
+y no va incluido: se ejecuta como proceso externo independiente. Si se instala
+como flatpak, tiene que ser a nivel de
+.BR sistema :
+la búsqueda mira
+.IR /var/lib/flatpak ,
+y una instalación de usuario cae en otro sitio.
+.TP
+.BR ffmpeg (1)
+Para el modo de solo audio, que no pasa por gpu\-screen\-recorder.
+.PP
+Para ver qué hay y qué falta:
+.PP
+.RS
+.EX
+easy\-screen\-recorder\-cli \-\-check
+.EE
+.RE
+.SH BANDEJA DEL SISTEMA
+La aplicación deja un icono en la bandeja. En reposo es monocromo; mientras graba
+enseña el punto de grabación. Pulsarlo muestra u oculta la ventana.
+.PP
+Al empezar a grabar la pantalla, la ventana se aparta para no salir en el vídeo,
+y vuelve sola al guardar. Cerrar la ventana con una grabación en marcha la manda
+a la bandeja; sin nada en marcha, cierra la aplicación.
+.SH ATAJO GLOBAL
+Se registra en KGlobalAccel, así que se configura en
+.I Preferencias del sistema \(-> Atajos
+como cualquier otro. Empieza y para la grabación sin tener que ir a la ventana.
+Fuera de KDE Plasma no se registra y no pasa nada.
+.SH FICHEROS
+.TP
+.I ~/.config/easy-screen-recorder/easy-screen-recorder.conf
+Las carpetas de destino elegidas, compartidas con el CLI.
+.TP
+.I ~/.cache/easy-screen-recorder/
+Las sesiones en marcha: sockets, pids y logs.
+.SH ENTORNO
+.TP
+.B ESR_AUTOPRUEBA
+Arnés de verificación, no una función: con el nombre de una fuente, graba unos
+segundos por el mismo camino que el botón, imprime la ruta y sale. Existe porque
+el clic no se puede automatizar sin inyección de entrada.
+.SH VÉASE TAMBIÉN
+.BR easy\-screen\-recorder\-cli (1),
+.BR gpu\-screen\-recorder (1),
+.BR ffmpeg (1)
+.SH ERRORES
+https://github.com/solucionesconscientes/easy\-screen\-recorder/issues

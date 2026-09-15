@@ -5,6 +5,11 @@ máquina de desarrollo.
 
 ## Sin publicar
 
+### Páginas de manual (2026-09-16)
+- `easy-screen-recorder(1)` y `easy-screen-recorder-cli(1)`, instaladas por el
+  CMake en `share/man/man1`. Van con el proyecto y no con el empaquetado:
+  documentan el programa, no cómo se empaqueta.
+
 ### Formatos de solo audio (2026-09-15)
 - **Tres formatos nuevos**: AAC en `.m4a` (compatibilidad), WAV (sin pérdida,
   para editar) y MP3 (solo compatibilidad heredada). Con Opus y FLAC, cinco.
