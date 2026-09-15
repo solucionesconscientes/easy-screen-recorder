@@ -247,18 +247,41 @@ prosa. Los hechos y las citas `fichero:línea` se quedaron.
 
 ### Autoría del historial
 
-El commit `fd618a4` («Tanda 1») figura con `Claude <noreply@anthropic.com>` como
-autor. Está en `origin/main`, así que no se reescribe: exigiría un force push.
+**Los 24 commits de este repositorio tienen como autor al titular**, Dalmau
+Romaní (Soluciones Conscientes). Comprobable:
 
-**A efectos de copyright, todos los commits de este repositorio son obra del
-titular**, Dalmau Romaní (Soluciones Conscientes). El campo `Author` de git es
-metadato, no un instrumento jurídico: no transfiere ni crea derechos. Un modelo
-de lenguaje no es persona física, no puede ser autor en el sentido del TRLPI, no
-puede ceder derechos y no puede firmar un CLA; lo que produce una herramienta
-bajo la dirección del titular es del titular.
+```
+$ git log --all --format='%an <%ae>' | sort | uniq -c
+     24 solucionesconscientes <contacto@solucionesconscientes.es>
+```
 
-El fichero `.mailmap` de la raíz hace que `git shortlog`, `git log
---use-mailmap` y `git blame` lo atribuyan correctamente. **De aquí en adelante
-el autor de los commits es el titular** y la herramienta va en
-`Co-Authored-By:`, que es lo que describe la situación sin dejar un hueco en la
-cadena de titularidad.
+No siempre fue así. Un commit —«Tanda 1», el segundo del proyecto— quedó con
+`Claude <noreply@anthropic.com>` en el campo `Author`. **El 15 de septiembre de
+2026 se reescribió el historial** con `git filter-repo --mailmap` y se
+reemplazaron las dos ramas en el remoto.
+
+Se hizo entonces porque entonces se podía y después no: el repositorio era
+**privado, con cero forks, cero clones y cero colaboradores**, así que el force
+push no le rompía el historial a nadie. En cuanto un repositorio es público y
+alguien lo clona, esa ventana se cierra y la única salida es convivir con el
+problema.
+
+**Por qué molestarse, si era solo metadato.** Lo era: el campo `Author` de git no
+transfiere ni crea derechos, un modelo de lenguaje no es persona física, no puede
+ser autor en el sentido del TRLPI, no puede ceder derechos y no puede firmar un
+CLA. Lo que produce una herramienta bajo la dirección del titular es del titular,
+con independencia de lo que diga el campo.
+
+Pero este proyecto se va a enseñar como escaparate y su código se va a ofrecer
+bajo licencia comercial. Lo primero que hace la revisión de un comprador es
+`git shortlog -sne`, y ahí aparecía un tercero que no puede firmar nada. No era
+un problema legal: era un problema que había que explicar cada vez.
+
+**Lo que sí se conservó a propósito: los 23 `Co-Authored-By:` de los mensajes.**
+No se borran y no se van a borrar. El trabajo se hizo con una herramienta y eso
+es el registro honesto de cómo se hizo; lo que no puede figurar es como autoría,
+porque la autoría tiene consecuencias que una herramienta no puede asumir.
+
+**Norma de aquí en adelante:** el autor de los commits es el titular y la
+herramienta va en `Co-Authored-By:`. Ya no hay `.mailmap`, porque no queda nada
+que mapear.

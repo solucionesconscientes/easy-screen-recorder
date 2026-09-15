@@ -1,9 +1,0 @@
-# Un commit del historial publicado (fd618a4, «Tanda 1») quedo con Claude como
-# autor. No se reescribe: esta en origin/main y eso exigiria un force push.
-#
-# Esta linea hace que git shortlog, git log --use-mailmap y git blame lo
-# atribuyan al titular, que es lo que refleja la realidad: el trabajo se hizo
-# con una herramienta bajo su direccion. Cambia la PRESENTACION, no el objeto de
-# commit; la pagina de ese commit en GitHub seguira mostrando el autor original.
-# La declaracion que vale a efectos de licencia esta en docs/LICENSING.md.
-solucionesconscientes <contacto@solucionesconscientes.es> Claude <noreply@anthropic.com>

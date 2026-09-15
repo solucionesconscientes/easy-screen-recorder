@@ -57,7 +57,7 @@ SPDX-License-Identifier = "GPL-3.0-or-later"
 
 # Documentacion y ficheros de repositorio.
 [[annotations]]
-path = ["*.md", "docs/*.md", "docs/**/*.md", ".gitignore", ".mailmap", "REUSE.toml", "empaquetado/**"]
+path = ["*.md", "docs/*.md", "docs/**/*.md", ".gitignore", "REUSE.toml", "empaquetado/**"]
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 Dalmau Romaní (Soluciones Conscientes)"
 SPDX-License-Identifier = "GPL-3.0-or-later"

@@ -156,7 +156,10 @@ el documento explica el riesgo, no abre la puerta.
 
 **Commits:** el autor es el titular y la herramienta va en `Co-Authored-By:`. Un
 modelo no puede ser autor ni firmar un CLA, y un `Author:` de un tercero deja un
-hueco en la cadena de titularidad. Ver `.mailmap`.
+hueco en la cadena de titularidad que hay que explicar en cada revisión. El
+historial se reescribió una vez por esto, mientras el repositorio era privado;
+ahora ya no se puede y no hace falta. Ver `docs/LICENSING.md`, «Autoría del
+historial».
 
 ## Datos y cifras
 
