@@ -1,8 +1,8 @@
-#include "capturia/json_ipc.hpp"
+#include "esr/json_ipc.hpp"
 
 #include "comprobar.hpp"
 
-using namespace capturia;
+using namespace esr;
 
 int main() {
     // Peticiones: las formas exactas que espera el servidor de GSR
@@ -20,9 +20,9 @@ int main() {
     }
     {
         const auto r = interpretar_respuesta_ipc(
-            "{\"id\":11,\"result\":\"ok\",\"data\":\"/home/pc/.cache/capturia-prueba/prueba.mkv\"}");
+            "{\"id\":11,\"result\":\"ok\",\"data\":\"/home/pc/.cache/easy-screen-recorder-prueba/prueba.mkv\"}");
         COMPROBAR(r && r->id == 11 && r->ok && r->tiene_data);
-        COMPROBAR(r && r->data == "/home/pc/.cache/capturia-prueba/prueba.mkv");
+        COMPROBAR(r && r->data == "/home/pc/.cache/easy-screen-recorder-prueba/prueba.mkv");
     }
     {
         const auto r = interpretar_respuesta_ipc(

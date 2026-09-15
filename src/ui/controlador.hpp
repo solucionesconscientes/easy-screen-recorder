@@ -7,9 +7,9 @@
 #include <QTimer>
 #include <qqmlregistration.h>
 
-#include "capturia/entorno.hpp"
+#include "esr/entorno.hpp"
 
-// El puente entre QML y libcapturia. Todo lo que la UI sabe pasa por aqui, y
+// El puente entre QML y libesr. Todo lo que la UI sabe pasa por aqui, y
 // aqui no hay logica de grabacion: solo llamadas a la capa 1 y estado para
 // pintar. La regla de CLAUDE.md se mantiene: lo que no funcione por CLI no
 // se toca en la UI, porque ambas llaman a lo mismo.
@@ -76,7 +76,7 @@ signals:
 private:
     void autoprueba(const QString& fuente);
     void detectarEnSegundoPlano();
-    void aplicarEntorno(const capturia::Entorno& e);
+    void aplicarEntorno(const esr::Entorno& e);
     void ponerEstado(const QString& estado);
     void ponerError(const QString& error);
 

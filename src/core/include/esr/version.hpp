@@ -5,10 +5,10 @@
 #include <string>
 #include <string_view>
 
-namespace capturia {
+namespace esr {
 
-// Version del propio Capturia. Se sincroniza con project() en CMakeLists.txt.
-inline constexpr std::string_view kVersionCapturia = "0.1.0";
+// Version del propio Easy Screen Recorder. Se sincroniza con project() en CMakeLists.txt.
+inline constexpr std::string_view kVersionEsr = "0.1.0";
 
 // Numero de version de tres componentes. Es dato de maquina: para enseñar algo
 // al usuario se usa texto(), nunca los enteros sueltos.
@@ -32,4 +32,4 @@ struct Version {
 // en CLAUDE.md y en docs/gsr-ipc.md. Ya no devuelve nullopt.
 std::optional<Version> version_minima_gsr();
 
-}  // namespace capturia
+}  // namespace esr

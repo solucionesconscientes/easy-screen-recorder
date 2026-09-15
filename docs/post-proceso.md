@@ -10,7 +10,7 @@ se corrió en esta máquina; lo demás dice "sin verificar".
 
 ## La pregunta que decide todo
 
-CLAUDE.md vende Capturia contra Screen Studio y AutoZoom, y su gracia es el
+CLAUDE.md vende Easy Screen Recorder contra Screen Studio y AutoZoom, y su gracia es el
 **auto-zoom**: acercarse a donde pasa la acción. Para eso hace falta saber
 **dónde estaba el puntero en cada instante** de la grabación.
 
@@ -30,9 +30,9 @@ KWin (el compositor de Plasma) expone `workspace.cursorPos` a sus scripts, y
 los scripts se cargan por DBus sin diálogo ni permiso especial:
 
 ```
-$ qdbus6 org.kde.KWin /Scripting org.kde.kwin.Scripting.loadScript cursor.js capturia-prueba
+$ qdbus6 org.kde.KWin /Scripting org.kde.kwin.Scripting.loadScript cursor.js easy-screen-recorder-prueba
 $ qdbus6 org.kde.KWin /Scripting/Script0 org.kde.kwin.Script.run
-journal: js: capturia-prueba cursorPos: 566,405
+journal: js: easy-screen-recorder-prueba cursorPos: 566,405
 ```
 
 ### 2. El muestreo periódico funciona
@@ -40,11 +40,11 @@ journal: js: capturia-prueba cursorPos: 566,405
 Un `QTimer` dentro del script de KWin, a 100 ms:
 
 ```
-js: capturia-muestra 1 t=1789423738816 pos=566,405
-js: capturia-muestra 2 t=1789423738920 pos=566,405
-js: capturia-muestra 3 t=1789423739025 pos=566,405
-js: capturia-muestra 4 t=1789423739131 pos=566,405
-js: capturia-muestra 5 t=1789423739230 pos=566,405
+js: esr-muestra 1 t=1789423738816 pos=566,405
+js: esr-muestra 2 t=1789423738920 pos=566,405
+js: esr-muestra 3 t=1789423739025 pos=566,405
+js: esr-muestra 4 t=1789423739131 pos=566,405
+js: esr-muestra 5 t=1789423739230 pos=566,405
 ```
 
 Intervalos reales de 99-106 ms. `Date.now()` da tiempo de pared en
@@ -58,13 +58,13 @@ sobran. Sin verificar, igualmente.
 `dbus-monitor` delante:
 
 ```
-method call sender=:1.16 -> destination=com.capturia.Telemetria
-  path=/telemetria; interface=com.capturia.Telemetria; member=muestra
+method call sender=:1.16 -> destination=es.solucionesconscientes.esr.Telemetria
+  path=/telemetria; interface=es.solucionesconscientes.esr.Telemetria; member=muestra
    string "566,405"
 ```
 
-O sea: Capturia levanta un servicio DBus de sesión, el script de KWin le
-manda `(t, x, y)` en cada tick, y Capturia lo escribe a un fichero de
+O sea: Easy Screen Recorder levanta un servicio DBus de sesión, el script de KWin le
+manda `(t, x, y)` en cada tick, y Easy Screen Recorder lo escribe a un fichero de
 telemetría junto al vídeo. El journal del paso 2 era solo para la prueba; el
 transporte real es este.
 
@@ -90,12 +90,12 @@ post-proceso exista.
 ## La arquitectura que sale de esto
 
 ```
-capturia grabar --con-telemetria
+easy-screen-recorder-cli grabar --con-telemetria
   ├── GSR graba, con -write-first-frame-ts yes    → video.mkv + video.mkv.ts
-  ├── script KWin (lo carga y descarga capturia)  → muestras (t, x, y) por DBus
-  └── capturia las recibe y escribe                → video.mkv.puntero (nuestro)
+  ├── script KWin (lo carga y descarga easy-screen-recorder-cli)  → muestras (t, x, y) por DBus
+  └── easy-screen-recorder-cli las recibe y escribe                → video.mkv.puntero (nuestro)
 
-capturia pulir video.mkv   (nombre por decidir)
+easy-screen-recorder-cli pulir video.mkv   (nombre por decidir)
   └── lee .ts y .puntero, calcula la curva de zoom, y re-renderiza
 ```
 
@@ -112,7 +112,7 @@ ffmpeg como proceso.
   ScreenCast con `cursor_mode=metadata` (bit 4; en esta máquina
   `AvailableCursorModes` devuelve 7, o sea que está), pero consumir esa
   metadata exige abrir un stream PipeWire propio: segunda sesión de captura y
-  segundo diálogo de permiso. **Sin verificar.** Capturia es KDE primero
+  segundo diálogo de permiso. **Sin verificar.** Easy Screen Recorder es KDE primero
   (CLAUDE.md), así que no bloquea, pero el auto-zoom nacería siendo solo-KDE
   y hay que decirlo en la UI.
 - **La API de KWin puede cambiar.** `cursorPos` existe en la serie 6.x que
@@ -129,7 +129,7 @@ ffmpeg como proceso.
   cita para dejar claro que la telemetría no choca con GSR: son dos
   consumidores distintos.
 
-## Qué NO es el post-proceso de Capturia
+## Qué NO es el post-proceso de Easy Screen Recorder
 
 Para mantener "ligera e intuitiva" por delante:
 
@@ -148,7 +148,7 @@ Tres alcances posibles, de más a menos:
 | B. Solo cortes | recortar principio/final y trocear, sin telemetría | solo ffmpeg, sin re-render completo (`-c copy`) |
 | C. Posponer | nada hasta después de la UI | nada |
 
-B es casi gratis y útil ya. A es lo que diferencia a Capturia de Kooha y
+B es casi gratis y útil ya. A es lo que diferencia a Easy Screen Recorder de Kooha y
 compañía, y esta investigación deja las piezas listas. A incluye B.
 
 **Nada de esto se escribe hasta que el titular elija.**

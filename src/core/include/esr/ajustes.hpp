@@ -4,7 +4,7 @@
 #include <string_view>
 #include <vector>
 
-namespace capturia {
+namespace esr {
 
 // Una peticion de grabacion ya resuelta: lo que se pidio mas los defaults.
 // Es un dato, sin GSR y sin GUI detras.
@@ -33,7 +33,7 @@ struct AjustesGrabacion {
 // La extension de la ruta, sin el punto y en minusculas. Vacia si no hay.
 std::string extension_de(std::string_view ruta);
 
-// Los contenedores que Capturia ofrece. mkv es el default de CLAUDE.md;
+// Los contenedores que Easy Screen Recorder ofrece. mkv es el default de CLAUDE.md;
 // mp4 y webm son los otros dos con reglas conocidas en codec_select.c.
 // No es deteccion: es la lista de lo que este proyecto decide soportar.
 std::vector<std::string> contenedores_soportados();
@@ -60,8 +60,8 @@ std::vector<std::string> argumentos_gsr(const AjustesGrabacion& a);
 std::string carpeta_videos();   // XDG_VIDEOS_DIR, para las grabaciones de pantalla
 std::string carpeta_musica();   // XDG_MUSIC_DIR, para el modo audio-only
 
-// capturia-AAAAMMDD-HHMMSS.<extension> dentro de la carpeta dada.
+// easy-screen-recorder-AAAAMMDD-HHMMSS.<extension> dentro de la carpeta dada.
 std::string nombre_por_defecto(const std::string& carpeta,
                                const std::string& extension = "mkv");
 
-}  // namespace capturia
+}  // namespace esr

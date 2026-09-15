@@ -12,11 +12,11 @@ namespace {
 // El identificador de accion de KGlobalAccel: componente, accion y sus dos
 // nombres visibles. Con esto el atajo aparece en Preferencias del sistema >
 // Atajos, donde el usuario puede cambiarlo. Ahi esta la personalizacion:
-// Capturia no necesita su propia pantalla de atajos.
+// Easy Screen Recorder no necesita su propia pantalla de atajos.
 const QStringList kAccionGrabarParar = {
-    QStringLiteral("capturia"),
+    QStringLiteral("easy-screen-recorder"),
     QStringLiteral("grabar_parar"),
-    QStringLiteral("Capturia"),
+    QStringLiteral("Easy Screen Recorder"),
     QStringLiteral("Empezar o parar la grabación"),
 };
 
@@ -48,7 +48,7 @@ AtajosGlobales::AtajosGlobales(Controlador* controlador, QObject* padre)
                   concedidas.value().first() != 0;
 
     QDBusConnection::sessionBus().connect(
-        QStringLiteral("org.kde.kglobalaccel"), QStringLiteral("/component/capturia"),
+        QStringLiteral("org.kde.kglobalaccel"), QStringLiteral("/component/easy-screen-recorder"),
         QStringLiteral("org.kde.kglobalaccel.Component"),
         QStringLiteral("globalShortcutPressed"), this,
         SLOT(alPulsar(QString, QString, qlonglong)));
@@ -57,6 +57,6 @@ AtajosGlobales::AtajosGlobales(Controlador* controlador, QObject* padre)
 void AtajosGlobales::alPulsar(const QString& componente, const QString& accion,
                               qlonglong instante) {
     Q_UNUSED(instante);
-    if (componente != QStringLiteral("capturia")) return;
+    if (componente != QStringLiteral("easy-screen-recorder")) return;
     if (accion == QStringLiteral("grabar_parar")) controlador_->alternarGrabacion();
 }

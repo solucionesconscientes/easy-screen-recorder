@@ -1,4 +1,4 @@
-#include "capturia/proceso.hpp"
+#include "esr/proceso.hpp"
 
 #include <fcntl.h>
 #include <poll.h>
@@ -13,7 +13,7 @@
 #include <cstring>
 #include <filesystem>
 
-namespace capturia {
+namespace esr {
 
 std::optional<std::string> localizar(const std::string& programa) {
     if (programa.find('/') != std::string::npos) {
@@ -124,9 +124,9 @@ ResultadoProceso ejecutar(const std::string& programa,
     return r;
 }
 
-}  // namespace capturia
+}  // namespace esr
 
-namespace capturia {
+namespace esr {
 
 ProcesoLanzado lanzar_desatendido(const std::string& programa,
                                   const std::vector<std::string>& args,
@@ -186,4 +186,4 @@ bool proceso_vivo(long pid) {
     return ::kill(static_cast<pid_t>(pid), 0) == 0;
 }
 
-}  // namespace capturia
+}  // namespace esr

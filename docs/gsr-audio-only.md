@@ -108,7 +108,7 @@ Y una más: **FLAC no sobrevive a mezclar varias fuentes de audio**. Con `amix`
 activo pasa a Opus (`src/recorder/codec_select.c:186-191`).
 
 Consecuencia para la UI, cuando llegue: la pareja contenedor + códec hay que
-validarla antes de ofrecerla, o Capturia enseñará "FLAC" y entregará AAC. Encaja
+validarla antes de ofrecerla, o Easy Screen Recorder enseñará "FLAC" y entregará AAC. Encaja
 con el principio de solo exponer lo que la máquina soporta de verdad.
 
 ## Recomendación sobre el backend ffmpeg

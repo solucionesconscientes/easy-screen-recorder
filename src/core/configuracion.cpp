@@ -1,21 +1,21 @@
-#include "capturia/configuracion.hpp"
+#include "esr/configuracion.hpp"
 
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
 
-#include "capturia/ajustes.hpp"
+#include "esr/ajustes.hpp"
 
-namespace capturia {
+namespace esr {
 namespace {
 
 std::string dir_configuracion() {
     if (const char* xdg = std::getenv("XDG_CONFIG_HOME"); xdg != nullptr && xdg[0] != '\0') {
-        return std::string(xdg) + "/capturia";
+        return std::string(xdg) + "/easy-screen-recorder";
     }
     const char* hogar = std::getenv("HOME");
     const std::string casa = (hogar != nullptr && hogar[0] != '\0') ? hogar : ".";
-    return casa + "/.config/capturia";
+    return casa + "/.config/easy-screen-recorder";
 }
 
 std::string carpeta_de(const std::string& clave, std::string por_defecto) {
@@ -32,7 +32,7 @@ std::string carpeta_de(const std::string& clave, std::string por_defecto) {
 
 }  // namespace
 
-std::string ruta_configuracion() { return dir_configuracion() + "/capturia.conf"; }
+std::string ruta_configuracion() { return dir_configuracion() + "/easy-screen-recorder.conf"; }
 
 std::map<std::string, std::string> leer_configuracion() {
     std::map<std::string, std::string> valores;
@@ -52,7 +52,7 @@ bool escribir_configuracion(const std::map<std::string, std::string>& valores) {
     std::filesystem::create_directories(dir_configuracion(), ec);
     std::ofstream f(ruta_configuracion(), std::ios::trunc);
     if (!f) return false;
-    f << "# Configuracion de Capturia. La escribe la aplicacion.\n";
+    f << "# Configuracion de Easy Screen Recorder. La escribe la aplicacion.\n";
     for (const auto& [clave, valor] : valores) {
         f << clave << "=" << valor << "\n";
     }
@@ -69,4 +69,4 @@ std::string carpeta_videos_elegida() { return carpeta_de("carpeta_videos", carpe
 
 std::string carpeta_audio_elegida() { return carpeta_de("carpeta_audio", carpeta_musica()); }
 
-}  // namespace capturia
+}  // namespace esr

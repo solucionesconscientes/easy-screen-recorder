@@ -1,4 +1,4 @@
-#include "capturia/audio.hpp"
+#include "esr/audio.hpp"
 
 #include <signal.h>
 
@@ -8,10 +8,10 @@
 #include <fstream>
 #include <thread>
 
-#include "capturia/ajustes.hpp"
-#include "capturia/proceso.hpp"
+#include "esr/ajustes.hpp"
+#include "esr/proceso.hpp"
 
-namespace capturia {
+namespace esr {
 namespace {
 
 std::string primera_linea(const std::string& texto) {
@@ -65,7 +65,7 @@ std::string resolver_dispositivo(const std::string& dispositivo, std::string& mo
     if (!r.ejecutado || r.codigo != 0) {
         motivo = "no se pudo preguntar a pactl por el dispositivo por defecto";
         if (!r.ejecutado) motivo += " (" + r.motivo + ")";
-        motivo += ". Elige uno explicito de «capturia dispositivos»";
+        motivo += ". Elige uno explicito de «easy-screen-recorder-cli dispositivos»";
         return {};
     }
     std::string nombre = primera_linea(r.salida);
@@ -124,7 +124,7 @@ SesionAudio sesion_audio_por_defecto() {
     const char* hogar = std::getenv("HOME");
     const std::string casa = (hogar != nullptr && hogar[0] != '\0') ? hogar : ".";
     SesionAudio s;
-    s.dir = casa + "/.cache/capturia/sesion-audio";
+    s.dir = casa + "/.cache/easy-screen-recorder/sesion-audio";
     s.ruta_pid = s.dir + "/ffmpeg.pid";
     s.ruta_log = s.dir + "/ffmpeg.log";
     s.ruta_destino = s.dir + "/destino.txt";
@@ -140,7 +140,7 @@ ResultadoAudio empezar_audio(const AjustesAudio& a, const SesionAudio& sesion) {
     ResultadoAudio r;
 
     if (audio_en_marcha(sesion)) {
-        r.motivo = "ya hay una grabacion de audio en marcha; parala con «capturia parar»";
+        r.motivo = "ya hay una grabacion de audio en marcha; parala con «easy-screen-recorder-cli parar»";
         return r;
     }
 
@@ -215,7 +215,7 @@ ResultadoAudio parar_audio(const SesionAudio& sesion) {
         return r;
     }
 
-    // Esperar a que cierre. No es nuestro hijo directo tras «capturia audio»,
+    // Esperar a que cierre. No es nuestro hijo directo tras «easy-screen-recorder-cli audio»,
     // asi que se sondea. Diez segundos dan de sobra para escribir una cola.
     for (int esperado = 0; esperado < 10000; esperado += 100) {
         if (!proceso_vivo(pid)) break;
@@ -243,4 +243,4 @@ ResultadoAudio parar_audio(const SesionAudio& sesion) {
     return r;
 }
 
-}  // namespace capturia
+}  // namespace esr

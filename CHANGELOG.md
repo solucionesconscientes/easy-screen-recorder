@@ -5,6 +5,19 @@ máquina de desarrollo.
 
 ## Sin publicar
 
+### Renombrado (2026-09-15)
+- **Proyecto renombrado desde Capturia a Easy Screen Recorder.** El nombre es
+  siempre en inglés y sin abreviar, en todos los idiomas.
+- Identificador de aplicación: `org.capturia.Capturia` pasa a
+  `es.solucionesconscientes.EasyScreenRecorder`.
+- Binarios: la UI es `easy-screen-recorder` (antes `capturia-ui`) y la consola
+  `easy-screen-recorder-cli` (antes `capturia`).
+- Biblioteca: `libcapturia` pasa a `libesr`, con las cabeceras en `include/esr/`
+  y el namespace `esr`. El URI de QML pasa a `es.solucionesconscientes.esr`.
+- Configuración en `~/.config/easy-screen-recorder/` y sesión en
+  `~/.cache/easy-screen-recorder/`. **Sin migración**: no hay usuarios todavía.
+- Sin cambios de funcionalidad.
+
 ### Tandas 9 y 10 (2026-09-15)
 - Selector de región propio (arrastrar elige, Esc cancela) y formatos y
   códecs en Avanzado, con el códec de audio filtrado por formato.
@@ -38,7 +51,7 @@ máquina de desarrollo.
 - El arnés verifica pantalla y audio grabando de verdad.
 
 ### Tanda 4 (2026-09-15)
-- **Capturia graba.** `grabar`, `parar`, `pausar`, `reanudar`, `estado`,
+- **Easy Screen Recorder graba.** `grabar`, `parar`, `pausar`, `reanudar`, `estado`,
   `fuentes`, `dispositivos`, `--check --volcado`.
 - Cliente IPC propio del protocolo de GSR, con respuestas diferidas sin
   límite de tiempo.

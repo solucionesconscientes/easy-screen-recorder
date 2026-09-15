@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Mide arranque y RAM de un binario de capturia. El principio de diseño
+# Mide arranque y RAM de un binario de easy-screen-recorder-cli. El principio de diseño
 # manda: arranque por debajo de 1 segundo y poca RAM. Esto lo convierte en
 # numero medido en vez de sensacion.
 #
@@ -10,7 +10,7 @@
 set -u
 
 raiz="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-binario="${1:-$raiz/build/src/cli/capturia}"
+binario="${1:-$raiz/build/src/cli/easy-screen-recorder-cli}"
 shift 2>/dev/null || true
 
 if [ ! -x "$binario" ]; then
@@ -31,8 +31,8 @@ medir() {
 if [ $# -gt 0 ]; then
   medir "$binario $*" "$@"
 else
-  medir "capturia --version" --version
-  medir "capturia --check (deteccion completa)" --check
+  medir "easy-screen-recorder-cli --version" --version
+  medir "easy-screen-recorder-cli --check (deteccion completa)" --check
 fi
 
 echo

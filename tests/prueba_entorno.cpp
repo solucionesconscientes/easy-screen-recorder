@@ -1,16 +1,16 @@
-#include "capturia/entorno.hpp"
+#include "esr/entorno.hpp"
 
 #include <algorithm>
 #include <string>
 
 #include "comprobar.hpp"
 
-using namespace capturia;
+using namespace esr;
 
 namespace {
 
 std::string fixture(const std::string& nombre) {
-    return prueba::leer(std::string(CAPTURIA_DIR_FIXTURES) + "/" + nombre);
+    return prueba::leer(std::string(ESR_DIR_FIXTURES) + "/" + nombre);
 }
 
 std::size_t bloqueantes(const Entorno& e) {
@@ -28,7 +28,7 @@ bool alguna_carencia_contiene(const Entorno& e, std::string_view trozo) {
 // Es el caso "todo instalado y respondiendo". Si falla aqui, lo que decide que
 // se le ofrece al usuario esta roto, aunque el parser de listas vaya bien.
 void volcado_real() {
-    const Entorno e = detectar_desde_volcado(prueba::leer(CAPTURIA_VOLCADO_REAL));
+    const Entorno e = detectar_desde_volcado(prueba::leer(ESR_VOLCADO_REAL));
 
     COMPROBAR(e.gsr.evaluada);
     COMPROBAR(e.gsr.presente);
@@ -69,7 +69,7 @@ void sin_nada_instalado() {
     COMPROBAR(!e.listo());
 
     // GSR ausente bloquea; gsr-cli ausente avisa pero no bloquea, porque
-    // libcapturia habla el IPC directamente.
+    // libesr habla el IPC directamente.
     COMPROBAR_NOTA(bloqueantes(e) == 1, "bloqueantes=" + std::to_string(bloqueantes(e)));
     COMPROBAR(alguna_carencia_contiene(e, "gpu-screen-recorder"));
     COMPROBAR(alguna_carencia_contiene(e, "gsr-cli"));

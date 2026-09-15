@@ -1,8 +1,8 @@
-#include "capturia/proceso.hpp"
+#include "esr/proceso.hpp"
 
 #include "comprobar.hpp"
 
-using namespace capturia;
+using namespace esr;
 
 int main() {
     // localizar

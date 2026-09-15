@@ -1,4 +1,4 @@
-# CI de Capturia: compilar sin un solo warning y pasar los tests.
+# CI de Easy Screen Recorder: compilar sin un solo warning y pasar los tests.
 #
 # En el runner NO hay GSR ni sesion grafica, y eso esta bien: los tests son
 # hermeticos sobre fixtures, y el test cli_check acepta "NO LISTO" como
@@ -29,7 +29,7 @@ jobs:
       - name: Configurar
         run: cmake -S . -B build -G Ninja
 
-      # CAPTURIA_WERROR esta ON por defecto: un warning aqui rompe el build,
+      # ESR_WERROR esta ON por defecto: un warning aqui rompe el build,
       # que es exactamente lo que manda CLAUDE.md.
       - name: Compilar
         run: cmake --build build

@@ -2,16 +2,16 @@
 
 #include <string>
 
-#include "capturia/ajustes.hpp"
+#include "esr/ajustes.hpp"
 
-namespace capturia {
+namespace esr {
 
 // Donde vive la grabacion en marcha. Una sola a la vez: la carpeta es fija y
 // el socket dentro de ella. Va bajo ~/.cache y no bajo /tmp a proposito: el
 // /tmp de un GSR en flatpak es privado y ni el socket ni nada compartido
 // puede ir alli (docs/gsr-ipc.md, "La trampa del flatpak").
 struct SesionGrabacion {
-    std::string dir;          // ~/.cache/capturia/sesion
+    std::string dir;          // ~/.cache/easy-screen-recorder/sesion
     std::string ruta_socket;  // dir/ipc.sock
     std::string ruta_log;     // dir/gsr.log
     std::string ruta_pid;     // dir/gsr.pid
@@ -62,4 +62,4 @@ bool poner_pausa(const SesionGrabacion& sesion, bool pausada, std::string& motiv
 // mejor que un diagnostico inventado.
 std::string diagnostico_de_log(const std::string& ruta_log);
 
-}  // namespace capturia
+}  // namespace esr

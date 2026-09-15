@@ -1,4 +1,4 @@
-// La ventana de Capturia. El contrato de CLAUDE.md manda aqui: grabar en dos
+// La ventana de Easy Screen Recorder. El contrato de CLAUDE.md manda aqui: grabar en dos
 // clics (Fuente, Grabar), lo demas plegado en "Avanzado", y la sencillez de
 // Spectacle como referencia. Nada de paneles: una columna.
 import QtQuick
@@ -6,11 +6,11 @@ import QtQuick.Controls as QQC2
 import QtQuick.Layouts
 import QtQuick.Dialogs
 import org.kde.kirigami as Kirigami
-import org.capturia
+import es.solucionesconscientes.esr
 
 Kirigami.ApplicationWindow {
     id: raiz
-    title: "Capturia"
+    title: "Easy Screen Recorder"
     width: Kirigami.Units.gridUnit * 24
     height: Math.max(minimumHeight, Kirigami.Units.gridUnit * 21)
     minimumWidth: Kirigami.Units.gridUnit * 18

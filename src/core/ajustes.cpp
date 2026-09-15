@@ -1,11 +1,11 @@
-#include "capturia/ajustes.hpp"
+#include "esr/ajustes.hpp"
 
 #include <algorithm>
 #include <cstdlib>
 #include <ctime>
 #include <fstream>
 
-namespace capturia {
+namespace esr {
 namespace {
 
 bool contiene(std::initializer_list<std::string_view> lista, std::string_view valor) {
@@ -166,7 +166,7 @@ std::string nombre_por_defecto(const std::string& carpeta, const std::string& ex
     localtime_r(&ahora, &desglosado);
     char sello[32];
     std::strftime(sello, sizeof(sello), "%Y%m%d-%H%M%S", &desglosado);
-    return carpeta + "/capturia-" + sello + "." + extension;
+    return carpeta + "/easy-screen-recorder-" + sello + "." + extension;
 }
 
-}  // namespace capturia
+}  // namespace esr

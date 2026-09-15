@@ -1,17 +1,17 @@
-#include "capturia/capacidades.hpp"
+#include "esr/capacidades.hpp"
 
 #include <algorithm>
 #include <string>
 
-#include "capturia/entorno.hpp"
+#include "esr/entorno.hpp"
 #include "comprobar.hpp"
 
-using namespace capturia;
+using namespace esr;
 
 namespace {
 
 std::string fixture(const std::string& nombre) {
-    return prueba::leer(std::string(CAPTURIA_DIR_FIXTURES) + "/" + nombre);
+    return prueba::leer(std::string(ESR_DIR_FIXTURES) + "/" + nombre);
 }
 
 bool algun_aviso_contiene(const Capacidades& c, std::string_view trozo) {
@@ -30,7 +30,7 @@ const Opcion* buscar(const std::vector<Opcion>& v, std::string_view id) {
 // que ata el parser a la realidad: si GSR cambia el formato de sus listas,
 // falla aqui y no en la UI.
 void volcado_real() {
-    const std::string texto = prueba::leer(CAPTURIA_VOLCADO_REAL);
+    const std::string texto = prueba::leer(ESR_VOLCADO_REAL);
     COMPROBAR_NOTA(!texto.empty(), "docs/gsr-capabilities.txt no deberia estar vacio");
 
     // Cinco desde la Tanda 4: --list-capture-options ya no se sondea porque

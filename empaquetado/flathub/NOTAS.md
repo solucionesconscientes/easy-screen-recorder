@@ -11,7 +11,7 @@ decidirla esta en PROMPT-LICENCIA.md (raiz del repo, fuera de git).
 
 ## Bloqueo 2: lanzar GSR desde dentro del sandbox, verificado
 
-Capturia empaquetada vive en un sandbox y gpu-screen-recorder vive en el
+Easy Screen Recorder empaquetada vive en un sandbox y gpu-screen-recorder vive en el
 anfitrion (nativo o como su propio flatpak). Hoy `localizar_gsr()` busca en
 PATH y en /var/lib/flatpak, y ninguna de las dos cosas existe dentro de
 nuestro sandbox.
@@ -21,7 +21,7 @@ Flatpak`), con `FLATPAK_ID` como señal de estar dentro. Eso es codigo en
 `entorno.cpp` que NO se escribe hasta poder ejecutarlo de verdad, porque:
 
 - exige probar las dos variantes del anfitrion (GSR en PATH y GSR flatpak);
-- el socket IPC en ~/.cache/capturia tiene que cruzar dos sandboxes;
+- el socket IPC en ~/.cache/easy-screen-recorder tiene que cruzar dos sandboxes;
 - y esta maquina no tiene flatpak-builder (comprobado 2026-09-15), asi que
   no hay donde construir y ejecutar la prueba.
 
@@ -44,7 +44,7 @@ KDE), se escribe, se construye local y se verifica grabando.
 ## El .deb (si X11)
 
 Verificado 2026-09-15: la UI corre como cliente X11 (QT_QPA_PLATFORM=xcb
-sobre XWayland) y graba igual; libcapturia no toca el display. Una sesion
+sobre XWayland) y graba igual; libesr no toca el display. Una sesion
 X11 pura no se ha probado desde aqui (esta maquina corre Wayland), pero la
 captura ahi es de GSR, que soporta X11 upstream. Conclusion: el .deb es
 viable. Tambien espera a la licencia (debian/copyright) y a la primera

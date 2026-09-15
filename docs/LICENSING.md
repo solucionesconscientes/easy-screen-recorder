@@ -4,7 +4,7 @@ Este documento explica el razonamiento y **dónde está el riesgo**. No es para
 abrir la puerta a enlazar el código de GSR: es para que quien venga después sepa
 qué línea no se cruza y por qué.
 
-Aviso: esto es ingeniería, no asesoría legal. Si algún día Capturia se
+Aviso: esto es ingeniería, no asesoría legal. Si algún día Easy Screen Recorder se
 distribuye en serio, esto se lo mira un abogado. Lo que hay aquí sirve para
 tomar decisiones técnicas con los ojos abiertos.
 
@@ -17,12 +17,12 @@ tomar decisiones técnicas con los ojos abiertos.
 - `el README de GSR, línea 246`: "This software is licensed
   under GPL-3.0-only".
 
-**Capturia todavía no tiene licencia propia.** No hay fichero `LICENSE` en la
+**Easy Screen Recorder todavía no tiene licencia propia.** No hay fichero `LICENSE` en la
 raíz del repo. Es una decisión pendiente y no es menor: ver el último apartado.
 
 ## Cómo usamos GSR, exactamente
 
-Esto es lo que decide todo, así que conviene ser literal. Capturia:
+Esto es lo que decide todo, así que conviene ser literal. Easy Screen Recorder:
 
 - **Lanza `gpu-screen-recorder` como proceso aparte**, con `fork` y `execv`
   (`src/core/proceso.cpp`).
@@ -33,7 +33,7 @@ Esto es lo que decide todo, así que conviene ser literal. Capturia:
 
 Y lo que **no** hace, que importa igual o más:
 
-- No incluye ni una cabecera de GSR. `libcapturia` no tiene un solo `#include`
+- No incluye ni una cabecera de GSR. `libesr` no tiene un solo `#include`
   que apunte a la copia de referencia.
 - No enlaza nada suyo, ni estática ni dinámicamente. `src/core/CMakeLists.txt`
   no menciona GSR.
@@ -56,7 +56,7 @@ lo es.
 Dos programas que se comunican **a distancia** (procesos separados, tuberías,
 sockets, argumentos de línea de comandos) se consideran normalmente obras
 separadas, aunque se usen juntos. Es la posición que la propia FSF sostiene en
-su FAQ de la GPL, y es exactamente el caso de Capturia: procesos distintos,
+su FAQ de la GPL, y es exactamente el caso de Easy Screen Recorder: procesos distintos,
 espacios de memoria distintos, un protocolo de texto en medio.
 
 El argumento de más peso no es teórico, es que **ya existe el precedente dentro
@@ -71,7 +71,7 @@ Lo que hace fuerte nuestra posición, en orden de importancia:
    derivada se queda casi sin base.
 2. **Protocolo público y documentado.** JSON por un socket, con su página de
    manual. No es una interfaz interna que hayamos destripado.
-3. **Capturia funciona sin GSR.** Arranca, hace `--check` y explica qué falta.
+3. **Easy Screen Recorder funciona sin GSR.** Arranca, hace `--check` y explica qué falta.
    El modo audio-only, cuando exista, irá por ffmpeg y no tocará GSR
    (`docs/gsr-audio-only.md`).
 4. **No lo distribuimos.** Nada de GSR viaja en nuestro paquete.
@@ -84,12 +84,12 @@ es lo que pasa:
 
 | Si hiciéramos... | Consecuencia |
 |---|---|
-| Incluir sus cabeceras y llamar a sus funciones | La UI pasa a ser obra derivada. **Todo Capturia tendría que ser GPL-3.0** |
+| Incluir sus cabeceras y llamar a sus funciones | La UI pasa a ser obra derivada. **Todo Easy Screen Recorder tendría que ser GPL-3.0** |
 | Enlazar una biblioteca suya, estática o dinámica | Igual. La FSF considera el enlace dinámico tan derivado como el estático |
 | Copiar código suyo, aunque sean veinte líneas traducidas | Igual, y además con un problema de atribución |
 | Meter su código en nuestro árbol de compilación | Igual, aunque no se llame a nada: se estaría distribuyendo una obra combinada |
 
-"Todo Capturia tendría que ser GPL-3.0" quiere decir: código fuente disponible
+"Todo Easy Screen Recorder tendría que ser GPL-3.0" quiere decir: código fuente disponible
 para cualquiera que reciba el binario, licencia compatible en toda dependencia
 nuestra, y la puerta cerrada a cualquier plan futuro que no sea GPL. Puede que
 eso acabe pareciendo bien; lo que no puede es pasar **sin decidirlo**, por
@@ -109,12 +109,12 @@ Ser honestos con el riesgo es el objetivo de este documento, así que:
 - **Es interpretación, no jurisprudencia.** La postura de la FSF es la del autor
   de la licencia, no la de un tribunal. Hay abogados que la discuten. Para un
   proyecto de escritorio con esta separación el riesgo es bajo, pero no es cero.
-- **Empaquetar sí es distribuir.** Si algún día Capturia saliera como flatpak
+- **Empaquetar sí es distribuir.** Si algún día Easy Screen Recorder saliera como flatpak
   con GSR dentro, estaríamos distribuyendo una obra GPL-3.0 y habría que cumplir
   la GPL **para esa copia**: oferta de fuentes, licencia incluida, avisos. Eso
   no relicencia nuestro código (sigue siendo agregación), pero sí añade
   obligaciones que hoy no tenemos. Recomendación: **depender de GSR instalado,
-  no empaquetarlo.** Es además lo que ya hace `libcapturia`, que lo busca en
+  no empaquetarlo.** Es además lo que ya hace `libesr`, que lo busca en
   PATH y en el flatpak del sistema.
 - **`gsr-cli` es un binario GPL.** Si algún día llamáramos a `gsr-cli` en vez de
   hablar el protocolo nosotros, seguiría siendo ejecutar un programa aparte, que
@@ -129,13 +129,13 @@ Lo accionable, en cuatro líneas:
 2. la copia de referencia de GSR es de lectura. No se compila, no se copia,
    no se modifica.
 3. Ni un `#include` que apunte ahí desde `src/`.
-4. Antes de empaquetar GSR con Capturia, se vuelve a leer este documento.
+4. Antes de empaquetar GSR con Easy Screen Recorder, se vuelve a leer este documento.
 
-## Pendiente: la licencia de Capturia
+## Pendiente: la licencia de Easy Screen Recorder
 
 Sigue sin elegirse y conviene hacerlo pronto, porque condiciona lo de arriba.
 El razonamiento entero de este documento sirve para **mantener abierta la
-opción** de que Capturia no sea GPL. Si al final se elige GPL-3.0 igualmente,
+opción** de que Easy Screen Recorder no sea GPL. Si al final se elige GPL-3.0 igualmente,
 gran parte del cuidado deja de hacer falta, aunque las reglas seguirían siendo
 buena ingeniería: no enlazar la captura es lo que nos deja cambiar de backend
 sin reescribir la UI.

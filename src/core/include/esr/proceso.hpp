@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-namespace capturia {
+namespace esr {
 
 // Resultado de lanzar un programa externo.
 //
@@ -40,7 +40,7 @@ struct ProcesoLanzado {
 
 // Lanza el programa en su propia sesion (setsid), con stdout y stderr al
 // fichero dado. No espera: el proceso sobrevive a quien lo lanzo, que es lo
-// que necesita «capturia grabar» para volver al instante. El fichero de log
+// que necesita «easy-screen-recorder-cli grabar» para volver al instante. El fichero de log
 // es la unica ventana a sus errores, por eso no es opcional.
 ProcesoLanzado lanzar_desatendido(const std::string& programa,
                                   const std::vector<std::string>& args,
@@ -50,4 +50,4 @@ ProcesoLanzado lanzar_desatendido(const std::string& programa,
 // que sea el nuestro; por eso se combina siempre con el socket del IPC.
 bool proceso_vivo(long pid);
 
-}  // namespace capturia
+}  // namespace esr

@@ -5,10 +5,10 @@
 #include <string_view>
 #include <vector>
 
-#include "capturia/capacidades.hpp"
-#include "capturia/version.hpp"
+#include "esr/capacidades.hpp"
+#include "esr/version.hpp"
 
-namespace capturia {
+namespace esr {
 
 // Identificador de la aplicacion flatpak de GSR. Es un nombre propio, no una
 // lista de capacidades: no se detecta, se sabe. Lo que si se detecta es si esta
@@ -84,4 +84,4 @@ Entorno detectar();
 // de los tests y de un futuro --check sobre fichero.
 Entorno detectar_desde_volcado(std::string_view volcado);
 
-}  // namespace capturia
+}  // namespace esr

@@ -1,11 +1,11 @@
-# Manifiesto de Flathub para Capturia. BORRADOR: no se envia hasta resolver
+# Manifiesto de Flathub para Easy Screen Recorder. BORRADOR: no se envia hasta resolver
 # los dos bloqueos de NOTAS.md (licencia y lanzamiento de GSR desde dentro
 # del sandbox, este segundo con su verificacion).
-app-id: org.capturia.Capturia
+app-id: es.solucionesconscientes.EasyScreenRecorder
 runtime: org.kde.Platform
 runtime-version: '6.9'
 sdk: org.kde.Sdk
-command: capturia-ui
+command: easy-screen-recorder
 
 finish-args:
   - --socket=wayland
@@ -19,8 +19,8 @@ finish-args:
   - --filesystem=xdg-videos
   - --filesystem=xdg-music
   # La sesion de grabacion (socket IPC de GSR, pid, log) vive en
-  # ~/.cache/capturia y la tienen que ver los dos lados.
-  - --filesystem=~/.cache/capturia:create
+  # ~/.cache/easy-screen-recorder y la tienen que ver los dos lados.
+  - --filesystem=~/.cache/easy-screen-recorder:create
   # Para lanzar gpu-screen-recorder EN EL ANFITRION via flatpak-spawn.
   # Es el permiso gordo de este manifiesto; NOTAS.md explica por que no hay
   # alternativa mientras la captura viva en un proceso del anfitrion.
@@ -29,7 +29,7 @@ finish-args:
   - --talk-name=org.kde.kglobalaccel
 
 modules:
-  - name: capturia
+  - name: easy-screen-recorder
     buildsystem: cmake-ninja
     config-opts:
       - -DCMAKE_BUILD_TYPE=RelWithDebInfo

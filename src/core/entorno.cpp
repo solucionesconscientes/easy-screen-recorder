@@ -1,12 +1,12 @@
-#include "capturia/entorno.hpp"
+#include "esr/entorno.hpp"
 
 #include <cstdlib>
 #include <filesystem>
 #include <thread>
 
-#include "capturia/proceso.hpp"
+#include "esr/proceso.hpp"
 
-namespace capturia {
+namespace esr {
 namespace {
 
 Herramienta sondear_binario(const std::string& nombre, const std::vector<std::string>& args) {
@@ -205,7 +205,7 @@ void anotar_carencias(Entorno& e) {
     if (!e.gsr_cli.presente) {
         e.carencias.push_back(Carencia{
             "gsr-cli: " + (e.gsr_cli.diagnostico.empty() ? std::string("ausente") : e.gsr_cli.diagnostico),
-            "no bloquea: libcapturia habla el IPC directamente, que ya esta documentado en "
+            "no bloquea: libesr habla el IPC directamente, que ya esta documentado en "
             "docs/gsr-ipc.md. Pero sin gsr-cli no se puede contrastar ese protocolo a mano",
             false});
     }
@@ -283,4 +283,4 @@ Entorno detectar() {
     return e;
 }
 
-}  // namespace capturia
+}  // namespace esr

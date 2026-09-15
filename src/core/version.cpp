@@ -1,6 +1,6 @@
-#include "capturia/version.hpp"
+#include "esr/version.hpp"
 
-namespace capturia {
+namespace esr {
 namespace {
 
 bool es_digito(char c) { return c >= '0' && c <= '9'; }
@@ -58,4 +58,4 @@ std::optional<Version> version_minima_gsr() {
     return Version{6, 0, 0};
 }
 
-}  // namespace capturia
+}  // namespace esr

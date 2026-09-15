@@ -72,7 +72,7 @@ No depende del usuario, ni del PID, ni de `XDG_RUNTIME_DIR`. Se buscó
 manual usan `$XDG_RUNTIME_DIR/gsr.sock` (`gsr-cli.1`, sección EXAMPLES) pero eso
 es una costumbre del ejemplo, no del programa.
 
-**Para Capturia esto es la mejor noticia del documento:** elegimos la ruta,
+**Para Easy Screen Recorder esto es la mejor noticia del documento:** elegimos la ruta,
 así que sabemos siempre cuál es y podemos tener varias grabaciones a la vez sin
 pisarnos. Ver más abajo la trampa del flatpak.
 
@@ -226,13 +226,13 @@ sockets cruzan. Con una excepción que cuesta media tarde si no se sabe:
 `/tmp` del sistema y desde dentro del sandbox no se ve; el socket y el vídeo que
 GSR creó en `/tmp` existían solo dentro del sandbox.
 
-Consecuencia para Capturia, cuando GSR venga en flatpak:
+Consecuencia para Easy Screen Recorder, cuando GSR venga en flatpak:
 
 - El socket de `-ipc` **no puede ir en `/tmp`**. Ni el fichero de salida.
 - Sirve cualquier ruta bajo el home del usuario. La prueba de este documento usó
   `~/.cache/`.
-- Con GSR nativo en PATH da igual. Por eso `libcapturia` guarda de qué vía viene
-  (`Invocacion::origen` en `src/core/include/capturia/entorno.hpp`) y `--check`
+- Con GSR nativo en PATH da igual. Por eso `libesr` guarda de qué vía viene
+  (`Invocacion::origen` en `src/core/include/esr/entorno.hpp`) y `--check`
   lo enseña.
 
 ## Qué se ejecutó para comprobarlo
@@ -252,7 +252,7 @@ por un socket a pelo y se miró qué contestaba. Literal:
 --> {"nombre": "sin-id"}
 <-- {"id":0,"result":"error","data":"the request is missing the 'id' field"}
 --> {"id": 11, "name": "stop"}
-<-- {"id":11,"result":"ok","data":"/home/pc/.cache/capturia-prueba/prueba.mkv"}
+<-- {"id":11,"result":"ok","data":"/home/pc/.cache/easy-screen-recorder-prueba/prueba.mkv"}
 ```
 
 Y el fichero estaba: 4741 bytes, 2,907 s, un stream de vídeo h264 y uno de audio

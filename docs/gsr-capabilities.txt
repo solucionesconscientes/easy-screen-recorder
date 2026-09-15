@@ -1,4 +1,4 @@
-# Volcado de capacidades de Capturia
+# Volcado de capacidades de Easy Screen Recorder
 # fecha:    2026-09-14T21:51:07Z
 # host:     pc-latitude5480
 # kernel:   Linux 7.0.0-30-generic

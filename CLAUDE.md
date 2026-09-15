@@ -1,4 +1,4 @@
-# Instrucciones para Claude Code en Capturia
+# Instrucciones para Claude Code en Easy Screen Recorder
 
 Léelo entero antes de tocar nada. Lo que decidas que contradiga esto es un
 error, aunque parezca una mejora.
@@ -34,10 +34,10 @@ IPC. Ese es el patrón que copiamos: nuestra UI controla al grabador igual que
 
 ```
 UI Qt6/QML + Kirigami (capa 3, fases posteriores)
-  └── libcapturia (capa 1, C++20, sin GUI, sin Qt)
+  └── libesr (capa 1, C++20, sin GUI, sin Qt)
         ├── GSR por IPC, igual que gsr-cli  → captura de pantalla
         └── backend propio ffmpeg+PipeWire  → audio-only (ver más abajo)
-  └── CLI `capturia` (capa 2, sobre libcapturia)
+  └── CLI `easy-screen-recorder-cli` (capa 2, sobre libesr)
 ```
 
 **Regla dura: si algo no funciona por CLI, no se toca la UI.** El CLI se
@@ -65,7 +65,7 @@ escribas ni una línea hasta leer `docs/gsr-audio-only.md`.
 - Grabar en dos clics: Fuente, Grabar. Todo lo demás en "Avanzado", plegado.
 - Defaults sensatos sin tocar nada: mkv, mejor códec de hardware disponible,
   audio de sistema, carpeta Vídeos.
-- **Solo exponer lo que la máquina soporta de verdad.** `libcapturia` hace esa
+- **Solo exponer lo que la máquina soporta de verdad.** `libesr` hace esa
   detección para que la UI nunca ofrezca algo que vaya a fallar. Cuando el
   parser no entiende una salida, deja un aviso; no se inventa una capacidad.
 - Estética nativa Plasma (Kirigami/Breeze) cuando llegue la UI.
@@ -87,12 +87,12 @@ escribas ni una línea hasta leer `docs/gsr-audio-only.md`.
 cmake -S . -B build -G Ninja
 cmake --build build                       # tiene que salir sin un solo warning
 ctest --test-dir build --output-on-failure
-./build/src/cli/capturia --check          # qué falta en esta máquina
+./build/src/cli/easy-screen-recorder-cli --check          # qué falta en esta máquina
 scripts/volcar-capacidades.sh             # regenera docs/gsr-capabilities.txt
 scripts/verify-recording.sh               # arnés de grabación (se activa en la Tanda 2)
 ```
 
-`-Werror` está puesto por defecto (`CAPTURIA_WERROR`). Bajarlo es tapar un
+`-Werror` está puesto por defecto (`ESR_WERROR`). Bajarlo es tapar un
 problema, no resolverlo.
 
 ## Verificación obligatoria
@@ -109,7 +109,7 @@ para.
 
 ## Versión mínima de GSR: 6.0.0
 
-`capturia::version_minima_gsr()` devuelve `Version{6, 0, 0}`.
+`esr::version_minima_gsr()` devuelve `Version{6, 0, 0}`.
 
 El criterio era: la versión más antigua que ya traiga el IPC de `gsr-cli`
 completo, porque de eso depende toda nuestra capa de control. **6.0.0 es la más
@@ -135,9 +135,9 @@ El razonamiento completo está en `docs/LICENSING.md`, con lo que cambiaría si
 algún día enlazáramos su código. No lo enlaces; el documento explica el riesgo,
 no abre la puerta. Sus cuatro reglas, en corto: GSR solo como proceso externo,
 la copia de referencia de lectura, ni un `#include` que apunte ahí, y releerlo antes de
-empaquetar GSR con Capturia.
+empaquetar GSR con Easy Screen Recorder.
 
-La licencia de **Capturia** sigue sin elegirse. Es decisión del titular.
+La licencia de **Easy Screen Recorder** sigue sin elegirse. Es decisión del titular.
 
 ## Datos y cifras
 

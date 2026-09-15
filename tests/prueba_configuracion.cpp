@@ -1,4 +1,4 @@
-#include "capturia/configuracion.hpp"
+#include "esr/configuracion.hpp"
 
 #include <cstdlib>
 #include <filesystem>
@@ -6,11 +6,11 @@
 
 #include "comprobar.hpp"
 
-using namespace capturia;
+using namespace esr;
 
 int main() {
     // Sandbox: la configuracion de verdad del usuario no se toca.
-    const std::string sandbox = std::filesystem::temp_directory_path() / "capturia-prueba-conf";
+    const std::string sandbox = std::filesystem::temp_directory_path() / "easy-screen-recorder-prueba-conf";
     std::filesystem::remove_all(sandbox);
     setenv("XDG_CONFIG_HOME", sandbox.c_str(), 1);
     setenv("HOME", "/home/prueba-inexistente", 1);

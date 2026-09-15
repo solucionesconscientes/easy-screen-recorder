@@ -1,11 +1,11 @@
-#include "capturia/audio.hpp"
+#include "esr/audio.hpp"
 
 #include <algorithm>
 #include <cstdlib>
 
 #include "comprobar.hpp"
 
-using namespace capturia;
+using namespace esr;
 
 namespace {
 
@@ -84,7 +84,7 @@ int main() {
     {
         setenv("HOME", "/home/prueba", 1);
         const auto s = sesion_audio_por_defecto();
-        COMPROBAR(s.dir == "/home/prueba/.cache/capturia/sesion-audio");
+        COMPROBAR(s.dir == "/home/prueba/.cache/easy-screen-recorder/sesion-audio");
         COMPROBAR(s.dir.rfind("/tmp/", 0) != 0);
     }
 

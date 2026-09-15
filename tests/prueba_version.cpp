@@ -1,8 +1,8 @@
-#include "capturia/version.hpp"
+#include "esr/version.hpp"
 
 #include "comprobar.hpp"
 
-using capturia::Version;
+using esr::Version;
 
 int main() {
     // Casos normales.
@@ -53,16 +53,16 @@ int main() {
 
     COMPROBAR((Version{5, 4, 1}).texto() == "5.4.1");
 
-    // La version de Capturia vive duplicada: kVersionCapturia y el VERSION de
+    // La version de Easy Screen Recorder vive duplicada: kVersionEsr y el VERSION de
     // project() en CMakeLists.txt. Aqui se exige que coincidan; sin esto se
     // separan en el primer olvido y --version miente.
-    COMPROBAR_NOTA(capturia::kVersionCapturia == std::string_view(CAPTURIA_VERSION_CMAKE),
-                   std::string("version.hpp dice ") + std::string(capturia::kVersionCapturia) +
-                       " y CMakeLists.txt dice " CAPTURIA_VERSION_CMAKE);
+    COMPROBAR_NOTA(esr::kVersionEsr == std::string_view(ESR_VERSION_CMAKE),
+                   std::string("version.hpp dice ") + std::string(esr::kVersionEsr) +
+                       " y CMakeLists.txt dice " ESR_VERSION_CMAKE);
 
     // Ya esta decidida: 6.0.0, la version cuyo IPC se ha podido comprobar
     // entero en la maquina de desarrollo (ver CLAUDE.md y docs/gsr-ipc.md).
-    const auto minima = capturia::version_minima_gsr();
+    const auto minima = esr::version_minima_gsr();
     COMPROBAR(minima.has_value());
     COMPROBAR(minima && *minima == (Version{6, 0, 0}));
     // Y ordena como debe: 5.15.3 se queda corta, 6.0.1 pasa.
