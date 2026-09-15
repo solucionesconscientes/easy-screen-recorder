@@ -98,36 +98,70 @@ alguien que puede corregir.
 redistribuye. Si algún día se empaquetara, habría que añadirla con `GPL-3` —sin
 el `+`, es *only*— y ofrecer su fuente exacta.
 
-## Lo que falta
+## La construcción completa: hecha
 
-**Una sola cosa bloquea la construcción completa:**
+`dpkg-buildpackage -us -uc -b` el 2026-09-16. Resultado:
 
-```bash
-sudo apt install debhelper lintian
+| | |
+|---|---|
+| `easy-screen-recorder_0.1.0-1_amd64.deb` | **210 KB** |
+| `easy-screen-recorder-dbgsym_0.1.0-1_amd64.ddeb` | 3,1 MB |
+
+Los 210 KB frente a los 4,6 MB del `.deb` que se hizo a mano confirman lo que
+estaba anotado: `dh_strip` quita la información de depuración y **genera el
+paquete `-dbgsym` por su cuenta**. Los binarios salen `stripped`, comprobado
+extrayéndolos del paquete.
+
+### `lintian`: cero errores
+
+```
+$ lintian easy-screen-recorder_0.1.0-1_amd64.deb
+W: initial-upload-closes-no-bugs
+W: no-manual-page [usr/bin/easy-screen-recorder-cli]
+W: no-manual-page [usr/bin/easy-screen-recorder]
 ```
 
-Con eso:
+**Y una predicción que falló.** Este documento decía que el `Recommends` sobre
+un paquete que no está en el archivo «probablemente dé aviso». **No lo dio.**
+`lintian` no comprueba los `Recommends` contra el archivo, así que la decisión
+de usar `Recommends` en vez de `Depends` no cuesta ni un aviso.
+
+- `initial-upload-closes-no-bugs`: **silenciado con un override**, en
+  `debian/easy-screen-recorder.lintian-overrides` y con el motivo dentro. Pide
+  que el changelog cierre un bug de ITP, que es el trámite de entrar en Debian
+  y aquí no existe. Si algún día se envía a Debian de verdad, se quita esa línea
+  y se abre el ITP.
+- `no-manual-page` ×2: **pendiente, y a propósito.** Las páginas de manual
+  documentan las opciones del CLI, y esas opciones cambian con la rama
+  `audio-formatos` —cinco formatos de audio en vez de dos, y `--bitrate`—.
+  Escribirlas aquí garantizaría que nacen desfasadas, así que van en esa rama,
+  instaladas por el CMake para que las tenga cualquier empaquetado y también
+  quien compile desde el código.
+
+### Lo que sigue sin comprobarse
+
+**La instalación.** `sudo dpkg -i` necesita privilegios que esta sesión no
+tiene. El contenido, las dependencias y `lintian` sí están verificados; lo que
+falta es meterlo en un sistema y arrancarlo desde `/usr/bin`.
+
+Y un detalle del entorno de esta máquina: `debhelper` y `lintian` estaban en
+estado `iU` —desempaquetados y **sin configurar**—, así que `/usr/bin/dh`
+existía pero `dpkg-checkbuilddeps` fallaba porque un `debhelper` sin configurar
+no provee el virtual `debhelper-compat`. La construcción de arriba se hizo con
+`-d` para saltar esa comprobación. Se arregla con:
 
 ```bash
-cd ~/Desktop/app-audio/capturia/capturia
-dpkg-buildpackage -us -uc -b
-lintian ../easy-screen-recorder_0.1.0-1_amd64.deb
+sudo dpkg --configure -a
 ```
 
-`dpkg-buildpackage` falla hoy con `unmet build dependencies:
-debhelper-compat (= 13)`, y eso es lo único que le falta: el resto de
-`Build-Depends` —cmake, ninja-build, qt6-base-dev, qt6-declarative-dev— ya está.
+## Lo que falta## Lo que falta
 
-Y después de esa construcción quedan dos cosas por mirar:
-
-- **Los binarios sin `strip`.** El `.deb` de prueba pesa 4,6 MB porque lleva la
-  información de depuración (`RelWithDebInfo`, `not stripped`: 12 MB la UI y
-  6,4 MB el CLI). `dh_strip` lo arregla solo y además genera el paquete
-  `-dbgsym`, así que esto se resuelve con la construcción real, no a mano.
-- **Lo que diga `lintian`.** Hay un candidato conocido: un `Recommends` sobre
-  un paquete que no está en el archivo probablemente genere un aviso. Está
-  razonado arriba y se documenta como excepción; no se cambia por silenciar un
-  aviso.
+1. **Las dos páginas de manual**, que llegan con la rama `audio-formatos`.
+2. **Probar la instalación** en un sistema: `sudo dpkg -i` y arrancar desde
+   `/usr/bin`.
+3. **Un `.deb` por serie de distribución**, por el pin exacto de
+   `qt6-declarative-private-abi`. Cuando haya varios, un PPA de Launchpad o un
+   repositorio propio, no ficheros sueltos en la web.
 
 ## Sobre X11
 

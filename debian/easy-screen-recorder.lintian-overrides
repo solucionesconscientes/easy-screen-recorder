@@ -1,0 +1,8 @@
+# Este paquete no se sube al archivo de Debian: se distribuye por su cuenta
+# desde el repositorio del proyecto. El aviso pide que el changelog cierre un
+# bug de ITP (Intent To Package), que es el tramite de entrar en Debian y que
+# aqui no existe. No se silencia por comodidad: se silencia porque la condicion
+# que comprueba no aplica.
+#
+# Si algun dia se envia a Debian de verdad, esta linea se quita y se abre el ITP.
+easy-screen-recorder: initial-upload-closes-no-bugs
