@@ -10,6 +10,17 @@ docs/interno/
 
 build/
 build-*/
+
+# Lo que deja dpkg-buildpackage dentro del arbol fuente. El .deb sale al
+# directorio padre, que ya esta fuera del repositorio.
+debian/easy-screen-recorder/
+debian/.debhelper/
+debian/files
+debian/*.substvars
+debian/*.debhelper.log
+debian/debhelper-build-stamp
+debian/tmp/
+
 compile_commands.json
 .cache/
 *.user

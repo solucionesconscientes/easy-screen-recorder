@@ -1,65 +1,138 @@
-# El .deb: lo que falta y lo que ya se sabe
+<!--
+SPDX-FileCopyrightText: 2026 Dalmau Romaní (Soluciones Conscientes)
 
-Estado a 2026-09-15. Todavía no se empaqueta; esto es la preparación.
+SPDX-License-Identifier: GPL-3.0-or-later
+-->
 
-## `copyright` ya está
+# El .deb: estado y lo que falta
 
-`empaquetado/debian/copyright`, formato DEP-5, con `Files: *` y `Files: debian/*`
-a nombre de Dalmau Romaní (Soluciones Conscientes) y licencia `GPL-3+`, con la
-referencia a `/usr/share/common-licenses/GPL-3` que exige la política de Debian.
+Estado a 2026-09-15. **Los ficheros de empaquetado están escritos y el
+contenido del paquete está verificado.** Falta una construcción completa con
+`dpkg-buildpackage`, que necesita `debhelper` instalado.
 
-**Sin estrofa de `gpu-screen-recorder`**, y a propósito: el paquete no lo
-incluye ni lo redistribuye. Si algún día se empaquetara, habría que añadir su
-estrofa con `GPL-3` (sin el `+`: es *only*) y ofrecer su fuente exacta.
+El directorio de empaquetado vive en **`debian/` en la raíz**, que es donde lo
+exige la herramienta de Debian y no se pelea con eso. Este documento es la nota
+del proyecto; `debian/copyright` se movió allí con el resto.
 
-## `gpu-screen-recorder` NO está en los repositorios
+| Fichero | Qué es |
+|---|---|
+| `debian/control` | Fuente y binario, con `${shlibs:Depends}` |
+| `debian/rules` | `dh` con `--buildsystem=cmake+ninja` |
+| `debian/changelog` | 0.1.0-1 |
+| `debian/copyright` | DEP-5, `GPL-3+` |
+| `debian/source/format` | `3.0 (native)`: somos el upstream, no hay tarball aparte |
 
-Comprobado el 2026-09-15 en Ubuntu 26.04:
+## Lo verificado
+
+Un `.deb` construido a mano con `dpkg-deb` a partir de `cmake --install`, para
+comprobar el contenido sin esperar a `debhelper`:
 
 ```
-$ apt-cache policy gpu-screen-recorder
-(sin salida)
-$ apt-cache search gpu-screen
-(sin resultados)
+$ dpkg --contents easy-screen-recorder_0.1.0-1_amd64.deb
+/usr/bin/easy-screen-recorder
+/usr/bin/easy-screen-recorder-cli
+/usr/share/applications/es.solucionesconscientes.EasyScreenRecorder.desktop
+/usr/share/metainfo/es.solucionesconscientes.EasyScreenRecorder.metainfo.xml
+/usr/share/icons/hicolor/scalable/apps/es.solucionesconscientes.EasyScreenRecorder.svg
+/usr/share/icons/hicolor/symbolic/apps/…-symbolic.svg
+/usr/share/icons/hicolor/symbolic/apps/…-recording-symbolic.svg
 ```
 
-**Consecuencia para el empaquetado: no se puede usar `Depends`.** Un `Depends`
-sobre un paquete que no existe en ningún repositorio hace el `.deb`
-instalable-pero-roto, o directamente no instalable según el gestor.
+Los dos binarios y los cinco ficheros de datos, cada uno en su sitio. El
+binario del paquete responde: `easy-screen-recorder-cli 0.1.0`.
 
-Lo que se hará en su lugar:
+Y las dependencias no se escribieron a mano: las calculó `dpkg-shlibdeps`, que
+es lo que hará `dh_shlibdeps` en la construcción real.
 
-- **`Recommends: gpu-screen-recorder`**, no `Depends`. Así el paquete se instala
-  y, si algún día entra en los repositorios o el usuario añade uno de terceros,
-  apt lo propone.
-- Y **documentar la instalación manual** en el README y en el propio paquete.
+```
+libc6 (>= 2.38), libgcc-s1 (>= 3.0), libqt6core6t64 (>= 6.10.2),
+libqt6dbus6 (>= 6.4), libqt6gui6 (>= 6.4), libqt6qml6 (>= 6.10.2),
+libqt6quick6 (>= 6.6.0), libqt6quickcontrols2-6 (>= 6.6.0),
+libqt6widgets6 (>= 6.4), libstdc++6 (>= 13),
+qt6-declarative-private-abi (= 6.10.2)
+```
 
-Las dos vías reales hoy, por orden de facilidad:
+## El hallazgo que condiciona la distribución
 
-| Vía | Comando | Nota |
-|---|---|---|
-| Flathub | `flatpak install flathub com.dec05eba.gpu_screen_recorder` | Lo que se usa en esta máquina. **Instalar a nivel de sistema, no `--user`**: `localizar_gsr()` mira `/var/lib/flatpak`, y un `--user` cae en `~/.local/share/flatpak`, donde no se busca |
-| Desde fuente | `git.dec05eba.com/gpu-screen-recorder` | Necesita sus dependencias de compilación |
+Fíjate en el último: **`qt6-declarative-private-abi (= 6.10.2)`, con igual
+exacto.** Sale de que el módulo de QML usa ABI privada de Qt Declarative, y
+significa que **este `.deb` solo instala en máquinas con exactamente Qt
+6.10.2.**
 
-Verificado con el flatpak de sistema: `easy-screen-recorder-cli --check` lo
-detecta como `6.0.0 [flatpak]` y `scripts/verify-recording.sh` graba y
-comprueba con `ffprobe`.
+Consecuencia práctica: no hay un `.deb` único que sirva para Ubuntu 26.04 y
+para Debian 13. **Hay que construir uno por versión de distribución.** Eso no
+es un fallo del empaquetado, es cómo funciona el QML compilado, y es una razón
+más para que Flathub sea la vía principal: ahí el runtime va con la aplicación.
 
-## Lo que falta antes de construir el paquete
+Cuando haya que distribuir varios, el sitio natural es un PPA de Launchpad o un
+repositorio propio con un `.deb` por serie, no un fichero suelto en la web.
 
-- La primera versión etiquetada. `debian/changelog` necesita una versión real,
-  y hoy `version.cpp` dice `0.1.0` sin tag.
-- `debian/control` con las dependencias exactas: Qt 6.4+ (Core, DBus, Gui, Qml,
-  Quick, QuickControls2, Widgets, Concurrent) y CMake 3.25+ para compilar;
-  `ffmpeg` en `Recommends` para el modo solo-audio.
-- `debian/rules` con `dh` y el `cmake-ninja` que ya usa el proyecto.
-- Decidir si el `.deb` instala los simbólicos en `symbolic/apps` como hace el
-  `install()` del CMake, que es lo correcto, o si Debian prefiere otra ruta.
+## Decisiones tomadas, con su motivo
+
+**`gpu-screen-recorder` va en `Recommends`, no en `Depends`.** Comprobado el
+2026-09-15 en Ubuntu 26.04: `apt-cache policy gpu-screen-recorder` y
+`apt-cache search gpu-screen` no devuelven nada. No está en los repositorios.
+Un `Depends` sobre un paquete que no existe en ningún archivo deja el paquete
+sin instalar. Con `Recommends`, se instala y apt lo propondrá el día que exista.
+
+La instalación de GSR se documenta en el README y la dice `--check`. Las dos
+vías reales:
+
+| Vía | Comando |
+|---|---|
+| Flathub | `flatpak install flathub com.dec05eba.gpu_screen_recorder` |
+| Desde fuente | `git.dec05eba.com/gpu-screen-recorder` |
+
+**Instalar a nivel de sistema, no `--user`:** `localizar_gsr()` mira
+`/var/lib/flatpak`, y un `--user` cae en `~/.local/share/flatpak`.
+
+**`ESR_WERROR=OFF` solo en `debian/rules`.** En el repositorio los warnings son
+errores, y así sigue en el CI y en la verificación local. Pero un paquete se
+compila en la máquina de otro, con el compilador de esa distribución, y un gcc
+más nuevo saca avisos que no existían. Con `-Werror`, ese aviso nuevo no es un
+aviso: es un paquete que no compila para alguien que no puede arreglarlo. Debian
+lo desaconseja explícitamente. La garantía no se pierde, se aplica donde hay
+alguien que puede corregir.
+
+**Sin estrofa de GSR en `copyright`.** El paquete no lo incluye ni lo
+redistribuye. Si algún día se empaquetara, habría que añadirla con `GPL-3` —sin
+el `+`, es *only*— y ofrecer su fuente exacta.
+
+## Lo que falta
+
+**Una sola cosa bloquea la construcción completa:**
+
+```bash
+sudo apt install debhelper lintian
+```
+
+Con eso:
+
+```bash
+cd ~/Desktop/app-audio/capturia/capturia
+dpkg-buildpackage -us -uc -b
+lintian ../easy-screen-recorder_0.1.0-1_amd64.deb
+```
+
+`dpkg-buildpackage` falla hoy con `unmet build dependencies:
+debhelper-compat (= 13)`, y eso es lo único que le falta: el resto de
+`Build-Depends` —cmake, ninja-build, qt6-base-dev, qt6-declarative-dev— ya está.
+
+Y después de esa construcción quedan dos cosas por mirar:
+
+- **Los binarios sin `strip`.** El `.deb` de prueba pesa 4,6 MB porque lleva la
+  información de depuración (`RelWithDebInfo`, `not stripped`: 12 MB la UI y
+  6,4 MB el CLI). `dh_strip` lo arregla solo y además genera el paquete
+  `-dbgsym`, así que esto se resuelve con la construcción real, no a mano.
+- **Lo que diga `lintian`.** Hay un candidato conocido: un `Recommends` sobre
+  un paquete que no está en el archivo probablemente genere un aviso. Está
+  razonado arriba y se documenta como excepción; no se cambia por silenciar un
+  aviso.
 
 ## Sobre X11
 
-Verificado el 2026-09-15: la UI corre como cliente X11 (`QT_QPA_PLATFORM=xcb`
+Verificado 2026-09-15: la UI corre como cliente X11 (`QT_QPA_PLATFORM=xcb`
 sobre XWayland) y graba igual; `libesr` no toca el display. Una sesión X11 pura
-no se ha probado desde aquí —esta máquina corre Wayland—, pero la captura la
-hace GSR, que soporta X11 upstream. Conclusión: el `.deb` es viable para
-usuarios de X11 y de Wayland.
+no se ha probado desde aquí —esta máquina corre Wayland—, pero la captura es de
+GSR, que soporta X11 upstream. Conclusión: el `.deb` es viable para usuarios de
+X11 y de Wayland.

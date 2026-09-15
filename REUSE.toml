@@ -62,6 +62,16 @@ precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 Dalmau Romaní (Soluciones Conscientes)"
 SPDX-License-Identifier = "GPL-3.0-or-later"
 
+# El empaquetado de Debian. control, changelog, copyright y source/format son
+# formatos RFC822 y de texto plano donde un comentario o no es legal o cambia
+# lo que lee dpkg, asi que la anotacion va aqui. debian/rules es un Makefile y
+# lleva su cabecera dentro.
+[[annotations]]
+path = ["debian/control", "debian/changelog", "debian/copyright", "debian/source/format"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Dalmau Romaní (Soluciones Conscientes)"
+SPDX-License-Identifier = "GPL-3.0-or-later"
+
 # El workflow de CI.
 [[annotations]]
 path = ".github/**"

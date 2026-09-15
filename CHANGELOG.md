@@ -5,6 +5,14 @@ máquina de desarrollo.
 
 ## Sin publicar
 
+### Empaquetado Debian (2026-09-15)
+- `debian/` con `control`, `rules`, `changelog`, `copyright` y
+  `source/format`. Construcción con `dh --buildsystem=cmake+ninja`.
+- `gpu-screen-recorder` va en `Recommends`, no en `Depends`: no está en los
+  repositorios y un `Depends` dejaría el paquete sin instalar.
+- Contenido del paquete verificado con un `.deb` hecho a mano: los dos
+  binarios y los cinco ficheros de datos en su sitio.
+
 ### Renombrado (2026-09-15)
 - **Proyecto renombrado desde Capturia a Easy Screen Recorder.** El nombre es
   siempre en inglés y sin abreviar, en todos los idiomas.

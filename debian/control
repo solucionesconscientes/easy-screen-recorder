@@ -1,0 +1,40 @@
+Source: easy-screen-recorder
+Section: video
+Priority: optional
+Maintainer: Dalmau Romaní (Soluciones Conscientes) <contacto@solucionesconscientes.es>
+Build-Depends:
+ debhelper-compat (= 13),
+ cmake (>= 3.25),
+ ninja-build,
+ qt6-base-dev (>= 6.4),
+ qt6-declarative-dev (>= 6.4),
+Standards-Version: 4.7.0
+Homepage: https://solucionesconscientes.es/easy-screen-recorder
+Vcs-Browser: https://github.com/solucionesconscientes/easy-screen-recorder
+Vcs-Git: https://github.com/solucionesconscientes/easy-screen-recorder.git
+Rules-Requires-Root: no
+
+Package: easy-screen-recorder
+Architecture: any
+Depends:
+ ${shlibs:Depends},
+ ${misc:Depends},
+Recommends:
+ gpu-screen-recorder,
+ ffmpeg,
+Description: Record your screen with GPU acceleration
+ Recording your screen on Wayland is usually one of two things: a tool that
+ re-encodes on the CPU and turns your laptop into a heater, or a command line
+ with fifteen flags. Easy Screen Recorder is the missing layer: capture stays
+ on the GPU and you start recording in two clicks.
+ .
+ It records any monitor, a region you drag, the focused window or a camera,
+ with an audio-only mode to Opus or FLAC that does not turn on video capture
+ at all. Pause and resume mid-recording, a global shortcut, multiple audio
+ tracks, and it tells you what is missing before you press record.
+ .
+ Independent frontend for gpu-screen-recorder; not affiliated with it. It
+ drives gpu-screen-recorder as a separate external process and does not
+ include or distribute it, so that program has to be installed separately.
+ Run "easy-screen-recorder-cli --check" to see what is present and what is
+ missing.
