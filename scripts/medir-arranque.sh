@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+
+# SPDX-FileCopyrightText: 2026 Dalmau Romaní (Soluciones Conscientes)
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 # Mide arranque y RAM de un binario de easy-screen-recorder-cli. El principio de diseño
 # manda: arranque por debajo de 1 segundo y poca RAM. Esto lo convierte en
 # numero medido en vez de sensacion.

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Dalmau Romaní (Soluciones Conscientes)
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 # Capa 3: la UI Qt6/QML con Kirigami. Enlaza libesr directamente: es la
 # capa 3 sobre la capa 1 del diagrama de CLAUDE.md; el CLI es un hermano, no
 # un intermediario.

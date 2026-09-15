@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Dalmau Romaní (Soluciones Conscientes)
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 #include "esr/grabacion.hpp"
 
 #include <unistd.h>

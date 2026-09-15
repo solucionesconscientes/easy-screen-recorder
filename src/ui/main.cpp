@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Dalmau Romaní (Soluciones Conscientes)
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 // La UI de Easy Screen Recorder. Ligera e intuitiva por contrato (CLAUDE.md): dos clics
 // para grabar, todo lo demas plegado, y estetica nativa de Plasma.
 

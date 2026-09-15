@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+
+# SPDX-FileCopyrightText: 2026 Dalmau Romaní (Soluciones Conscientes)
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 # Arnes de verificacion de grabacion.
 #
 # Idea: grabar de verdad y comprobar el resultado con ffprobe, porque una

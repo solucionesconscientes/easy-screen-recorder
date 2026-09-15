@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Dalmau Romaní (Soluciones Conscientes)
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 // La ventana de Easy Screen Recorder. El contrato de CLAUDE.md manda aqui: grabar en dos
 // clics (Fuente, Grabar), lo demas plegado en "Avanzado", y la sencillez de
 // Spectacle como referencia. Nada de paneles: una columna.

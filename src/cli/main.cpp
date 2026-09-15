@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Dalmau Romaní (Soluciones Conscientes)
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 // Capa 2: el CLI. Regla dura del proyecto: si algo no funciona por aqui, no
 // se toca la UI. Todo lo que hace sale de libesr; este fichero solo
 // interpreta ordenes e imprime.

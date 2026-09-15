@@ -1,4 +1,4 @@
-# Licencias: por qué GSR no nos arrastra a la GPL-3.0
+# Licencias: nuestra GPL-3.0-or-later y por qué la de GSR no nos alcanza
 
 Este documento explica el razonamiento y **dónde está el riesgo**. No es para
 abrir la puerta a enlazar el código de GSR: es para que quien venga después sepa
@@ -131,14 +131,134 @@ Lo accionable, en cuatro líneas:
 3. Ni un `#include` que apunte ahí desde `src/`.
 4. Antes de empaquetar GSR con Easy Screen Recorder, se vuelve a leer este documento.
 
-## Pendiente: la licencia de Easy Screen Recorder
+## Decisión
 
-Sigue sin elegirse y conviene hacerlo pronto, porque condiciona lo de arriba.
-El razonamiento entero de este documento sirve para **mantener abierta la
-opción** de que Easy Screen Recorder no sea GPL. Si al final se elige GPL-3.0 igualmente,
-gran parte del cuidado deja de hacer falta, aunque las reglas seguirían siendo
-buena ingeniería: no enlazar la captura es lo que nos deja cambiar de backend
-sin reescribir la UI.
+Tomada el 15 de septiembre de 2026 por el titular, **Dalmau Romaní (Soluciones
+Conscientes)**.
 
-Es decisión del titular. Hasta que la tome, el proyecto se comporta como si la
-respuesta fuera "no GPL", que es la opción que no cierra puertas.
+**Easy Screen Recorder es GPL-3.0-or-later.** Todo: la aplicación, el CLI y
+`libesr`. El texto íntegro está en `LICENSE`, descargado de gnu.org y sin
+modificar. Cada fichero lleva su cabecera SPDX y lo que no admite comentario
+está cubierto por `REUSE.toml`; `reuse lint` pasa sin errores.
+
+### Modelo dual
+
+El titular se reserva la posibilidad de **conceder licencias comerciales** del
+mismo código a clientes que necesiten una versión cerrada. Eso no es una
+excepción a la GPL: es el derecho de quien tiene el copyright a licenciar su
+obra tantas veces como quiera y en los términos que quiera. La versión pública
+es y seguirá siendo GPL-3.0-or-later.
+
+Para que esa opción siga viva hay que cumplir cuatro cosas, y las cuatro son
+verificables:
+
+1. **Todo el código es del titular o está cubierto por un CLA.** Ninguna
+   contribución externa entra sin firmarlo. Ver `CONTRIBUTING.md` y
+   `docs/CLA.md`.
+2. **GSR solo como proceso externo.** Se invoca por argumentos y se le habla por
+   un socket unix. No se enlaza, no se incluye, no se copia y no se
+   redistribuye. Es lo que sostiene todo el razonamiento de las secciones
+   anteriores.
+3. **Qt y KF6 con enlace dinámico, bajo LGPL.** Una versión cerrada puede usar
+   Qt LGPL siempre que enlace dinámico, incluya los avisos de copyright y de
+   licencia de Qt, y **permita al usuario sustituir las bibliotecas** por otra
+   versión compatible. Si eso no se puede garantizar en el empaquetado de un
+   cliente concreto, ese cliente necesita licencia comercial de Qt, y es su
+   coste, no el nuestro.
+4. **Nada de copiar código de terceros**, ni de GSR ni de ningún otro proyecto,
+   ni siquiera traducido a otro lenguaje.
+
+### Que GSR sea "only" da igual mientras sea proceso externo
+
+`gpu-screen-recorder` es **GPL-3.0-only**, sin la cláusula "or later". Eso sería
+un problema de compatibilidad si lo enlazáramos: una obra combinada tendría que
+distribuirse bajo GPL-3.0-only exactamente, y nuestro "or later" no podría
+aplicarse.
+
+Pero no hay obra combinada. Son dos programas que se hablan por una interfaz, y
+esa es la frontera que la propia FSF usa para separar obras. Nuestra licencia no
+depende de la suya, y la suya no nos alcanza.
+
+### Si algún día se empaqueta GSR con la aplicación
+
+Cambia el cuadro y hay que hacer dos cosas, las dos obligatorias:
+
+- **Incluir su licencia** con la copia distribuida.
+- **Ofrecer el código fuente exacto de esa copia**, con sus parches si los hay,
+  por el mismo medio o con una oferta escrita válida durante tres años.
+
+Y una tercera que no es obligación legal pero sí de ingeniería: dejar escrito
+qué versión exacta se empaquetó, porque "el código fuente correspondiente" es el
+de esa versión y no el de la rama principal de hoy.
+
+Nada de esto convierte nuestro código en GPL-3.0-only: seguirían siendo dos
+programas, uno distribuido junto al otro. Lo que cambia es que pasamos a ser
+distribuidores de GSR y asumimos sus obligaciones como tal.
+
+### GSR se consulta fuera del repositorio
+
+La copia de referencia vive en `~/Desktop/app-audio/referencia/gpu-screen-recorder/`,
+**fuera del repositorio**, y es de solo lectura. No está versionada, no lo ha
+estado nunca y `third_party/` sigue en `.gitignore` como red. Se lee para
+entender el protocolo y se citan `fichero:línea` como referencia; no se copia
+su código ni se pega en la documentación.
+
+### Resultado de la auditoría
+
+Auditoría del 15 de septiembre de 2026, comparando `json_ipc.cpp`, `ipc.cpp`,
+`proceso.cpp`, `capacidades.cpp`, `audio.cpp` y `grabacion.cpp` contra
+`src/cli/ipc.c`, `src/cli/commands.c`, `src/json.c`, `include/cli/ipc.h`,
+`tools/gsr-cli/main.c` y `src/args_parser.c` de GSR 6.0.0.
+
+| Fichero | Veredicto |
+|---|---|
+| `src/core/json_ipc.cpp` | **Independiente** |
+| `src/core/ipc.cpp` | **Independiente** |
+| `src/core/proceso.cpp` | **Independiente** |
+| `src/core/capacidades.cpp` | **Independiente** |
+| `src/core/audio.cpp` | **Independiente** |
+| `src/core/grabacion.cpp` | **Independiente** |
+
+Lo que se midió, no lo que parece:
+
+- **Cero líneas idénticas** normalizadas (sin comentarios ni espacios) entre los
+  dos árboles.
+- La **única cadena literal de más de seis caracteres** que comparten es
+  `gpu-screen-recorder`, que es el nombre del programa que hay que invocar.
+- Los identificadores comunes son palabras clave de C++, nombres de la API POSIX
+  (`AF_UNIX`, `sockaddr_un`, `waitpid`, `pollfd`) y el vocabulario del protocolo
+  —`section=`, `video_codecs`, `capture_options`, `supports_app_audio`—, que son
+  **literales que GSR imprime por su salida estándar**: están en
+  `docs/gsr-capabilities.txt`, que es esa salida capturada. Leer la interfaz de
+  un programa no es copiar su código.
+- El caso más claro es el IPC: el `include/cli/ipc.h` de GSR es el **servidor**
+  —ocho clientes, un hilo, tabla de callbacks, peticiones diferidas con mutex— y
+  nuestro `ipc.hpp` es el **cliente**: una clase RAII con un descriptor y un
+  contador de peticiones. Son los dos lados del mismo protocolo, no una
+  traducción.
+
+**Lo que sí hubo que corregir, y se corrigió:** los documentos. `gsr-ipc.md`
+citaba dos líneas de C literales y `gsr-audio-only.md` siete, incluido un bloque
+contiguo de cinco con el bucle de validación de argumentos. Para un uso normal
+serían citas cortas de análisis y probablemente amparadas, pero el modelo dual
+exige que cada byte del repositorio sea del titular o esté cubierto por un CLA,
+y GPL-3.0-only no se puede relicenciar. Las nueve líneas se reescribieron como
+prosa. Los hechos y las citas `fichero:línea` se quedaron.
+
+### Autoría del historial
+
+El commit `fd618a4` («Tanda 1») figura con `Claude <noreply@anthropic.com>` como
+autor. Está en `origin/main`, así que no se reescribe: exigiría un force push.
+
+**A efectos de copyright, todos los commits de este repositorio son obra del
+titular**, Dalmau Romaní (Soluciones Conscientes). El campo `Author` de git es
+metadato, no un instrumento jurídico: no transfiere ni crea derechos. Un modelo
+de lenguaje no es persona física, no puede ser autor en el sentido del TRLPI, no
+puede ceder derechos y no puede firmar un CLA; lo que produce una herramienta
+bajo la dirección del titular es del titular.
+
+El fichero `.mailmap` de la raíz hace que `git shortlog`, `git log
+--use-mailmap` y `git blame` lo atribuyan correctamente. **De aquí en adelante
+el autor de los commits es el titular** y la herramienta va en
+`Co-Authored-By:`, que es lo que describe la situación sin dejar un hueco en la
+cadena de titularidad.

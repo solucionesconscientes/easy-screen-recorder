@@ -1,0 +1,70 @@
+version = 1
+
+# Lo que no admite un comentario de cabecera, o donde una cabecera estorbaria.
+# Las cabeceras SPDX de los fuentes las pone `reuse annotate`; esto cubre el
+# resto para que `reuse lint` quede sin errores.
+
+# Los iconos que se instalan con la aplicacion. Son SVG y aceptarian un
+# comentario XML, pero los tres salen del diseno y se regeneran desde el: una
+# cabecera a mano se perderia en la siguiente extraccion.
+[[annotations]]
+path = "src/ui/datos/*.svg"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Dalmau Romaní (Soluciones Conscientes)"
+SPDX-License-Identifier = "GPL-3.0-or-later"
+
+# El lanzador. Un comentario aqui es legal pero ensucia un fichero que leen
+# los entornos de escritorio.
+[[annotations]]
+path = "src/ui/datos/*.desktop"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Dalmau Romaní (Soluciones Conscientes)"
+SPDX-License-Identifier = "GPL-3.0-or-later"
+
+# El metainfo va con CC0 en la licencia de METADATOS, que es lo que pide
+# AppStream y lo que espera Flathub. El programa que describe sigue siendo
+# GPL-3.0-or-later; son dos cosas distintas y el propio fichero lo declara.
+[[annotations]]
+path = "src/ui/datos/*.metainfo.xml"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Dalmau Romaní (Soluciones Conscientes)"
+SPDX-License-Identifier = "CC0-1.0"
+
+# Material de marca: logotipos, favicons, cabecera y imagen social. Los SVG con
+# texto llevan su pareja *-editable.svg.
+[[annotations]]
+path = "docs/branding/**"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Dalmau Romaní (Soluciones Conscientes)"
+SPDX-License-Identifier = "GPL-3.0-or-later"
+
+# Fixtures de los tests. Son volcados de la salida de gpu-screen-recorder y de
+# ficheros de configuracion, y los tests los parsean tal cual: meterles una
+# cabecera cambiaria la entrada de la prueba. El contenido son DATOS —lo que ese
+# programa imprimio en una maquina concreta—, no codigo suyo.
+[[annotations]]
+path = "tests/fixtures/**"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Dalmau Romaní (Soluciones Conscientes)"
+SPDX-License-Identifier = "GPL-3.0-or-later"
+
+# Mismo caso que los fixtures, y ademas lo lee un test por su ruta.
+[[annotations]]
+path = "docs/gsr-capabilities.txt"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Dalmau Romaní (Soluciones Conscientes)"
+SPDX-License-Identifier = "GPL-3.0-or-later"
+
+# Documentacion y ficheros de repositorio.
+[[annotations]]
+path = ["*.md", "docs/*.md", "docs/**/*.md", ".gitignore", ".mailmap", "REUSE.toml", "empaquetado/**"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Dalmau Romaní (Soluciones Conscientes)"
+SPDX-License-Identifier = "GPL-3.0-or-later"
+
+# El workflow de CI.
+[[annotations]]
+path = ".github/**"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Dalmau Romaní (Soluciones Conscientes)"
+SPDX-License-Identifier = "GPL-3.0-or-later"

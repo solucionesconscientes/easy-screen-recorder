@@ -1,4 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+SPDX-FileCopyrightText: 2026 Dalmau Romaní (Soluciones Conscientes)
+
+SPDX-License-Identifier: GPL-3.0-or-later
+-->
+
 <!-- La licencia del proyecto sigue sin elegirse (decision del titular,
      docs/LICENSING.md). Hasta entonces: proprietary como valor honesto de
      "sin licencia declarada", y este fichero no se publica. -->
@@ -7,8 +14,8 @@
   <name>Easy Screen Recorder</name>
   <summary>Graba la pantalla en dos clics</summary>
   <summary xml:lang="en">Record your screen in two clicks</summary>
-  <metadata_license>FSFAP</metadata_license>
-  <project_license>proprietary</project_license>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
   <description>
     <p>
       Grabador de pantalla ligero para KDE Plasma sobre Wayland. La captura

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Dalmau Romaní (Soluciones Conscientes)
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 # libesr: nucleo sin GUI y sin Qt. Todo lo que la UI y el CLI necesitan
 # saber del entorno vive aqui, para que la capa 3 nunca ofrezca algo que vaya
 # a fallar.

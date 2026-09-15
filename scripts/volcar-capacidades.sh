@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+
+# SPDX-FileCopyrightText: 2026 Dalmau Romaní (Soluciones Conscientes)
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 # Vuelca lo que ESTA maquina sabe hacer, en el formato que lee
 # esr::partir_volcado (src/core/include/esr/capacidades.hpp).
 #

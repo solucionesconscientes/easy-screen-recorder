@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Dalmau Romaní (Soluciones Conscientes)
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 # Sin libreria de tests: comprobar.hpp basta y no añade dependencias.
 function(esr_prueba nombre)
   add_executable(${nombre} ${nombre}.cpp)
