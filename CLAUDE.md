@@ -1,4 +1,4 @@
-# Instrucciones para Claude Code en Capturia
+# Instrucciones para Claude Code en Easy Screen Recorder
 
 Léelo entero antes de tocar nada. Lo que decidas que contradiga esto es un
 error, aunque parezca una mejora.
@@ -34,10 +34,10 @@ IPC. Ese es el patrón que copiamos: nuestra UI controla al grabador igual que
 
 ```
 UI Qt6/QML + Kirigami (capa 3, fases posteriores)
-  └── libcapturia (capa 1, C++20, sin GUI, sin Qt)
+  └── libesr (capa 1, C++20, sin GUI, sin Qt)
         ├── GSR por IPC, igual que gsr-cli  → captura de pantalla
         └── backend propio ffmpeg+PipeWire  → audio-only (ver más abajo)
-  └── CLI `capturia` (capa 2, sobre libcapturia)
+  └── CLI `easy-screen-recorder-cli` (capa 2, sobre libesr)
 ```
 
 **Regla dura: si algo no funciona por CLI, no se toca la UI.** El CLI se
@@ -49,8 +49,17 @@ escribas ni una línea hasta leer `docs/gsr-audio-only.md`.
 ## Prohibido
 
 - Reimplementar la captura de pantalla.
-- Modificar nada dentro de `third_party/gpu-screen-recorder/`. Es GPL-3.0 de
-  terceros, solo lectura, y no se compila como parte nuestra.
+- **Copiar, adaptar o traducir codigo de GSR.** Ni una linea, ni en C++, ni
+  pegada en un documento. GSR es GPL-3.0-**only** y no se puede relicenciar: una
+  sola linea suya dentro del repositorio rompe el modelo dual, que es lo que
+  permite conceder licencias comerciales. Leer su codigo para entender el
+  protocolo si; citar `fichero:linea` si; pegar un fragmento no. La auditoria
+  del 2026-09-15 encontro nueve lineas de C suyas en `docs/gsr-ipc.md` y
+  `docs/gsr-audio-only.md` y se reescribieron como prosa.
+- Modificar nada dentro de la copia de referencia de GSR, que vive en
+  `~/Desktop/app-audio/referencia/gpu-screen-recorder/`, **fuera del
+  repositorio**. Es GPL-3.0 de terceros, solo lectura, y no se compila como
+  parte nuestra.
 - Hardcodear listas de códecs, dispositivos o resoluciones. Todo se detecta en
   runtime, en la máquina del usuario.
 - Cambiar de backend sin consultar al titular.
@@ -65,7 +74,7 @@ escribas ni una línea hasta leer `docs/gsr-audio-only.md`.
 - Grabar en dos clics: Fuente, Grabar. Todo lo demás en "Avanzado", plegado.
 - Defaults sensatos sin tocar nada: mkv, mejor códec de hardware disponible,
   audio de sistema, carpeta Vídeos.
-- **Solo exponer lo que la máquina soporta de verdad.** `libcapturia` hace esa
+- **Solo exponer lo que la máquina soporta de verdad.** `libesr` hace esa
   detección para que la UI nunca ofrezca algo que vaya a fallar. Cuando el
   parser no entiende una salida, deja un aviso; no se inventa una capacidad.
 - Estética nativa Plasma (Kirigami/Breeze) cuando llegue la UI.
@@ -87,12 +96,12 @@ escribas ni una línea hasta leer `docs/gsr-audio-only.md`.
 cmake -S . -B build -G Ninja
 cmake --build build                       # tiene que salir sin un solo warning
 ctest --test-dir build --output-on-failure
-./build/src/cli/capturia --check          # qué falta en esta máquina
+./build/src/cli/easy-screen-recorder-cli --check          # qué falta en esta máquina
 scripts/volcar-capacidades.sh             # regenera docs/gsr-capabilities.txt
 scripts/verify-recording.sh               # arnés de grabación (se activa en la Tanda 2)
 ```
 
-`-Werror` está puesto por defecto (`CAPTURIA_WERROR`). Bajarlo es tapar un
+`-Werror` está puesto por defecto (`ESR_WERROR`). Bajarlo es tapar un
 problema, no resolverlo.
 
 ## Verificación obligatoria
@@ -109,13 +118,13 @@ para.
 
 ## Versión mínima de GSR: 6.0.0
 
-`capturia::version_minima_gsr()` devuelve `Version{6, 0, 0}`.
+`esr::version_minima_gsr()` devuelve `Version{6, 0, 0}`.
 
 El criterio era: la versión más antigua que ya traiga el IPC de `gsr-cli`
 completo, porque de eso depende toda nuestra capa de control. **6.0.0 es la más
 antigua que se ha podido comprobar que lo trae**, y de ahí sale el número:
 
-- `third_party/gpu-screen-recorder/project.conf:4` dice `version = "6.0.0"`.
+- `su project.conf:4` dice `version = "6.0.0"`.
 - `gpu-screen-recorder --version` responde `6.0.0` en la máquina de desarrollo.
 - Sobre esa versión se ejecutó el protocolo entero, incluida la respuesta
   diferida de `stop` que devuelve la ruta del fichero guardado. Está en
@@ -128,16 +137,29 @@ código, no antes.
 
 ## Licencia
 
-GSR es GPL-3.0-only. Lo usamos como **proceso externo por IPC**, sin enlazar su
-código, y esa distinción es la que mantiene nuestra UI fuera de la GPL-3.0.
+**Easy Screen Recorder es GPL-3.0-or-later.** Titular: Dalmau Romaní (Soluciones
+Conscientes). Decidido el 2026-09-15. Cada fichero lleva cabecera SPDX y lo que
+no admite comentario está en `REUSE.toml`; `reuse lint` tiene que pasar.
 
-El razonamiento completo está en `docs/LICENSING.md`, con lo que cambiaría si
-algún día enlazáramos su código. No lo enlaces; el documento explica el riesgo,
-no abre la puerta. Sus cuatro reglas, en corto: GSR solo como proceso externo,
-`third_party/` de lectura, ni un `#include` que apunte ahí, y releerlo antes de
-empaquetar GSR con Capturia.
+**Y hay modelo dual:** el titular puede conceder licencias comerciales del mismo
+código. Eso impone dos disciplinas que no son opcionales:
 
-La licencia de **Capturia** sigue sin elegirse. Es decisión del titular.
+1. Todo el código es del titular o está cubierto por un CLA. Ninguna
+   contribución externa entra sin firmarlo (`CONTRIBUTING.md`, `docs/CLA.md`).
+2. Nada copiado de terceros. Ver «Prohibido» arriba.
+
+GSR es GPL-3.0-**only**. Lo usamos como **proceso externo por IPC**, sin enlazar
+su código, y esa distinción es la que mantiene su licencia fuera de la nuestra.
+El razonamiento completo, los cuatro requisitos del modelo dual y el resultado
+de la auditoría están en `docs/LICENSING.md`, sección «Decisión». No lo enlaces;
+el documento explica el riesgo, no abre la puerta.
+
+**Commits:** el autor es el titular y la herramienta va en `Co-Authored-By:`. Un
+modelo no puede ser autor ni firmar un CLA, y un `Author:` de un tercero deja un
+hueco en la cadena de titularidad que hay que explicar en cada revisión. El
+historial se reescribió una vez por esto, mientras el repositorio era privado;
+ahora ya no se puede y no hace falta. Ver `docs/LICENSING.md`, «Autoría del
+historial».
 
 ## Datos y cifras
 

@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+
+# SPDX-FileCopyrightText: 2026 Dalmau Romaní (Soluciones Conscientes)
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 # Arnes de verificacion de grabacion.
 #
 # Idea: grabar de verdad y comprobar el resultado con ffprobe, porque una
@@ -13,7 +18,7 @@
 set -u
 
 raiz="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-binario="${CAPTURIA_BIN:-$raiz/build/src/cli/capturia}"
+binario="${ESR_BIN:-$raiz/build/src/cli/easy-screen-recorder-cli}"
 
 # GSR puede estar en PATH o como flatpak. Debe resolverse igual que
 # localizar_gsr() en src/core/entorno.cpp y que scripts/volcar-capacidades.sh:
@@ -36,15 +41,15 @@ echo
 # Sin binario no se puede verificar nada, y "no se puede verificar" es un
 # fallo, no un pendiente: quien invoca este script espera una verificacion.
 if [ ! -x "$binario" ]; then
-  echo "FALLO: el binario capturia no esta en $binario"
+  echo "FALLO: el binario easy-screen-recorder-cli no esta en $binario"
   echo "  compila primero: cmake -S . -B build -G Ninja && cmake --build build"
   exit 1
 fi
 
 # La grabacion existe cuando el CLI anuncia la orden «grabar». Se busca en la
 # ayuda para no depender de una version concreta del binario.
-if ! "$binario" --help 2>&1 | grep -qE '^\s+capturia (grabar|record)'; then
-  echo "capturia todavia no tiene orden de grabacion (--help no anuncia «grabar»)."
+if ! "$binario" --help 2>&1 | grep -qE '^\s+easy-screen-recorder-cli (grabar|record)'; then
+  echo "easy-screen-recorder-cli todavia no tiene orden de grabacion (--help no anuncia «grabar»)."
   echo "No hay nada que verificar. Esta rama muere en la Tanda 4: cuando"
   echo "«grabar» exista, este script grabara de verdad o fallara."
   echo
@@ -71,7 +76,7 @@ fi
 #
 # El destino va bajo el home y no bajo /tmp: el /tmp de un GSR en flatpak es
 # privado del sandbox (docs/gsr-ipc.md, "La trampa del flatpak").
-destino="$HOME/.cache/capturia/verify/prueba.mkv"
+destino="$HOME/.cache/easy-screen-recorder/verify/prueba.mkv"
 mkdir -p "$(dirname "$destino")"
 rm -f "$destino"
 
@@ -85,10 +90,10 @@ if "$binario" estado >/dev/null 2>&1; then
 fi
 
 echo "grabando 3 segundos de prueba..."
-"$binario" grabar --salida "$destino" || fallo "«capturia grabar» devolvio error"
+"$binario" grabar --salida "$destino" || fallo "«easy-screen-recorder-cli grabar» devolvio error"
 sleep 3
 
-ruta="$("$binario" parar)" || fallo "«capturia parar» devolvio error"
+ruta="$("$binario" parar)" || fallo "«easy-screen-recorder-cli parar» devolvio error"
 [ "$ruta" = "$destino" ] || fallo "parar dijo «$ruta» y se pidio «$destino»"
 [ -s "$ruta" ] || fallo "el fichero guardado no existe o esta vacio: $ruta"
 
@@ -116,15 +121,15 @@ rm -f "$ruta"
 # aparte y con sus propias herramientas.
 command -v ffmpeg >/dev/null 2>&1 || fallo "ffmpeg no esta en PATH: el modo audio-only no se puede verificar"
 
-destino_audio="$HOME/.cache/capturia/verify/prueba.opus"
+destino_audio="$HOME/.cache/easy-screen-recorder/verify/prueba.opus"
 rm -f "$destino_audio"
 
 echo
 echo "grabando 2 segundos de audio de prueba..."
-"$binario" audio --salida "$destino_audio" || fallo "«capturia audio» devolvio error"
+"$binario" audio --salida "$destino_audio" || fallo "«easy-screen-recorder-cli audio» devolvio error"
 sleep 2
 
-ruta_audio="$("$binario" parar)" || fallo "«capturia parar» devolvio error con el audio"
+ruta_audio="$("$binario" parar)" || fallo "«easy-screen-recorder-cli parar» devolvio error con el audio"
 [ "$ruta_audio" = "$destino_audio" ] || fallo "parar dijo «$ruta_audio» y se pidio «$destino_audio»"
 [ -s "$ruta_audio" ] || fallo "el audio guardado no existe o esta vacio: $ruta_audio"
 

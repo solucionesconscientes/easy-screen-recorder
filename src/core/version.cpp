@@ -1,6 +1,10 @@
-#include "capturia/version.hpp"
+// SPDX-FileCopyrightText: 2026 Dalmau Romaní (Soluciones Conscientes)
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
 
-namespace capturia {
+#include "esr/version.hpp"
+
+namespace esr {
 namespace {
 
 bool es_digito(char c) { return c >= '0' && c <= '9'; }
@@ -46,7 +50,7 @@ std::string Version::texto() const {
 std::optional<Version> version_minima_gsr() {
     // 6.0.0. El criterio es "la mas antigua que ya traiga el IPC de gsr-cli
     // completo", y 6.0.0 es la mas antigua que se ha podido *comprobar* que lo
-    // trae: es la del arbol de third_party/ (project.conf, version = "6.0.0"),
+    // trae: es la del arbol de referencia de GSR (project.conf, version = "6.0.0"),
     // la que responde a --version en esta maquina, y sobre ella se ejecuto el
     // protocolo entero, incluida la respuesta diferida de «stop» que devuelve la
     // ruta del fichero guardado.
@@ -58,4 +62,4 @@ std::optional<Version> version_minima_gsr() {
     return Version{6, 0, 0};
 }
 
-}  // namespace capturia
+}  // namespace esr

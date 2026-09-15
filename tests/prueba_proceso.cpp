@@ -1,8 +1,12 @@
-#include "capturia/proceso.hpp"
+// SPDX-FileCopyrightText: 2026 Dalmau Romaní (Soluciones Conscientes)
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+#include "esr/proceso.hpp"
 
 #include "comprobar.hpp"
 
-using namespace capturia;
+using namespace esr;
 
 int main() {
     // localizar

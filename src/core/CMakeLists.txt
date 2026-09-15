@@ -1,7 +1,11 @@
-# libcapturia: nucleo sin GUI y sin Qt. Todo lo que la UI y el CLI necesitan
+# SPDX-FileCopyrightText: 2026 Dalmau Romaní (Soluciones Conscientes)
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+# libesr: nucleo sin GUI y sin Qt. Todo lo que la UI y el CLI necesitan
 # saber del entorno vive aqui, para que la capa 3 nunca ofrezca algo que vaya
 # a fallar.
-add_library(libcapturia STATIC
+add_library(libesr STATIC
   capacidades.cpp
   configuracion.cpp
   entorno.cpp
@@ -14,11 +18,11 @@ add_library(libcapturia STATIC
   version.cpp
 )
 
-set_target_properties(libcapturia PROPERTIES OUTPUT_NAME capturia)
+set_target_properties(libesr PROPERTIES OUTPUT_NAME esr)
 
-target_include_directories(libcapturia PUBLIC
+target_include_directories(libesr PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 
-target_link_libraries(libcapturia PRIVATE capturia_avisos)
+target_link_libraries(libesr PRIVATE esr_avisos)
 
-add_library(capturia::core ALIAS libcapturia)
+add_library(esr::core ALIAS libesr)

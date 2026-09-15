@@ -1,4 +1,8 @@
-#include "capturia/grabacion.hpp"
+// SPDX-FileCopyrightText: 2026 Dalmau Romaní (Soluciones Conscientes)
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+#include "esr/grabacion.hpp"
 
 #include <unistd.h>
 
@@ -8,11 +12,11 @@
 #include <fstream>
 #include <thread>
 
-#include "capturia/entorno.hpp"
-#include "capturia/ipc.hpp"
-#include "capturia/proceso.hpp"
+#include "esr/entorno.hpp"
+#include "esr/ipc.hpp"
+#include "esr/proceso.hpp"
 
-namespace capturia {
+namespace esr {
 namespace {
 
 // Cuanto se espera a que el socket IPC aparezca tras lanzar GSR. Con el
@@ -64,7 +68,7 @@ SesionGrabacion sesion_por_defecto() {
     const char* hogar = std::getenv("HOME");
     const std::string casa = (hogar != nullptr && hogar[0] != '\0') ? hogar : ".";
     SesionGrabacion s;
-    s.dir = casa + "/.cache/capturia/sesion";
+    s.dir = casa + "/.cache/easy-screen-recorder/sesion";
     s.ruta_socket = s.dir + "/ipc.sock";
     s.ruta_log = s.dir + "/gsr.log";
     s.ruta_pid = s.dir + "/gsr.pid";
@@ -85,7 +89,7 @@ std::string diagnostico_de_log(const std::string& ruta_log) {
                "suspendida: enciendela y repite. Si persiste, la fuente pedida no existe";
     }
     if (todo.find("missing argument") != std::string::npos) {
-        return "GSR rechazo los argumentos, y eso es un fallo de capturia, no tuyo. "
+        return "GSR rechazo los argumentos, y eso es un fallo de easy-screen-recorder-cli, no tuyo. "
                "Copia el log de " + ruta_log + " en un informe de error";
     }
     if (todo.find("No space left") != std::string::npos) {
@@ -112,7 +116,7 @@ ResultadoLanzamiento empezar_grabacion(const AjustesGrabacion& ajustes,
     ResultadoLanzamiento r;
 
     if (grabacion_en_marcha(sesion)) {
-        r.motivo = "ya hay una grabacion en marcha; parala con «capturia parar»";
+        r.motivo = "ya hay una grabacion en marcha; parala con «easy-screen-recorder-cli parar»";
         return r;
     }
 
@@ -253,4 +257,4 @@ bool poner_pausa(const SesionGrabacion& sesion, bool pausada, std::string& motiv
     return true;
 }
 
-}  // namespace capturia
+}  // namespace esr

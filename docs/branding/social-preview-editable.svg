@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640">
+  <rect width="1280" height="640" fill="#232629"/>
+  <g transform="translate(140,256.0) scale(1.000000)"><rect width="128" height="128" rx="30" fill="#232629"></rect><path d="M30 50V40a10 10 0 0 1 10-10h10M78 30h10a10 10 0 0 1 10 10v10M98 78v10a10 10 0 0 1-10 10H78M50 98H40a10 10 0 0 1-10-10V78" fill="none" stroke="#EFF0F1" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"></path><circle cx="64" cy="64" r="19" fill="#DA4453"></circle></g>
+  <text x="300" y="263.08" font-family="Noto Sans, sans-serif" font-size="60" font-weight="600" fill="#EFF0F1" letter-spacing="-1.2" dominant-baseline="central" text-anchor="start">Easy Screen Recorder</text>
+  <text x="300" y="328.26" font-family="Noto Sans, sans-serif" font-size="26" font-weight="400" fill="#b9bdc0" dominant-baseline="central" text-anchor="start">Record your screen with GPU acceleration</text>
+  <text x="300" y="396.18" font-family="Noto Sans, sans-serif" font-size="18" font-weight="400" fill="#8b9095" dominant-baseline="central" text-anchor="start">by Soluciones Conscientes</text>
+  <rect y="636" width="1280" height="4" fill="#DA4453"/>
+</svg>

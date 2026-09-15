@@ -1,8 +1,12 @@
-#include "capturia/capacidades.hpp"
+// SPDX-FileCopyrightText: 2026 Dalmau Romaní (Soluciones Conscientes)
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+#include "esr/capacidades.hpp"
 
 #include <algorithm>
 
-namespace capturia {
+namespace esr {
 namespace {
 
 std::string_view recortar(std::string_view s) {
@@ -307,4 +311,4 @@ Capacidades interpretar_volcado(std::string_view volcado) {
     return c;
 }
 
-}  // namespace capturia
+}  // namespace esr

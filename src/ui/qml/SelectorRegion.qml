@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Dalmau Romaní (Soluciones Conscientes)
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 // El selector de region: una ventana a pantalla completa, oscurecida, donde
 // se arrastra el recorte. Soltar elige; Esc cancela. La referencia es el
 // selector de Spectacle: sin botones, sin dialogos.

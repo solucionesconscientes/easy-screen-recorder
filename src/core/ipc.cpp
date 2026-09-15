@@ -1,4 +1,8 @@
-#include "capturia/ipc.hpp"
+// SPDX-FileCopyrightText: 2026 Dalmau Romaní (Soluciones Conscientes)
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+#include "esr/ipc.hpp"
 
 #include <poll.h>
 #include <sys/socket.h>
@@ -8,7 +12,7 @@
 #include <cerrno>
 #include <cstring>
 
-namespace capturia {
+namespace esr {
 
 ConexionIpc::ConexionIpc(ConexionIpc&& otra) noexcept
     : fd_(otra.fd_), siguiente_id_(otra.siguiente_id_) {
@@ -137,4 +141,4 @@ std::optional<RespuestaIpc> ConexionIpc::transaccion(const std::string& peticion
     return r;
 }
 
-}  // namespace capturia
+}  // namespace esr

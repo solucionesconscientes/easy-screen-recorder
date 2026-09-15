@@ -1,4 +1,8 @@
-#include "capturia/grabacion.hpp"
+// SPDX-FileCopyrightText: 2026 Dalmau Romaní (Soluciones Conscientes)
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+#include "esr/grabacion.hpp"
 
 #include <sys/socket.h>
 #include <sys/un.h>
@@ -9,10 +13,10 @@
 #include <fstream>
 #include <thread>
 
-#include "capturia/ipc.hpp"
+#include "esr/ipc.hpp"
 #include "comprobar.hpp"
 
-using namespace capturia;
+using namespace esr;
 
 namespace {
 
@@ -32,7 +36,7 @@ void diagnosticos() {
     {
         const auto d = diagnostico_de_log(
             escribir_log("log-arg.txt", "gsr error: missing argument '-w'\n"));
-        COMPROBAR_NOTA(d.find("fallo de capturia") != std::string::npos, d);
+        COMPROBAR_NOTA(d.find("fallo de easy-screen-recorder-cli") != std::string::npos, d);
     }
     {
         const auto d = diagnostico_de_log(
@@ -143,7 +147,7 @@ void cliente_ipc() {
 void sesion() {
     setenv("HOME", "/home/prueba", 1);
     const auto s = sesion_por_defecto();
-    COMPROBAR(s.dir == "/home/prueba/.cache/capturia/sesion");
+    COMPROBAR(s.dir == "/home/prueba/.cache/easy-screen-recorder/sesion");
     COMPROBAR(s.ruta_socket == s.dir + "/ipc.sock");
     // El socket por defecto cabe de sobra en sun_path (107).
     COMPROBAR(s.ruta_socket.size() < 100);

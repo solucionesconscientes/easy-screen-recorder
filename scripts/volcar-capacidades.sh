@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
+
+# SPDX-FileCopyrightText: 2026 Dalmau Romaní (Soluciones Conscientes)
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 # Vuelca lo que ESTA maquina sabe hacer, en el formato que lee
-# capturia::partir_volcado (src/core/include/capturia/capacidades.hpp).
+# esr::partir_volcado (src/core/include/esr/capacidades.hpp).
 #
 # No aborta nunca: un comando que falta o que falla es un dato, no un error del
 # script. Por eso no hay `set -e`.
@@ -58,7 +63,7 @@ comandos=(
 {
   # Todo lo anterior al primer «### comando:» lo ignora el parser a proposito:
   # sirve para saber de que maquina salio el volcado.
-  echo "# Volcado de capacidades de Capturia"
+  echo "# Volcado de capacidades de Easy Screen Recorder"
   echo "# fecha:    $(date -u +%Y-%m-%dT%H:%M:%SZ)"
   echo "# host:     $(hostname 2>/dev/null || echo desconocido)"
   echo "# kernel:   $(uname -sr 2>/dev/null || echo desconocido)"

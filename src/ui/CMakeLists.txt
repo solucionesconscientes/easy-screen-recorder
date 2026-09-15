@@ -1,4 +1,8 @@
-# Capa 3: la UI Qt6/QML con Kirigami. Enlaza libcapturia directamente: es la
+# SPDX-FileCopyrightText: 2026 Dalmau Romaní (Soluciones Conscientes)
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+# Capa 3: la UI Qt6/QML con Kirigami. Enlaza libesr directamente: es la
 # capa 3 sobre la capa 1 del diagrama de CLAUDE.md; el CLI es un hermano, no
 # un intermediario.
 #
@@ -7,7 +11,7 @@
 find_package(Qt6 6.4 QUIET COMPONENTS Core DBus Gui Qml Quick QuickControls2 Widgets Concurrent)
 
 if(NOT Qt6_FOUND)
-  message(STATUS "Capturia: sin Qt6 de desarrollo; la UI no se compila (el CLI y los tests si)")
+  message(STATUS "Easy Screen Recorder: sin Qt6 de desarrollo; la UI no se compila (el CLI y los tests si)")
   return()
 endif()
 
@@ -16,15 +20,15 @@ qt_standard_project_setup(REQUIRES 6.4)
 qt_policy(SET QTP0001 NEW)
 qt_policy(SET QTP0004 NEW)
 
-qt_add_executable(capturia_ui
+qt_add_executable(esr_ui
   atajos.cpp
   main.cpp
   controlador.cpp
 )
-set_target_properties(capturia_ui PROPERTIES OUTPUT_NAME capturia-ui)
+set_target_properties(esr_ui PROPERTIES OUTPUT_NAME easy-screen-recorder)
 
-qt_add_qml_module(capturia_ui
-  URI org.capturia
+qt_add_qml_module(esr_ui
+  URI es.solucionesconscientes.esr
   VERSION 1.0
   # Sin escaneo de imports: solo sirve para enlazar plugins QML estaticos y
   # este Qt es compartido. Con el puesto, la configuracion escupia veinte
@@ -35,20 +39,27 @@ qt_add_qml_module(capturia_ui
     qml/SelectorRegion.qml
 )
 
-target_link_libraries(capturia_ui PRIVATE
-  capturia::core
+target_link_libraries(esr_ui PRIVATE
+  esr::core
   Qt6::Core Qt6::DBus Qt6::Gui Qt6::Qml Qt6::Quick Qt6::QuickControls2 Qt6::Widgets Qt6::Concurrent
 )
 # Los avisos duros del proyecto se aplican a NUESTRO codigo. El codigo que
 # genera moc/qmltc no es nuestro y sus avisos no se arreglan aqui, asi que el
 # objetivo de la UI lleva los flags directamente y no el INTERFACE global.
-target_compile_options(capturia_ui PRIVATE -Wall -Wextra)
+target_compile_options(esr_ui PRIVATE -Wall -Wextra)
 
 include(GNUInstallDirs)
-install(TARGETS capturia_ui RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
-install(FILES datos/org.capturia.Capturia.desktop
+install(TARGETS esr_ui RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(FILES datos/es.solucionesconscientes.EasyScreenRecorder.desktop
         DESTINATION ${CMAKE_INSTALL_DATADIR}/applications)
-install(FILES datos/org.capturia.Capturia.metainfo.xml
+install(FILES datos/es.solucionesconscientes.EasyScreenRecorder.metainfo.xml
         DESTINATION ${CMAKE_INSTALL_DATADIR}/metainfo)
-install(FILES datos/org.capturia.Capturia.svg
+# El icono de color va a scalable/apps y los monocromos a symbolic/apps, que es
+# donde los busca el tema de iconos cuando se pide un nombre con sufijo
+# -symbolic. Mezclarlos deja la bandeja con el icono a color, que sobre un panel
+# oscuro se ve como una pegatina.
+install(FILES datos/es.solucionesconscientes.EasyScreenRecorder.svg
         DESTINATION ${CMAKE_INSTALL_DATADIR}/icons/hicolor/scalable/apps)
+install(FILES datos/es.solucionesconscientes.EasyScreenRecorder-symbolic.svg
+              datos/es.solucionesconscientes.EasyScreenRecorder-recording-symbolic.svg
+        DESTINATION ${CMAKE_INSTALL_DATADIR}/icons/hicolor/symbolic/apps)

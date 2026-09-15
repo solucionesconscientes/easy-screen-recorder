@@ -2,11 +2,11 @@
 
 **Estado: DOCUMENTADO Y COMPROBADO.** Bloqueo B1 cerrado.
 
-Versión leída: GSR **6.0.0**, el árbol de `third_party/gpu-screen-recorder/`
+Versión leída: GSR **6.0.0**, el árbol de referencia de GSR
 (`project.conf:4`). Es la misma que está instalada en la máquina de desarrollo,
 así que las citas apuntan al código que de verdad se ejecuta aquí.
 
-Todas las citas son `fichero:línea` dentro de `third_party/gpu-screen-recorder/`.
+Todas las citas son `fichero:línea` dentro de la copia de referencia de GSR.
 Al final hay una sección con lo que se ejecutó para comprobarlo y otra con lo
 que no queda claro.
 
@@ -27,11 +27,9 @@ hay que adivinar el nombre ni leer stdout.
 ## Transporte
 
 Un socket de dominio unix orientado a conexión. Lo dice el comentario del tipo
-en `include/cli/ipc.h:71` y lo confirma la creación en `src/cli/ipc.c:873`:
-
-```c
-self->socket_fd = socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC | SOCK_NONBLOCK, 0);
-```
+en `include/cli/ipc.h:71` y lo confirma la creación en `src/cli/ipc.c:873`, que
+abre la familia `AF_UNIX` con tipo `SOCK_STREAM` y los indicadores de
+cierre-en-`exec` y no bloqueante.
 
 Detalles que importan al escribir el cliente:
 
@@ -65,18 +63,16 @@ De ningún sitio automático. **Es el argumento de `-ipc` y nada más.**
 
 - La opción está declarada como opcional en `src/args_parser.c:574`.
 - Se lee en `src/cli/main.c:523` y solo se inicializa el IPC si trae valor:
-  `src/cli/main.c:545`.
-
-```c
-if(ipc_arg->num_values > 0 && gsr_ipc_init(&ipc, ipc_arg->values[0]) != GSR_ERROR_OK) {
-```
+  `src/cli/main.c:545` comprueba que la opción tenga al menos un valor y le pasa
+  el primero al inicializador; si ese inicializador no devuelve éxito, el
+  arranque se aborta.
 
 No depende del usuario, ni del PID, ni de `XDG_RUNTIME_DIR`. Se buscó
 `XDG_RUNTIME_DIR` en todo `src/` e `include/` y no aparece. Los ejemplos del
 manual usan `$XDG_RUNTIME_DIR/gsr.sock` (`gsr-cli.1`, sección EXAMPLES) pero eso
 es una costumbre del ejemplo, no del programa.
 
-**Para Capturia esto es la mejor noticia del documento:** elegimos la ruta,
+**Para Easy Screen Recorder esto es la mejor noticia del documento:** elegimos la ruta,
 así que sabemos siempre cuál es y podemos tener varias grabaciones a la vez sin
 pisarnos. Ver más abajo la trampa del flatpak.
 
@@ -230,13 +226,13 @@ sockets cruzan. Con una excepción que cuesta media tarde si no se sabe:
 `/tmp` del sistema y desde dentro del sandbox no se ve; el socket y el vídeo que
 GSR creó en `/tmp` existían solo dentro del sandbox.
 
-Consecuencia para Capturia, cuando GSR venga en flatpak:
+Consecuencia para Easy Screen Recorder, cuando GSR venga en flatpak:
 
 - El socket de `-ipc` **no puede ir en `/tmp`**. Ni el fichero de salida.
 - Sirve cualquier ruta bajo el home del usuario. La prueba de este documento usó
   `~/.cache/`.
-- Con GSR nativo en PATH da igual. Por eso `libcapturia` guarda de qué vía viene
-  (`Invocacion::origen` en `src/core/include/capturia/entorno.hpp`) y `--check`
+- Con GSR nativo en PATH da igual. Por eso `libesr` guarda de qué vía viene
+  (`Invocacion::origen` en `src/core/include/esr/entorno.hpp`) y `--check`
   lo enseña.
 
 ## Qué se ejecutó para comprobarlo
@@ -256,7 +252,7 @@ por un socket a pelo y se miró qué contestaba. Literal:
 --> {"nombre": "sin-id"}
 <-- {"id":0,"result":"error","data":"the request is missing the 'id' field"}
 --> {"id": 11, "name": "stop"}
-<-- {"id":11,"result":"ok","data":"/home/pc/.cache/capturia-prueba/prueba.mkv"}
+<-- {"id":11,"result":"ok","data":"/home/pc/.cache/easy-screen-recorder-prueba/prueba.mkv"}
 ```
 
 Y el fichero estaba: 4741 bytes, 2,907 s, un stream de vídeo h264 y uno de audio

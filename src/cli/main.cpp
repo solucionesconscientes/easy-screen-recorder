@@ -1,5 +1,9 @@
+// SPDX-FileCopyrightText: 2026 Dalmau Romaní (Soluciones Conscientes)
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 // Capa 2: el CLI. Regla dura del proyecto: si algo no funciona por aqui, no
-// se toca la UI. Todo lo que hace sale de libcapturia; este fichero solo
+// se toca la UI. Todo lo que hace sale de libesr; este fichero solo
 // interpreta ordenes e imprime.
 
 #include <cstdio>
@@ -11,12 +15,12 @@
 #include <string_view>
 #include <vector>
 
-#include "capturia/ajustes.hpp"
-#include "capturia/configuracion.hpp"
-#include "capturia/audio.hpp"
-#include "capturia/entorno.hpp"
-#include "capturia/grabacion.hpp"
-#include "capturia/version.hpp"
+#include "esr/ajustes.hpp"
+#include "esr/configuracion.hpp"
+#include "esr/audio.hpp"
+#include "esr/entorno.hpp"
+#include "esr/grabacion.hpp"
+#include "esr/version.hpp"
 
 namespace {
 
@@ -28,26 +32,26 @@ constexpr int kMalUso = 2;
 
 void uso() {
     std::printf(
-        "capturia %s: grabador de pantalla sobre gpu-screen-recorder\n"
+        "easy-screen-recorder-cli %s: grabador de pantalla sobre gpu-screen-recorder\n"
         "\n"
         "Uso:\n"
-        "  capturia grabar [opciones]  empieza a grabar la pantalla y vuelve al instante\n"
-        "  capturia audio [opciones]   graba solo audio, sin video (via ffmpeg)\n"
-        "  capturia parar              para, guarda e imprime la ruta del fichero\n"
-        "  capturia pausar             pausa la grabacion en marcha\n"
-        "  capturia reanudar           reanuda la grabacion pausada\n"
-        "  capturia estado             dice si hay una grabacion en marcha\n"
-        "  capturia fuentes            lista las fuentes de captura de esta maquina\n"
-        "  capturia dispositivos       lista los dispositivos de audio\n"
-        "  capturia --check [--volcado FICHERO]\n"
+        "  easy-screen-recorder-cli grabar [opciones]  empieza a grabar la pantalla y vuelve al instante\n"
+        "  easy-screen-recorder-cli audio [opciones]   graba solo audio, sin video (via ffmpeg)\n"
+        "  easy-screen-recorder-cli parar              para, guarda e imprime la ruta del fichero\n"
+        "  easy-screen-recorder-cli pausar             pausa la grabacion en marcha\n"
+        "  easy-screen-recorder-cli reanudar           reanuda la grabacion pausada\n"
+        "  easy-screen-recorder-cli estado             dice si hay una grabacion en marcha\n"
+        "  easy-screen-recorder-cli fuentes            lista las fuentes de captura de esta maquina\n"
+        "  easy-screen-recorder-cli dispositivos       lista los dispositivos de audio\n"
+        "  easy-screen-recorder-cli --check [--volcado FICHERO]\n"
         "                              comprueba el entorno y dice que falta\n"
-        "  capturia --version\n"
+        "  easy-screen-recorder-cli --version\n"
         "\n"
         "Opciones de grabar (todas con default sensato):\n"
         "  --fuente F        un monitor (p. ej. eDP-1), «region», «portal», «focused»\n"
         "                    o una camara /dev/videoN. Sin ella: el primer monitor\n"
         "  --region WxH+X+Y  el recorte, solo con --fuente region\n"
-        "  --salida FICHERO  el destino. Sin el: capturia-FECHA.mkv en Videos\n"
+        "  --salida FICHERO  el destino. Sin el: easy-screen-recorder-FECHA.mkv en Videos\n"
         "  --codec C         codec de video (h264, hevc, av1...). Sin el decide GSR\n"
         "  --codec-audio C   aac, opus o flac. Por defecto opus\n"
         "  --audio DISP      una pista de audio; repetible. Por defecto default_output\n"
@@ -57,12 +61,12 @@ void uso() {
         "\n"
         "Opciones de audio:\n"
         "  --dispositivo D   default_output (lo que suena), default_input (el micro)\n"
-        "                    o un nombre de «capturia dispositivos». Por defecto lo que suena\n"
+        "                    o un nombre de «easy-screen-recorder-cli dispositivos». Por defecto lo que suena\n"
         "  --formato F       opus o flac. Por defecto opus\n"
-        "  --salida FICHERO  el destino. Sin el: capturia-FECHA.opus en Musica\n"
+        "  --salida FICHERO  el destino. Sin el: easy-screen-recorder-FECHA.opus en Musica\n"
         "\n"
         "Codigos de salida: 0 bien, 1 fallo de la operacion, 2 orden mal escrita.\n",
-        std::string(capturia::kVersionCapturia).c_str());
+        std::string(esr::kVersionEsr).c_str());
 }
 
 std::string rellenar(std::string s, std::size_t ancho) {
@@ -70,7 +74,7 @@ std::string rellenar(std::string s, std::size_t ancho) {
     return s;
 }
 
-void imprimir_herramienta(const capturia::Herramienta& h) {
+void imprimir_herramienta(const esr::Herramienta& h) {
     std::string estado;
     if (!h.evaluada) {
         estado = "sin mirar";
@@ -101,9 +105,9 @@ void imprimir_herramienta(const capturia::Herramienta& h) {
                 cola.c_str());
 }
 
-int imprimir_check(const capturia::Entorno& e) {
-    std::printf("capturia %s: comprobacion del entorno\n\n",
-                std::string(capturia::kVersionCapturia).c_str());
+int imprimir_check(const esr::Entorno& e) {
+    std::printf("easy-screen-recorder-cli %s: comprobacion del entorno\n\n",
+                std::string(esr::kVersionEsr).c_str());
 
     std::printf("Herramientas\n");
     imprimir_herramienta(e.gsr);
@@ -117,7 +121,7 @@ int imprimir_check(const capturia::Entorno& e) {
     } else {
         std::printf("  detectada: ninguna\n");
     }
-    if (const auto minima = capturia::version_minima_gsr()) {
+    if (const auto minima = esr::version_minima_gsr()) {
         std::printf("  minima soportada: %s\n", minima->texto().c_str());
     }
 
@@ -135,7 +139,7 @@ int imprimir_check(const capturia::Entorno& e) {
             codecs += c;
         }
         std::printf("  %s%s\n", rellenar("codecs de video", 24).c_str(), codecs.c_str());
-        if (const auto mejor = capturia::mejor_codec_hardware(e.capacidades.info)) {
+        if (const auto mejor = esr::mejor_codec_hardware(e.capacidades.info)) {
             std::printf("  %s%s\n", rellenar("por defecto (hardware)", 24).c_str(),
                         mejor->c_str());
         } else {
@@ -176,23 +180,23 @@ int comprobar(const std::vector<std::string_view>& args) {
     if (args.size() == 3 && args[1] == "--volcado") {
         std::ifstream f{std::string(args[2])};
         if (!f) {
-            std::fprintf(stderr, "capturia: no se puede leer %s\n", std::string(args[2]).c_str());
+            std::fprintf(stderr, "easy-screen-recorder-cli: no se puede leer %s\n", std::string(args[2]).c_str());
             return kFallo;
         }
         std::ostringstream ss;
         ss << f.rdbuf();
-        return imprimir_check(capturia::detectar_desde_volcado(ss.str()));
+        return imprimir_check(esr::detectar_desde_volcado(ss.str()));
     }
     if (args.size() != 1) {
-        std::fprintf(stderr, "capturia: --check va solo o con --volcado FICHERO\n");
+        std::fprintf(stderr, "easy-screen-recorder-cli: --check va solo o con --volcado FICHERO\n");
         return kMalUso;
     }
-    return imprimir_check(capturia::detectar());
+    return imprimir_check(esr::detectar());
 }
 
 // El primer monitor de la lista de fuentes: lo que no es un modo especial ni
 // una camara. Es el default de --fuente.
-std::string primer_monitor(const capturia::Capacidades& c) {
+std::string primer_monitor(const esr::Capacidades& c) {
     for (const auto& f : c.fuentes_captura) {
         if (f.id == "region" || f.id == "portal" || f.id == "focused") continue;
         if (f.id.rfind("/dev/", 0) == 0) continue;
@@ -202,7 +206,7 @@ std::string primer_monitor(const capturia::Capacidades& c) {
 }
 
 int grabar(const std::vector<std::string_view>& args) {
-    capturia::AjustesGrabacion a;
+    esr::AjustesGrabacion a;
     a.fuente.clear();
     bool audio_explicito = false;
 
@@ -228,7 +232,7 @@ int grabar(const std::vector<std::string_view>& args) {
         } else if (opcion == "--calidad") {
             a.calidad = std::string(valor());
         } else {
-            std::fprintf(stderr, "capturia: no entiendo «%.*s»\n\n",
+            std::fprintf(stderr, "easy-screen-recorder-cli: no entiendo «%.*s»\n\n",
                          static_cast<int>(opcion.size()), opcion.data());
             uso();
             return kMalUso;
@@ -238,37 +242,37 @@ int grabar(const std::vector<std::string_view>& args) {
     // Los dos defaults que necesitan mirar la maquina se resuelven solo si
     // hacen falta: la deteccion cuesta mas de un segundo con el flatpak.
     if (a.fuente.empty()) {
-        const capturia::Entorno e = capturia::detectar();
+        const esr::Entorno e = esr::detectar();
         a.fuente = primer_monitor(e.capacidades);
         if (a.fuente.empty()) {
             std::fprintf(stderr,
-                         "capturia: no se detecta ningun monitor que grabar.\n"
-                         "Mira «capturia fuentes» y elige una con --fuente. Si la lista\n"
-                         "esta vacia y la pantalla esta encendida, ejecuta «capturia --check»\n");
+                         "easy-screen-recorder-cli: no se detecta ningun monitor que grabar.\n"
+                         "Mira «easy-screen-recorder-cli fuentes» y elige una con --fuente. Si la lista\n"
+                         "esta vacia y la pantalla esta encendida, ejecuta «easy-screen-recorder-cli --check»\n");
             return kFallo;
         }
     }
     if (a.salida.empty()) {
-        const std::string carpeta = capturia::carpeta_videos_elegida();
+        const std::string carpeta = esr::carpeta_videos_elegida();
         std::error_code ec;
         std::filesystem::create_directories(carpeta, ec);
-        a.salida = capturia::nombre_por_defecto(carpeta);
+        a.salida = esr::nombre_por_defecto(carpeta);
     }
 
-    const auto sesion = capturia::sesion_por_defecto();
-    const auto r = capturia::empezar_grabacion(a, sesion);
+    const auto sesion = esr::sesion_por_defecto();
+    const auto r = esr::empezar_grabacion(a, sesion);
     if (!r.en_marcha) {
-        std::fprintf(stderr, "capturia: no se pudo empezar: %s\n", r.motivo.c_str());
+        std::fprintf(stderr, "easy-screen-recorder-cli: no se pudo empezar: %s\n", r.motivo.c_str());
         return kFallo;
     }
 
     std::printf("grabando %s -> %s\n", a.fuente.c_str(), a.salida.c_str());
-    std::printf("para y guarda con: capturia parar\n");
+    std::printf("para y guarda con: easy-screen-recorder-cli parar\n");
     return kBien;
 }
 
 int audio(const std::vector<std::string_view>& args) {
-    capturia::AjustesAudio a;
+    esr::AjustesAudio a;
     for (std::size_t i = 1; i < args.size(); ++i) {
         const std::string_view opcion = args[i];
         const auto valor = [&]() -> std::string_view {
@@ -278,47 +282,47 @@ int audio(const std::vector<std::string_view>& args) {
         else if (opcion == "--formato") a.formato = std::string(valor());
         else if (opcion == "--salida") a.salida = std::string(valor());
         else {
-            std::fprintf(stderr, "capturia: no entiendo «%.*s»\n\n",
+            std::fprintf(stderr, "easy-screen-recorder-cli: no entiendo «%.*s»\n\n",
                          static_cast<int>(opcion.size()), opcion.data());
             uso();
             return kMalUso;
         }
     }
     if (a.salida.empty()) {
-        const std::string carpeta = capturia::carpeta_audio_elegida();
+        const std::string carpeta = esr::carpeta_audio_elegida();
         std::error_code ec;
         std::filesystem::create_directories(carpeta, ec);
-        a.salida = capturia::nombre_por_defecto(carpeta, a.formato == "flac" ? "flac" : "opus");
+        a.salida = esr::nombre_por_defecto(carpeta, a.formato == "flac" ? "flac" : "opus");
     }
 
-    const auto r = capturia::empezar_audio(a, capturia::sesion_audio_por_defecto());
+    const auto r = esr::empezar_audio(a, esr::sesion_audio_por_defecto());
     if (!r.bien) {
-        std::fprintf(stderr, "capturia: no se pudo empezar: %s\n", r.motivo.c_str());
+        std::fprintf(stderr, "easy-screen-recorder-cli: no se pudo empezar: %s\n", r.motivo.c_str());
         return kFallo;
     }
     std::printf("grabando audio (%s) -> %s\n", a.dispositivo.c_str(), r.ruta_fichero.c_str());
-    std::printf("para y guarda con: capturia parar\n");
+    std::printf("para y guarda con: easy-screen-recorder-cli parar\n");
     return kBien;
 }
 
 int parar() {
     // Puede haber una grabacion de pantalla o una de audio; se para la que
     // este. Las dos a la vez tambien: primero la pantalla.
-    const auto sesion_audio = capturia::sesion_audio_por_defecto();
-    if (!capturia::grabacion_en_marcha(capturia::sesion_por_defecto()) &&
-        capturia::audio_en_marcha(sesion_audio)) {
-        const auto ra = capturia::parar_audio(sesion_audio);
+    const auto sesion_audio = esr::sesion_audio_por_defecto();
+    if (!esr::grabacion_en_marcha(esr::sesion_por_defecto()) &&
+        esr::audio_en_marcha(sesion_audio)) {
+        const auto ra = esr::parar_audio(sesion_audio);
         if (!ra.bien) {
-            std::fprintf(stderr, "capturia: %s\n", ra.motivo.c_str());
+            std::fprintf(stderr, "easy-screen-recorder-cli: %s\n", ra.motivo.c_str());
             return kFallo;
         }
         std::printf("%s\n", ra.ruta_fichero.c_str());
         return kBien;
     }
 
-    const auto r = capturia::parar_grabacion(capturia::sesion_por_defecto());
+    const auto r = esr::parar_grabacion(esr::sesion_por_defecto());
     if (!r.parado) {
-        std::fprintf(stderr, "capturia: %s\n", r.motivo.c_str());
+        std::fprintf(stderr, "easy-screen-recorder-cli: %s\n", r.motivo.c_str());
         return kFallo;
     }
     if (r.ruta_fichero.empty()) {
@@ -332,8 +336,8 @@ int parar() {
 
 int pausar(bool pausada) {
     std::string motivo;
-    if (!capturia::poner_pausa(capturia::sesion_por_defecto(), pausada, motivo)) {
-        std::fprintf(stderr, "capturia: %s\n", motivo.c_str());
+    if (!esr::poner_pausa(esr::sesion_por_defecto(), pausada, motivo)) {
+        std::fprintf(stderr, "easy-screen-recorder-cli: %s\n", motivo.c_str());
         return kFallo;
     }
     std::printf("%s\n", pausada ? "pausada" : "grabando otra vez");
@@ -341,8 +345,8 @@ int pausar(bool pausada) {
 }
 
 int estado() {
-    const bool pantalla = capturia::grabacion_en_marcha(capturia::sesion_por_defecto());
-    const bool audio_solo = capturia::audio_en_marcha(capturia::sesion_audio_por_defecto());
+    const bool pantalla = esr::grabacion_en_marcha(esr::sesion_por_defecto());
+    const bool audio_solo = esr::audio_en_marcha(esr::sesion_audio_por_defecto());
     if (pantalla && audio_solo) {
         std::printf("grabando pantalla y audio\n");
         return kBien;
@@ -360,9 +364,9 @@ int estado() {
 }
 
 int fuentes() {
-    const capturia::Entorno e = capturia::detectar();
+    const esr::Entorno e = esr::detectar();
     if (!e.gsr.presente) {
-        std::fprintf(stderr, "capturia: gpu-screen-recorder no esta; ejecuta «capturia --check»\n");
+        std::fprintf(stderr, "easy-screen-recorder-cli: gpu-screen-recorder no esta; ejecuta «easy-screen-recorder-cli --check»\n");
         return kFallo;
     }
     if (e.capacidades.fuentes_captura.empty()) {
@@ -377,14 +381,14 @@ int fuentes() {
 }
 
 int dispositivos() {
-    const capturia::Entorno e = capturia::detectar();
+    const esr::Entorno e = esr::detectar();
     if (!e.gsr.presente) {
         // Sin GSR el modo audio-only sigue en pie, asi que la lista sale de
         // pactl y sirve para --dispositivo.
         std::string motivo;
-        const auto fuentes_pactl = capturia::fuentes_audio_pactl(motivo);
+        const auto fuentes_pactl = esr::fuentes_audio_pactl(motivo);
         if (fuentes_pactl.empty()) {
-            std::fprintf(stderr, "capturia: sin GSR y sin pactl no hay lista: %s\n",
+            std::fprintf(stderr, "easy-screen-recorder-cli: sin GSR y sin pactl no hay lista: %s\n",
                          motivo.c_str());
             return kFallo;
         }
@@ -419,7 +423,7 @@ int main(int argc, char** argv) {
 
     const std::string_view orden = args[0];
     if (orden == "--version" || orden == "-v") {
-        std::printf("capturia %s\n", std::string(capturia::kVersionCapturia).c_str());
+        std::printf("easy-screen-recorder-cli %s\n", std::string(esr::kVersionEsr).c_str());
         return kBien;
     }
     if (orden == "--help" || orden == "-h") {
@@ -436,7 +440,7 @@ int main(int argc, char** argv) {
     if (orden == "fuentes") return fuentes();
     if (orden == "dispositivos") return dispositivos();
 
-    std::fprintf(stderr, "capturia: no entiendo esa orden\n\n");
+    std::fprintf(stderr, "easy-screen-recorder-cli: no entiendo esa orden\n\n");
     uso();
     return kMalUso;
 }

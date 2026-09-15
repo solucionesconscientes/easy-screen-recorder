@@ -1,4 +1,8 @@
-// La UI de Capturia. Ligera e intuitiva por contrato (CLAUDE.md): dos clics
+// SPDX-FileCopyrightText: 2026 Dalmau Romaní (Soluciones Conscientes)
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+// La UI de Easy Screen Recorder. Ligera e intuitiva por contrato (CLAUDE.md): dos clics
 // para grabar, todo lo demas plegado, y estetica nativa de Plasma.
 
 #include <QApplication>
@@ -16,9 +20,28 @@
 #include "atajos.hpp"
 #include "controlador.hpp"
 
+namespace {
+
+// Nuestros iconos viven en el tema solo despues de instalar. Desde el arbol de
+// compilacion QIcon::fromTheme no los encuentra, asi que cada uno lleva detras
+// el generico de Breeze que se usaba antes: instalado se ve la marca, sin
+// instalar se ve algo. Un icono nulo en la bandeja es un hueco invisible y el
+// usuario no sabe que la aplicacion sigue viva.
+QIcon iconoBandeja(bool grabando) {
+    const QString nuestro = grabando
+                                ? QStringLiteral("es.solucionesconscientes.EasyScreenRecorder-recording-symbolic")
+                                : QStringLiteral("es.solucionesconscientes.EasyScreenRecorder-symbolic");
+    const QString red = grabando ? QStringLiteral("media-record")
+                                 : QStringLiteral("camera-video-symbolic");
+    QIcon icono = QIcon::fromTheme(nuestro);
+    return icono.isNull() ? QIcon::fromTheme(red) : icono;
+}
+
+}  // namespace
+
 int main(int argc, char** argv) {
     // El contrato de CLAUDE.md es arranque < 1 s, y eso se mide, no se
-    // siente. Con CAPTURIA_MEDIR_ARRANQUE=1 se imprime el tiempo hasta el
+    // siente. Con EASY SCREEN RECORDER_MEDIR_ARRANQUE=1 se imprime el tiempo hasta el
     // primer frame pintado y se sale: scripts/medir-arranque.sh lo usa.
     QElapsedTimer cronometro;
     cronometro.start();
@@ -26,10 +49,16 @@ int main(int argc, char** argv) {
     // (QSystemTrayIcon) vive en QtWidgets. En Plasma sale como
     // StatusNotifierItem, que es lo nativo.
     QApplication app(argc, argv);
-    app.setOrganizationName(QStringLiteral("capturia"));
-    app.setApplicationName(QStringLiteral("capturia"));
-    app.setDesktopFileName(QStringLiteral("org.capturia.Capturia"));
-    app.setWindowIcon(QIcon::fromTheme(QStringLiteral("media-record")));
+    // Forma slug a proposito: esto son componentes de ruta de QStandardPaths y
+    // claves de registro, no texto visible. El nombre bonito va en el .desktop
+    // y en el metainfo.
+    app.setOrganizationName(QStringLiteral("solucionesconscientes"));
+    app.setOrganizationDomain(QStringLiteral("solucionesconscientes.es"));
+    app.setApplicationName(QStringLiteral("easy-screen-recorder"));
+    app.setDesktopFileName(QStringLiteral("es.solucionesconscientes.EasyScreenRecorder"));
+    const QIcon iconoApp = QIcon::fromTheme(QStringLiteral("es.solucionesconscientes.EasyScreenRecorder"));
+    app.setWindowIcon(iconoApp.isNull() ? QIcon::fromTheme(QStringLiteral("media-record"))
+                                        : iconoApp);
 
     // El estilo del escritorio, si esta. Forzarlo a ciegas rompe fuera de
     // Plasma; mirar el modulo en disco es barato y honesto.
@@ -45,13 +74,13 @@ int main(int argc, char** argv) {
     QObject::connect(
         &motor, &QQmlApplicationEngine::objectCreationFailed, &app,
         [] { QCoreApplication::exit(1); }, Qt::QueuedConnection);
-    motor.loadFromModule("org.capturia", "Main");
+    motor.loadFromModule("es.solucionesconscientes.esr", "Main");
     if (motor.rootObjects().isEmpty()) return 1;
 
     auto* ventana = qobject_cast<QQuickWindow*>(motor.rootObjects().first());
-    auto* controlador = motor.singletonInstance<Controlador*>("org.capturia", "Controlador");
+    auto* controlador = motor.singletonInstance<Controlador*>("es.solucionesconscientes.esr", "Controlador");
 
-    if (ventana != nullptr && qEnvironmentVariableIsSet("CAPTURIA_MEDIR_ARRANQUE")) {
+    if (ventana != nullptr && qEnvironmentVariableIsSet("EASY SCREEN RECORDER_MEDIR_ARRANQUE")) {
         QObject::connect(ventana, &QQuickWindow::frameSwapped, &app,
                          [&cronometro] {
                              std::printf("primer frame: %lld ms\n",
@@ -64,8 +93,8 @@ int main(int argc, char** argv) {
 
     // La bandeja: el acceso permanente y el indicador de grabacion. El punto
     // rojo SOLO cuando se graba: un indicador siempre encendido miente.
-    QSystemTrayIcon bandeja(QIcon::fromTheme(QStringLiteral("camera-video-symbolic")));
-    bandeja.setToolTip(QStringLiteral("Capturia"));
+    QSystemTrayIcon bandeja(iconoBandeja(false));
+    bandeja.setToolTip(QStringLiteral("Easy Screen Recorder"));
     bandeja.show();
 
     if (ventana != nullptr) {
@@ -93,12 +122,10 @@ int main(int argc, char** argv) {
                              const bool grabando = estado == QStringLiteral("grabando") ||
                                                    estado == QStringLiteral("grabandoAudio") ||
                                                    estado == QStringLiteral("pausado");
-                             bandeja.setIcon(QIcon::fromTheme(
-                                 grabando ? QStringLiteral("media-record")
-                                          : QStringLiteral("camera-video-symbolic")));
+                             bandeja.setIcon(iconoBandeja(grabando));
                              bandeja.setToolTip(grabando
-                                                    ? QStringLiteral("Capturia: grabando")
-                                                    : QStringLiteral("Capturia"));
+                                                    ? QStringLiteral("Easy Screen Recorder: grabando")
+                                                    : QStringLiteral("Easy Screen Recorder"));
                          });
     }
 

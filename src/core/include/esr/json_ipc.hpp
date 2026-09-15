@@ -1,10 +1,14 @@
+// SPDX-FileCopyrightText: 2026 Dalmau Romaní (Soluciones Conscientes)
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 #pragma once
 
 #include <optional>
 #include <string>
 #include <string_view>
 
-namespace capturia {
+namespace esr {
 
 // JSON justo para el IPC de GSR, y nada mas.
 //
@@ -35,4 +39,4 @@ std::string peticion_ipc(long id, std::string_view nombre, bool data);
 // protocolo; en ese caso el que llama decide, no se inventa un "ok".
 std::optional<RespuestaIpc> interpretar_respuesta_ipc(std::string_view linea);
 
-}  // namespace capturia
+}  // namespace esr

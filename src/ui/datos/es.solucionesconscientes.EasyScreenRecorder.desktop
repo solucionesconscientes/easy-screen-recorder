@@ -1,0 +1,14 @@
+[Desktop Entry]
+Type=Application
+Name=Easy Screen Recorder
+GenericName=Screen Recorder
+GenericName[es]=Grabador de pantalla
+Comment=Record your screen in two clicks, powered by gpu-screen-recorder
+Comment[es]=Graba la pantalla en dos clics, con la captura de gpu-screen-recorder
+Exec=easy-screen-recorder
+TryExec=easy-screen-recorder
+Icon=es.solucionesconscientes.EasyScreenRecorder
+Terminal=false
+Categories=AudioVideo;Recorder;Qt;KDE;
+Keywords=record;screen;capture;video;audio;recorder;wayland;
+Keywords[es]=grabar;pantalla;captura;video;audio;grabador;wayland;

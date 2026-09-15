@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="400" viewBox="0 0 1280 400">
+  <rect width="1280" height="400" fill="#232629"/>
+  <g transform="translate(80,83.24000000000001) scale(0.750000)"><rect width="128" height="128" rx="30" fill="#232629"></rect><path d="M30 50V40a10 10 0 0 1 10-10h10M78 30h10a10 10 0 0 1 10 10v10M98 78v10a10 10 0 0 1-10 10H78M50 98H40a10 10 0 0 1-10-10V78" fill="none" stroke="#EFF0F1" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"></path><circle cx="64" cy="64" r="19" fill="#DA4453"></circle></g>
+  <text x="80" y="222.54000000000002" font-family="Noto Sans, sans-serif" font-size="46" font-weight="600" fill="#EFF0F1" letter-spacing="-0.92" dominant-baseline="central" text-anchor="start">Easy Screen Recorder</text>
+  <text x="80" y="280.8" font-family="Noto Sans, sans-serif" font-size="22" font-weight="400" fill="#b9bdc0" dominant-baseline="central" text-anchor="start">Record your screen with GPU acceleration</text>
+  <rect x="80" y="313.8" width="52" height="3" rx="2" fill="#1D99F3"/>
+  <defs><pattern id="trama" width="17" height="17" patternTransform="rotate(45)" patternUnits="userSpaceOnUse"><rect width="17" height="17" fill="#2b2f32"/><rect width="8.5" height="17" fill="#31363a"/></pattern></defs>
+  <rect x="680" y="60.0" width="520" height="280" rx="8" fill="url(#trama)" stroke="#3b4045"/>
+  <text x="940" y="200.0" font-family="Noto Sans Mono, monospace" font-size="15" font-weight="400" fill="#8b9095" dominant-baseline="central" text-anchor="middle">app screenshot — 520 × 280</text>
+</svg>

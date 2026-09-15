@@ -1,9 +1,13 @@
+// SPDX-FileCopyrightText: 2026 Dalmau Romaní (Soluciones Conscientes)
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 #pragma once
 
 #include <string>
 #include <vector>
 
-namespace capturia {
+namespace esr {
 
 // El modo audio-only. Va por ffmpeg y PipeWire, no por GSR: GSR exige una
 // fuente de video siempre (-w obligatorio, args_parser.c:536, comprobado
@@ -19,7 +23,7 @@ struct AjustesAudio {
     // son los mismos nombres que usa GSR, para no tener dos vocabularios.
     std::string dispositivo = "default_output";
     std::string formato = "opus";  // opus | flac
-    std::string salida;            // sin ella: capturia-FECHA.opus en Musica... no: Videos
+    std::string salida;            // sin ella: easy-screen-recorder-FECHA.opus en Musica... no: Videos
 };
 
 std::vector<std::string> validar_audio(const AjustesAudio& a);
@@ -43,7 +47,7 @@ std::vector<FuenteAudio> fuentes_audio_pactl(std::string& motivo);
 // La sesion del audio-only. Aparte de la de pantalla: son procesos y
 // protocolos distintos (ffmpeg se para con SIGINT, GSR por IPC).
 struct SesionAudio {
-    std::string dir;       // ~/.cache/capturia/sesion-audio
+    std::string dir;       // ~/.cache/easy-screen-recorder/sesion-audio
     std::string ruta_pid;
     std::string ruta_log;
     std::string ruta_destino;  // apunta el fichero que se esta grabando
@@ -66,4 +70,4 @@ ResultadoAudio parar_audio(const SesionAudio& sesion);
 
 bool audio_en_marcha(const SesionAudio& sesion);
 
-}  // namespace capturia
+}  // namespace esr

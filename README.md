@@ -1,76 +1,141 @@
-# Capturia
+<!--
+SPDX-FileCopyrightText: 2026 Dalmau Romaní (Soluciones Conscientes)
 
-Grabador de pantalla ligero para Linux, pensado para KDE Plasma sobre
-Wayland. La captura la hace [gpu-screen-recorder][gsr] (GSR), 100 % en GPU;
-Capturia pone la capa que le falta: una interfaz de dos pasos, modo de solo
-audio y defaults sensatos.
+SPDX-License-Identifier: GPL-3.0-or-later
+-->
+
+<p align="center">
+  <img src="docs/branding/readme-header.svg" alt="Easy Screen Recorder" width="100%">
+</p>
+
+<p align="center">
+  <a href="README.md"><strong>English</strong></a> ·
+  <a href="README.es.md">Castellano</a>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/license-GPL--3.0--or--later-blue" alt="GPL-3.0-or-later">
+  <img src="https://img.shields.io/badge/platform-KDE%20Plasma%20%C2%B7%20Wayland-1d99f3" alt="KDE Plasma / Wayland">
+  <img src="https://img.shields.io/badge/C%2B%2B-20-da4453" alt="C++20">
+</p>
+
+---
+
+<!-- TODO: demo GIF. See docs/screenshots/README.md for how to record it. -->
+<p align="center">
+  <em>Demo GIF coming soon — <code>docs/screenshots/demo.gif</code></em>
+</p>
+
+## What it does
+
+Recording your screen on Wayland is usually one of two things: a tool that
+re-encodes on the CPU and turns your laptop into a heater, or a command line
+with fifteen flags. This is the missing layer — capture stays on the GPU and you
+start recording in two clicks.
+
+- **Records any monitor, a region you drag, the focused window or a camera**,
+  with the encoding done on the GPU.
+- **Audio-only mode**, to Opus or FLAC, without turning on video capture at all.
+- **Pause and resume** mid-recording, plus a **global shortcut** to start and
+  stop without leaving what you are doing.
+- **Picks the audio device for you** — what you hear, your microphone, or
+  several tracks at once — and **remembers where your recordings go**.
+- **Tells you what is missing before you press record**, instead of failing
+  halfway through: `easy-screen-recorder-cli --check`.
+
+Sensible defaults out of the box: `.mkv`, the best hardware codec your GPU has,
+system audio and 60 fps. Everything else is an option.
+
+There is a CLI as well as the GUI, and the rule is that the CLI comes first: if
+something does not work from the command line, the interface does not get it.
+
+## Install
+
+| | |
+|---|---|
+| **Flathub** | Coming soon |
+| **`.deb`** | Coming soon |
+| **From source** | Below |
+
+### From source
+
+Build dependencies, exactly what the CMake asks for:
+
+- **CMake 3.25+** and a **C++20** compiler
+- **Ninja** (or any generator you prefer)
+- **Qt 6.4+**, components: `Core` `DBus` `Gui` `Qml` `Quick` `QuickControls2`
+  `Widgets` `Concurrent`
+
+Qt is **optional**: without it the GUI is skipped and the CLI and the tests
+still build.
+
+```bash
+cmake -S . -B build -G Ninja
+cmake --build build
+ctest --test-dir build --output-on-failure
+```
+
+On Debian and Ubuntu:
+
+```bash
+sudo apt install cmake ninja-build g++ qt6-base-dev qt6-declarative-dev \
+  ffmpeg
+```
+
+## Requirements
+
+**[gpu-screen-recorder][gsr] has to be installed.** It does the actual capture.
+It is not bundled with this program and it is not a library we link — it runs as
+a separate process.
+
+```bash
+flatpak install flathub com.dec05eba.gpu_screen_recorder
+```
+
+Install it **system-wide, not `--user`**: the lookup checks `/var/lib/flatpak`,
+and a user install lands somewhere else.
+
+`ffmpeg` is needed for the audio-only mode, which does not go through GSR at
+all.
+
+Not sure what you have? `easy-screen-recorder-cli --check` prints exactly what
+is there, what is missing, and what stops working because of it.
 
 [gsr]: https://git.dec05eba.com/gpu-screen-recorder/about/
 
-## Qué hace hoy
-
-Por línea de comandos, verificado con grabaciones reales:
+## Architecture
 
 ```
-capturia grabar              # graba el monitor a Vídeos/capturia-FECHA.mkv
-capturia parar               # para, guarda e imprime la ruta
-capturia pausar / reanudar
-capturia audio               # solo audio (opus), sin GSR de por medio
-capturia fuentes             # qué puede grabar esta máquina
-capturia dispositivos        # qué audio hay
-capturia --check             # qué falta en esta máquina y por qué
+Qt/QML/Kirigami UI  →  libesr  →  gpu-screen-recorder (external process)
 ```
 
-Sin tocar nada: mkv, el mejor códec de hardware que tenga la GPU, el audio
-del sistema y 60 fps. Todo lo demás son opciones (`capturia --help`).
+`libesr` is the core: no Qt, no GUI, everything the UI and the CLI need to know
+about the environment. GSR is driven as a separate process — arguments out, JSON
+over a unix socket back — which is what keeps the two licences apart and lets
+the capture backend be swapped without rewriting the interface.
 
-La interfaz gráfica (Qt6/Kirigami) está en desarrollo.
+## Credits
 
-## Qué necesita
+- **[gpu-screen-recorder][gsr]** by **dec05eba** — does the hard part. This is
+  an independent frontend, not affiliated with the project.
+- **[Qt](https://www.qt.io/)** and **[KDE Frameworks](https://develop.kde.org/products/frameworks/)**
+  — the interface.
+- **[FFmpeg](https://ffmpeg.org/)** — the audio-only path.
 
-- **gpu-screen-recorder 6.0.0 o más nuevo**, nativo o como flatpak
-  (`flatpak install com.dec05eba.gpu_screen_recorder`). Capturia lo
-  encuentra por las dos vías.
-- **ffmpeg y ffprobe** para el modo de solo audio y la verificación.
-- PipeWire con `pipewire-pulse`, que es lo normal en cualquier escritorio
-  actual.
+## Need custom software?
 
-`capturia --check` dice exactamente qué falta y qué deja de funcionar por
-ello, sin adornos.
+Built by **[Soluciones Conscientes](https://solucionesconscientes.es)**, which
+develops bespoke applications — desktop, web and the plumbing in between.
 
-## Compilar
+If this is close to what you need but not quite, or you want it built for your
+own workflow, get in touch. Commercial licensing of this codebase is also
+available on request.
 
-```
-cmake -S . -B build -G Ninja
-cmake --build build            # -Werror: sin un solo warning
-ctest --test-dir build --output-on-failure
-./build/src/cli/capturia --check
-```
+## License
 
-Sin dependencias de biblioteca: C++20 y POSIX. GSR y ffmpeg son procesos
-externos, nunca enlazados; el porqué está en `docs/LICENSING.md`.
+**GPL-3.0-or-later**, see [`LICENSE`](LICENSE). Uses gpu-screen-recorder
+(GPL-3.0-only) as a separate external program; it is not included or
+distributed. Commercial licensing available on request.
 
-## Cómo está hecho
-
-```
-UI Qt6/QML + Kirigami         (en desarrollo)
-  └── libcapturia             C++20, sin GUI, sin Qt
-        ├── GSR por IPC       la pantalla; el mismo protocolo que gsr-cli
-        └── ffmpeg + PipeWire el modo solo-audio
-  └── CLI capturia            todo lo de arriba, por consola
-```
-
-La regla de la casa: si algo no funciona por CLI, no se toca la UI. Y la
-verificación es grabar de verdad y pasar ffprobe
-(`scripts/verify-recording.sh`), no mirar que "parece" que va.
-
-Los documentos técnicos viven en `docs/`: el protocolo IPC de GSR ejecutado
-y transcrito, por qué el modo audio-only no puede ir por GSR, la
-investigación del post-proceso y el razonamiento de licencias. El estado
-real del proyecto, tanda a tanda, en `ESTADO.md`.
-
-## Licencia
-
-Sin decidir todavía. Hasta entonces este repositorio no concede permisos de
-uso ni redistribución. GSR es GPL-3.0-only y Capturia lo usa como proceso
-externo, sin enlazar ni redistribuir nada suyo (`docs/LICENSING.md`).
+Contributions are welcome and require signing a CLA — you keep your copyright.
+See [`CONTRIBUTING.md`](CONTRIBUTING.md).

@@ -1,16 +1,20 @@
+// SPDX-FileCopyrightText: 2026 Dalmau Romaní (Soluciones Conscientes)
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 #pragma once
 
 #include <map>
 #include <string>
 
-namespace capturia {
+namespace esr {
 
 // La configuracion que se recuerda entre sesiones. Existe desde que la UI
 // dejo elegir carpeta de destino: elegirla en cada arranque seria un castigo.
 // Antes no existia a proposito (ESTADO.md, Tanda 4): un fichero que nadie
 // escribia era codigo muerto.
 //
-// Formato: lineas «clave=valor» en ~/.config/capturia/capturia.conf. Sin
+// Formato: lineas «clave=valor» en ~/.config/easy-screen-recorder/easy-screen-recorder.conf. Sin
 // secciones ni escapes: las claves son nuestras y los valores son rutas.
 
 std::string ruta_configuracion();
@@ -30,4 +34,4 @@ bool guardar_ajuste(const std::string& clave, const std::string& valor);
 std::string carpeta_videos_elegida();
 std::string carpeta_audio_elegida();
 
-}  // namespace capturia
+}  // namespace esr

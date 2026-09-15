@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Dalmau Romaní (Soluciones Conscientes)
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 #pragma once
 
 #include <optional>
@@ -5,9 +9,9 @@
 #include <string_view>
 #include <vector>
 
-#include "capturia/version.hpp"
+#include "esr/version.hpp"
 
-namespace capturia {
+namespace esr {
 
 // Una entrada de una lista que GSR enumera: un monitor, un dispositivo de
 // audio, una aplicacion.
@@ -108,4 +112,4 @@ std::vector<Opcion> interpretar_lista(const BloqueVolcado& bloque,
 
 Capacidades interpretar_volcado(std::string_view volcado);
 
-}  // namespace capturia
+}  // namespace esr

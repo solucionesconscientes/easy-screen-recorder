@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+SPDX-FileCopyrightText: 2026 Dalmau Romaní (Soluciones Conscientes)
+
+SPDX-License-Identifier: CC0-1.0
+-->
+
+<component type="desktop-application">
+  <id>es.solucionesconscientes.EasyScreenRecorder</id>
+  <name>Easy Screen Recorder</name>
+
+  <summary>Record your screen with GPU acceleration</summary>
+  <summary xml:lang="es">Graba tu pantalla con aceleración por GPU</summary>
+
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+
+  <description>
+    <p>
+      Recording your screen on Wayland usually means one of two things: a tool
+      that re-encodes on the CPU and turns your laptop into a heater, or a
+      command line with fifteen flags. Easy Screen Recorder is the missing
+      layer: capture stays on the GPU and you start recording in two clicks.
+    </p>
+    <p>What it does today:</p>
+    <ul>
+      <li>Records any monitor, a region you drag, the focused window or a
+      camera, with the encoding done on the GPU.</li>
+      <li>Audio-only mode, to Opus or FLAC, without turning on video capture
+      at all.</li>
+      <li>Pause and resume mid-recording, and a global shortcut to start and
+      stop without leaving what you are doing.</li>
+      <li>Picks the audio device for you — what you hear, your microphone, or
+      several tracks at once — and remembers where your recordings go.</li>
+      <li>Tells you what is missing before you press record, instead of
+      failing halfway through.</li>
+    </ul>
+    <p>
+      Independent frontend for gpu-screen-recorder; not affiliated with it.
+      Requires gpu-screen-recorder installed.
+    </p>
+
+    <p xml:lang="es">
+      Grabar la pantalla en Wayland suele ser una de dos cosas: una herramienta
+      que recodifica en la CPU y convierte el portátil en una estufa, o una
+      línea de comandos con quince opciones. Easy Screen Recorder es la capa que
+      falta: la captura se queda en la GPU y empiezas a grabar en dos clics.
+    </p>
+    <p xml:lang="es">Lo que hace hoy:</p>
+    <ul>
+      <li xml:lang="es">Graba cualquier monitor, una región que eliges
+      arrastrando, la ventana en foco o una cámara, con la codificación en la
+      GPU.</li>
+      <li xml:lang="es">Modo de solo audio, a Opus o FLAC, sin encender
+      siquiera la captura de vídeo.</li>
+      <li xml:lang="es">Pausa y reanuda a media grabación, y un atajo global
+      para empezar y parar sin salir de lo que estás haciendo.</li>
+      <li xml:lang="es">Elige el dispositivo de audio por ti —lo que suena, tu
+      micrófono o varias pistas a la vez— y recuerda dónde van tus
+      grabaciones.</li>
+      <li xml:lang="es">Te dice qué falta antes de darle a grabar, en vez de
+      fallar a mitad.</li>
+    </ul>
+    <p xml:lang="es">
+      Interfaz independiente para gpu-screen-recorder; sin relación con el
+      proyecto. Requiere gpu-screen-recorder instalado.
+    </p>
+  </description>
+
+  <launchable type="desktop-id">es.solucionesconscientes.EasyScreenRecorder.desktop</launchable>
+
+  <developer id="es.solucionesconscientes">
+    <name>Soluciones Conscientes</name>
+  </developer>
+
+  <url type="homepage">https://solucionesconscientes.es/easy-screen-recorder</url>
+  <url type="vcs-browser">https://github.com/solucionesconscientes/easy-screen-recorder</url>
+  <url type="bugtracker">https://github.com/solucionesconscientes/easy-screen-recorder/issues</url>
+  <url type="contribute">https://github.com/solucionesconscientes/easy-screen-recorder/blob/main/CONTRIBUTING.md</url>
+
+  <branding>
+    <color type="primary" scheme_preference="light">#eff0f1</color>
+    <color type="primary" scheme_preference="dark">#232629</color>
+  </branding>
+
+  <categories>
+    <category>AudioVideo</category>
+    <category>Recorder</category>
+  </categories>
+
+  <keywords>
+    <keyword>record</keyword>
+    <keyword>screen</keyword>
+    <keyword>capture</keyword>
+    <keyword>wayland</keyword>
+    <keyword translate="no">gpu-screen-recorder</keyword>
+    <keyword xml:lang="es">grabar</keyword>
+    <keyword xml:lang="es">pantalla</keyword>
+    <keyword xml:lang="es">captura</keyword>
+  </keywords>
+
+  <screenshots>
+    <screenshot type="default">
+      <image>https://github.com/solucionesconscientes/easy-screen-recorder/raw/main/docs/screenshots/principal.png</image>
+      <caption>The main window: pick what to record and press record</caption>
+      <caption xml:lang="es">La ventana principal: eliges qué grabar y grabas</caption>
+    </screenshot>
+    <screenshot>
+      <image>https://github.com/solucionesconscientes/easy-screen-recorder/raw/main/docs/screenshots/grabando.png</image>
+      <caption>Recording, with the elapsed time and pause at hand</caption>
+      <caption xml:lang="es">Grabando, con el tiempo y la pausa a mano</caption>
+    </screenshot>
+    <screenshot>
+      <image>https://github.com/solucionesconscientes/easy-screen-recorder/raw/main/docs/screenshots/ajustes.png</image>
+      <caption>Advanced settings: format, codecs and quality</caption>
+      <caption xml:lang="es">Ajustes avanzados: formato, códecs y calidad</caption>
+    </screenshot>
+  </screenshots>
+
+  <requires>
+    <display_length compare="ge">360</display_length>
+  </requires>
+  <recommends>
+    <control>pointing</control>
+    <control>keyboard</control>
+  </recommends>
+
+  <content_rating type="oars-1.1"/>
+
+  <releases>
+    <release version="0.1.0" date="2026-09-15" type="development">
+      <description>
+        <p>First development release. Records screen and audio on KDE Plasma
+        Wayland, with region selection, audio-only mode, pause and resume, a
+        global shortcut and an environment check.</p>
+        <p xml:lang="es">Primera versión de desarrollo. Graba pantalla y audio
+        en KDE Plasma sobre Wayland, con selector de región, modo de solo
+        audio, pausa y reanudación, atajo global y comprobación del
+        entorno.</p>
+      </description>
+    </release>
+  </releases>
+</component>

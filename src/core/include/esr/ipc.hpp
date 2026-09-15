@@ -1,12 +1,16 @@
+// SPDX-FileCopyrightText: 2026 Dalmau Romaní (Soluciones Conscientes)
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 #pragma once
 
 #include <optional>
 #include <string>
 #include <string_view>
 
-#include "capturia/json_ipc.hpp"
+#include "esr/json_ipc.hpp"
 
-namespace capturia {
+namespace esr {
 
 // Conexion con un GSR lanzado con -ipc. Habla el protocolo de
 // docs/gsr-ipc.md: una peticion JSON por linea y una respuesta por peticion.
@@ -51,4 +55,4 @@ private:
     long siguiente_id_ = 1;
 };
 
-}  // namespace capturia
+}  // namespace esr

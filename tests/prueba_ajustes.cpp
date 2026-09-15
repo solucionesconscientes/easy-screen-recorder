@@ -1,11 +1,15 @@
-#include "capturia/ajustes.hpp"
+// SPDX-FileCopyrightText: 2026 Dalmau Romaní (Soluciones Conscientes)
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+#include "esr/ajustes.hpp"
 
 #include <algorithm>
 #include <cstdlib>
 
 #include "comprobar.hpp"
 
-using namespace capturia;
+using namespace esr;
 
 namespace {
 
@@ -121,12 +125,12 @@ int main() {
     // GSR lo citan el primero.
     {
         auto a = base();
-        a.ruta_socket = "/home/u/.cache/capturia/ipc.sock";
+        a.ruta_socket = "/home/u/.cache/easy-screen-recorder/ipc.sock";
         const auto args = argumentos_gsr(a);
         const std::vector<std::string> esperado = {
             "-w", "eDP-1", "-f", "60", "-a", "default_output",
             "-ac", "opus", "-q", "very_high",
-            "-ipc", "/home/u/.cache/capturia/ipc.sock", "-o", "/tmp/x.mkv"};
+            "-ipc", "/home/u/.cache/easy-screen-recorder/ipc.sock", "-o", "/tmp/x.mkv"};
         COMPROBAR(args == esperado);
     }
     {
@@ -170,7 +174,7 @@ int main() {
     // carpeta_videos lee user-dirs.dirs. Se prueba con un XDG_CONFIG_HOME
     // sintetico para no depender de la maquina.
     {
-        const std::string dir = std::string(CAPTURIA_DIR_FIXTURES) + "/user-dirs";
+        const std::string dir = std::string(ESR_DIR_FIXTURES) + "/user-dirs";
         setenv("XDG_CONFIG_HOME", dir.c_str(), 1);
         setenv("HOME", "/home/prueba", 1);
         COMPROBAR_NOTA(carpeta_videos() == "/home/prueba/Vídeos", carpeta_videos());
@@ -183,7 +187,7 @@ int main() {
     // El nombre por defecto: carpeta, prefijo y extension mkv.
     {
         const std::string n = nombre_por_defecto("/tmp/v");
-        COMPROBAR(n.rfind("/tmp/v/capturia-", 0) == 0);
+        COMPROBAR(n.rfind("/tmp/v/easy-screen-recorder-", 0) == 0);
         COMPROBAR(extension_de(n) == "mkv");
     }
 
