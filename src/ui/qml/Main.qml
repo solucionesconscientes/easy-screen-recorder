@@ -55,7 +55,8 @@ Kirigami.ApplicationWindow {
             contenedor: contenedor.currentText,
             codecVideo: codecVideo.currentText,
             codecAudio: codecAudio.currentText,
-            formatoAudio: formatoAudio.currentText
+            formatoAudio: formatoAudio.currentText,
+            bitrateAudio: bitrateAudio.currentValue
         }
         if (region !== "") opciones.region = region
         Controlador.grabar(fuente.currentText, opciones)
@@ -174,9 +175,29 @@ Kirigami.ApplicationWindow {
                         id: formatoAudio
                         visible: fuente.esAudio
                         Kirigami.FormData.label: qsTr("Formato:")
-                        // opus para el caso general, flac para calidad. La
-                        // decision y el porque, en ESTADO.md de la Tanda 5.
-                        model: ["opus", "flac"]
+                        // La lista viene del nucleo y no escrita aqui: tenerla
+                        // en dos sitios es como se queda una desactualizada.
+                        // El orden es el de conveniencia, con opus primero.
+                        model: Controlador.formatosAudio()
+                    }
+                    QQC2.ComboBox {
+                        id: bitrateAudio
+                        // Se ESCONDE en flac y wav, no se deshabilita: un
+                        // control en gris invita a preguntarse por que, y ahi
+                        // la respuesta es que ese ajuste no existe porque no
+                        // pierden informacion.
+                        visible: fuente.esAudio
+                                 && !Controlador.formatoAudioSinPerdida(formatoAudio.currentText)
+                        Kirigami.FormData.label: qsTr("Calidad del audio:")
+                        textRole: "texto"
+                        valueRole: "valor"
+                        model: [
+                            { texto: qsTr("Automática (recomendada)"), valor: 0 },
+                            { texto: qsTr("96 kbps · voz"), valor: 96 },
+                            { texto: qsTr("128 kbps · general"), valor: 128 },
+                            { texto: qsTr("192 kbps · música"), valor: 192 }
+                        ]
+                        currentIndex: 0
                     }
                     QQC2.ComboBox {
                         id: contenedor
@@ -251,7 +272,7 @@ Kirigami.ApplicationWindow {
                         textRole: "texto"
                         valueRole: "valor"
                         model: [
-                            { texto: qsTr("Lo que suena"), valor: "sistema" },
+                            { texto: qsTr("Audio del sistema"), valor: "sistema" },
                             { texto: qsTr("Micrófono"), valor: "micro" },
                             { texto: qsTr("Los dos, en pistas separadas"), valor: "ambos" },
                             { texto: qsTr("Sin audio"), valor: "nada" }

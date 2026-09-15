@@ -27,11 +27,11 @@ SPDX-License-Identifier: CC0-1.0
     <ul>
       <li>Records any monitor, a region you drag, the focused window or a
       camera, with the encoding done on the GPU.</li>
-      <li>Audio-only mode, to Opus or FLAC, without turning on video capture
-      at all.</li>
+      <li>Audio-only mode, to Opus, AAC, FLAC, WAV or MP3, without turning on
+      video capture at all.</li>
       <li>Pause and resume mid-recording, and a global shortcut to start and
       stop without leaving what you are doing.</li>
-      <li>Picks the audio device for you — what you hear, your microphone, or
+      <li>Picks the audio device for you — system audio, your microphone, or
       several tracks at once — and remembers where your recordings go.</li>
       <li>Tells you what is missing before you press record, instead of
       failing halfway through.</li>
@@ -52,12 +52,12 @@ SPDX-License-Identifier: CC0-1.0
       <li xml:lang="es">Graba cualquier monitor, una región que eliges
       arrastrando, la ventana en foco o una cámara, con la codificación en la
       GPU.</li>
-      <li xml:lang="es">Modo de solo audio, a Opus o FLAC, sin encender
-      siquiera la captura de vídeo.</li>
+      <li xml:lang="es">Modo de solo audio, a Opus, AAC, FLAC, WAV o MP3, sin
+      encender siquiera la captura de vídeo.</li>
       <li xml:lang="es">Pausa y reanuda a media grabación, y un atajo global
       para empezar y parar sin salir de lo que estás haciendo.</li>
-      <li xml:lang="es">Elige el dispositivo de audio por ti —lo que suena, tu
-      micrófono o varias pistas a la vez— y recuerda dónde van tus
+      <li xml:lang="es">Elige el dispositivo de audio por ti —el audio del
+      sistema, tu micrófono o varias pistas a la vez— y recuerda dónde van tus
       grabaciones.</li>
       <li xml:lang="es">Te dice qué falta antes de darle a grabar, en vez de
       fallar a mitad.</li>

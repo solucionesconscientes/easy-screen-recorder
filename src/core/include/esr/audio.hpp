@@ -14,17 +14,48 @@ namespace esr {
 // ejecutandolo; docs/gsr-audio-only.md). Este backend no toca GSR y tiene
 // que funcionar en una maquina que no lo tenga.
 //
-// Formatos: opus para el caso general y flac para calidad. MP3 no: obliga a
-// otro codificador y no hay un caso que opus no cubra. Decidido en la
-// Tanda 5, ESTADO.md.
+// Cinco formatos, y cada uno tiene un caso que los otros no cubren:
+//
+//   opus  el general. La mejor relacion calidad/tamano que hay
+//   aac   compatibilidad. En .m4a lo abre cualquier cosa, tambien hardware viejo
+//   flac  sin perdida y comprimido. Para archivar
+//   wav   sin perdida y sin comprimir. Es lo que quiere un editor de audio
+//   mp3   solo compatibilidad heredada. Peor que opus a igual tamano y peor
+//         que aac; esta porque a veces te lo piden, no porque sea bueno
+//
+// En la Tanda 5 se descarto mp3 con el argumento de que no habia un caso que
+// opus no cubriera. Sigue siendo cierto en calidad; lo que cubre es que a
+// alguien le exijan un .mp3 y no pueda discutirlo.
+//
+// El formato es el CODEC, no el contenedor. El contenedor lo decide la
+// extension de `salida` y validar_audio() comprueba que sean compatibles: por
+// eso «m4a» no es un formato de esta lista, es donde va aac.
 struct AjustesAudio {
-    // «default_output» (lo que suena), «default_input» (el microfono) o un
-    // nombre de fuente de PipeWire tal como lo lista pactl. Los dos primeros
+    // «default_output» (el audio del sistema), «default_input» (el microfono) o
+    // un nombre de fuente de PipeWire tal como lo lista pactl. Los dos primeros
     // son los mismos nombres que usa GSR, para no tener dos vocabularios.
     std::string dispositivo = "default_output";
-    std::string formato = "opus";  // opus | flac
-    std::string salida;            // sin ella: easy-screen-recorder-FECHA.opus en Musica... no: Videos
+    std::string formato = "opus";  // opus | aac | flac | wav | mp3
+    std::string salida;            // sin ella: easy-screen-recorder-FECHA.<ext> en Musica
+    // kbps. 0 = lo que decida el codificador, que es un valor sensato. No
+    // aplica a los formatos sin perdida y validar_audio() lo rechaza ahi, en
+    // vez de aceptarlo y no usarlo: un ajuste que se ignora en silencio es
+    // peor que uno que no existe.
+    int bitrate_kbps = 0;
 };
+
+// Los formatos que ofrece el modo solo-audio, en el orden en que conviene
+// enseñarlos. Una sola lista: la UI y el CLI leen de aqui para no divergir.
+const std::vector<std::string>& formatos_audio();
+
+// Si el formato no pierde informacion, o sea si el bitrate no tiene sentido.
+bool audio_sin_perdida(const std::string& formato);
+
+// La extension natural de ese formato: la que lleva el fichero cuando el
+// usuario no elige nombre. Existe porque antes esto era un
+// `formato == "flac" ? "flac" : "opus"` repetido en la UI y en el CLI, y un
+// ternario de dos ramas no sobrevive a tener cinco formatos.
+std::string extension_por_defecto(const std::string& formato);
 
 std::vector<std::string> validar_audio(const AjustesAudio& a);
 

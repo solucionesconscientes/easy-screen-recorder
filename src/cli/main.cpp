@@ -60,10 +60,14 @@ void uso() {
         "  --calidad Q       medium, high, very_high o ultra. Por defecto very_high\n"
         "\n"
         "Opciones de audio:\n"
-        "  --dispositivo D   default_output (lo que suena), default_input (el micro)\n"
-        "                    o un nombre de «easy-screen-recorder-cli dispositivos». Por defecto lo que suena\n"
-        "  --formato F       opus o flac. Por defecto opus\n"
-        "  --salida FICHERO  el destino. Sin el: easy-screen-recorder-FECHA.opus en Musica\n"
+        "  --dispositivo D   default_output (audio del sistema), default_input (el micro)\n"
+        "                    o un nombre de «easy-screen-recorder-cli dispositivos».\n"
+        "                    Por defecto, el audio del sistema\n"
+        "  --formato F       opus, aac, flac, wav o mp3. Por defecto opus\n"
+        "  --bitrate N       kbps del audio con perdida. Sin el, lo decide el codec.\n"
+        "                    No aplica a flac ni wav, que no pierden nada\n"
+        "  --salida FICHERO  el destino. Sin el: easy-screen-recorder-FECHA.<ext> en Musica,\n"
+        "                    con la extension del formato elegido\n"
         "\n"
         "Codigos de salida: 0 bien, 1 fallo de la operacion, 2 orden mal escrita.\n",
         std::string(esr::kVersionEsr).c_str());
@@ -281,6 +285,19 @@ int audio(const std::vector<std::string_view>& args) {
         if (opcion == "--dispositivo") a.dispositivo = std::string(valor());
         else if (opcion == "--formato") a.formato = std::string(valor());
         else if (opcion == "--salida") a.salida = std::string(valor());
+        else if (opcion == "--bitrate") {
+            const std::string texto(valor());
+            char* fin = nullptr;
+            const long kbps = std::strtol(texto.c_str(), &fin, 10);
+            // Se valida aqui y no en validar_audio() porque «abc» no es un
+            // bitrate fuera de rango, es una orden mal escrita, y eso es un
+            // codigo de salida distinto.
+            if (texto.empty() || fin == nullptr || *fin != '\0') {
+                std::fprintf(stderr, "easy-screen-recorder-cli: --bitrate espera un numero de kbps\n");
+                return kMalUso;
+            }
+            a.bitrate_kbps = static_cast<int>(kbps);
+        }
         else {
             std::fprintf(stderr, "easy-screen-recorder-cli: no entiendo «%.*s»\n\n",
                          static_cast<int>(opcion.size()), opcion.data());
@@ -292,7 +309,7 @@ int audio(const std::vector<std::string_view>& args) {
         const std::string carpeta = esr::carpeta_audio_elegida();
         std::error_code ec;
         std::filesystem::create_directories(carpeta, ec);
-        a.salida = esr::nombre_por_defecto(carpeta, a.formato == "flac" ? "flac" : "opus");
+        a.salida = esr::nombre_por_defecto(carpeta, esr::extension_por_defecto(a.formato));
     }
 
     const auto r = esr::empezar_audio(a, esr::sesion_audio_por_defecto());

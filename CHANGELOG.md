@@ -5,6 +5,20 @@ máquina de desarrollo.
 
 ## Sin publicar
 
+### Formatos de solo audio (2026-09-15)
+- **Tres formatos nuevos**: AAC en `.m4a` (compatibilidad), WAV (sin pérdida,
+  para editar) y MP3 (solo compatibilidad heredada). Con Opus y FLAC, cinco.
+- **Calidad del audio** elegible (96/128/192 kbps) en los formatos con
+  pérdida. En FLAC y WAV el control **se esconde**, no se deshabilita: ahí ese
+  ajuste no existe.
+- «Lo que suena» pasa a llamarse **«Audio del sistema»** en la interfaz y en la
+  ayuda del CLI.
+- `--bitrate` en el CLI.
+- La tabla de formatos vive en un solo sitio, y de ella salen la lista de la
+  interfaz, la extensión por defecto y el codificador de ffmpeg. Antes la
+  extensión era un `formato == "flac" ? "flac" : "opus"` repetido en dos
+  ficheros, que con cinco formatos habría dado el fichero mal nombrado.
+
 ### Renombrado (2026-09-15)
 - **Proyecto renombrado desde Capturia a Easy Screen Recorder.** El nombre es
   siempre en inglés y sin abreviar, en todos los idiomas.
