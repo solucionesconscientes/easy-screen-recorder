@@ -2,6 +2,7 @@
 
 #include <QObject>
 #include <QStringList>
+#include <QUrl>
 #include <QVariantMap>
 #include <QTimer>
 #include <qqmlregistration.h>
@@ -23,6 +24,10 @@ class Controlador : public QObject {
     // aqui, nunca de una lista escrita en el QML.
     Q_PROPERTY(QStringList codecsVideo READ codecsVideo NOTIFY fuentesCambiadas)
     Q_PROPERTY(QStringList contenedores READ contenedores CONSTANT)
+    // Donde se guarda: lo elegido por el usuario, con memoria entre
+    // sesiones, o el default XDG si nunca eligio.
+    Q_PROPERTY(QString carpetaVideos READ carpetaVideos NOTIFY carpetasCambiadas)
+    Q_PROPERTY(QString carpetaAudio READ carpetaAudio NOTIFY carpetasCambiadas)
     Q_PROPERTY(QStringList fuentes READ fuentes NOTIFY fuentesCambiadas)
     Q_PROPERTY(QString diagnostico READ diagnostico NOTIFY estadoCambiado)
     Q_PROPERTY(QString rutaGuardada READ rutaGuardada NOTIFY rutaGuardadaCambiada)
@@ -37,6 +42,9 @@ public:
     QStringList codecsVideo() const { return codecs_video_; }
     QStringList contenedores() const;
     Q_INVOKABLE QStringList codecsAudioPara(const QString& contenedor) const;
+    QString carpetaVideos() const;
+    QString carpetaAudio() const;
+    Q_INVOKABLE void elegirCarpeta(bool paraAudio, const QUrl& carpeta);
     QString diagnostico() const { return diagnostico_; }
     QString rutaGuardada() const { return ruta_guardada_; }
     QString error() const { return error_; }
@@ -48,12 +56,17 @@ public:
     // fuente «region») y formatoAudio (opus|flac, solo para solo-audio).
     // Lo ausente cae al default del proyecto.
     Q_INVOKABLE void grabar(const QString& fuente, const QVariantMap& opciones);
+    // Lo que dispara el atajo global: sin grabacion empieza una del primer
+    // monitor con los defaults; con una en marcha, la para. Sin estados
+    // intermedios: pulsado en «arrancando» o «guardando» no hace nada.
+    Q_INVOKABLE void alternarGrabacion();
     Q_INVOKABLE void parar();
     Q_INVOKABLE void pausar();
     Q_INVOKABLE void reanudar();
 
 signals:
     void estadoCambiado();
+    void carpetasCambiadas();
     void fuentesCambiadas();
     void rutaGuardadaCambiada();
     void errorCambiado();

@@ -9,6 +9,7 @@
 
 #include "capturia/ajustes.hpp"
 #include "capturia/audio.hpp"
+#include "capturia/configuracion.hpp"
 #include "capturia/grabacion.hpp"
 
 namespace {
@@ -113,6 +114,25 @@ QStringList Controlador::codecsAudioPara(const QString& contenedor) const {
     return lista;
 }
 
+QString Controlador::carpetaVideos() const {
+    return QString::fromStdString(capturia::carpeta_videos_elegida());
+}
+
+QString Controlador::carpetaAudio() const {
+    return QString::fromStdString(capturia::carpeta_audio_elegida());
+}
+
+void Controlador::elegirCarpeta(bool paraAudio, const QUrl& carpeta) {
+    const QString ruta = carpeta.toLocalFile();
+    if (ruta.isEmpty()) return;
+    if (!capturia::guardar_ajuste(paraAudio ? "carpeta_audio" : "carpeta_videos",
+                                  ruta.toStdString())) {
+        ponerError(QStringLiteral("no se pudo guardar la elección de carpeta"));
+        return;
+    }
+    emit carpetasCambiadas();
+}
+
 void Controlador::aplicarEntorno(const capturia::Entorno& e) {
     fuentes_.clear();
     codecs_video_.clear();
@@ -167,7 +187,7 @@ void Controlador::grabar(const QString& fuente, const QVariantMap& opciones) {
         a.formato = opciones.value(QStringLiteral("formatoAudio"), QStringLiteral("opus"))
                         .toString()
                         .toStdString();
-        const std::string carpeta = capturia::carpeta_musica();
+        const std::string carpeta = capturia::carpeta_audio_elegida();
         a.salida = capturia::nombre_por_defecto(carpeta, a.formato == "flac" ? "flac" : "opus");
 
         ponerEstado(QStringLiteral("arrancando"));
@@ -199,7 +219,7 @@ void Controlador::grabar(const QString& fuente, const QVariantMap& opciones) {
 
     capturia::AjustesGrabacion a;
     a.fuente = fuente.toStdString();
-    const std::string carpeta_v = capturia::carpeta_videos();
+    const std::string carpeta_v = capturia::carpeta_videos_elegida();
     const QString contenedor =
         opciones.value(QStringLiteral("contenedor"), QStringLiteral("mkv")).toString();
     a.salida = capturia::nombre_por_defecto(carpeta_v, contenedor.toStdString());
@@ -251,6 +271,24 @@ void Controlador::grabar(const QString& fuente, const QVariantMap& opciones) {
             });
     vigilante->setFuture(QtConcurrent::run(
         [a] { return capturia::empezar_grabacion(a, capturia::sesion_por_defecto()); }));
+}
+
+void Controlador::alternarGrabacion() {
+    if (estado_ == QStringLiteral("grabando") || estado_ == QStringLiteral("pausado") ||
+        estado_ == QStringLiteral("grabandoAudio")) {
+        parar();
+        return;
+    }
+    if (estado_ != QStringLiteral("listo")) return;
+    for (const QString& f : fuentes_) {
+        if (f.indexOf(QStringLiteral("Solo audio")) == 0) continue;
+        if (f == QStringLiteral("region") || f == QStringLiteral("portal") ||
+            f == QStringLiteral("focused") || f.startsWith(QStringLiteral("/dev/"))) {
+            continue;
+        }
+        grabar(f, {});
+        return;
+    }
 }
 
 void Controlador::parar() {

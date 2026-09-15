@@ -4,6 +4,7 @@
 import QtQuick
 import QtQuick.Controls as QQC2
 import QtQuick.Layouts
+import QtQuick.Dialogs
 import org.kde.kirigami as Kirigami
 import org.capturia
 
@@ -60,6 +61,13 @@ Kirigami.ApplicationWindow {
         var m = Math.floor(s / 60)
         var r = s % 60
         return (m < 10 ? "0" : "") + m + ":" + (r < 10 ? "0" : "") + r
+    }
+
+    FolderDialog {
+        id: dialogoCarpeta
+        property bool paraAudio: false
+        title: qsTr("¿Dónde se guardan las grabaciones?")
+        onAccepted: Controlador.elegirCarpeta(paraAudio, selectedFolder)
     }
 
     SelectorRegion {
@@ -210,6 +218,28 @@ Kirigami.ApplicationWindow {
                         model: ["30", "60"]
                         currentIndex: 1
                     }
+                    RowLayout {
+                        Kirigami.FormData.label: qsTr("Guardar en:")
+                        Layout.fillWidth: true
+                        QQC2.Label {
+                            Layout.fillWidth: true
+                            text: fuente.esAudio ? Controlador.carpetaAudio
+                                                 : Controlador.carpetaVideos
+                            elide: Text.ElideMiddle
+                        }
+                        QQC2.Button {
+                            icon.name: "folder-open"
+                            text: qsTr("Cambiar…")
+                            onClicked: {
+                                dialogoCarpeta.paraAudio = fuente.esAudio
+                                dialogoCarpeta.currentFolder = "file://" +
+                                    (fuente.esAudio ? Controlador.carpetaAudio
+                                                    : Controlador.carpetaVideos)
+                                dialogoCarpeta.open()
+                            }
+                        }
+                    }
+
                     QQC2.ComboBox {
                         id: audio
                         visible: !fuente.esAudio

@@ -1,0 +1,51 @@
+#include "capturia/configuracion.hpp"
+
+#include <cstdlib>
+#include <filesystem>
+#include <fstream>
+
+#include "comprobar.hpp"
+
+using namespace capturia;
+
+int main() {
+    // Sandbox: la configuracion de verdad del usuario no se toca.
+    const std::string sandbox = std::filesystem::temp_directory_path() / "capturia-prueba-conf";
+    std::filesystem::remove_all(sandbox);
+    setenv("XDG_CONFIG_HOME", sandbox.c_str(), 1);
+    setenv("HOME", "/home/prueba-inexistente", 1);
+
+    // Sin fichero: mapa vacio y defaults XDG (que aqui caen al home, porque
+    // el HOME de prueba no tiene user-dirs.dirs).
+    COMPROBAR(leer_configuracion().empty());
+    COMPROBAR(carpeta_videos_elegida() == "/home/prueba-inexistente");
+    COMPROBAR(carpeta_audio_elegida() == "/home/prueba-inexistente");
+
+    // Guardar y releer: viaje de ida y vuelta.
+    COMPROBAR(guardar_ajuste("carpeta_videos", "/una/que/no/existe"));
+    COMPROBAR(leer_configuracion().at("carpeta_videos") == "/una/que/no/existe");
+
+    // Una carpeta elegida que no existe se ignora: default, sin fallar.
+    COMPROBAR(carpeta_videos_elegida() == "/home/prueba-inexistente");
+
+    // Una que si existe, manda.
+    const std::string real = sandbox + "/videos-del-usuario";
+    std::filesystem::create_directories(real);
+    COMPROBAR(guardar_ajuste("carpeta_videos", real));
+    COMPROBAR(carpeta_videos_elegida() == real);
+    // Y la de audio sigue sin verse afectada.
+    COMPROBAR(carpeta_audio_elegida() == "/home/prueba-inexistente");
+
+    // Dos claves conviven; los comentarios y la basura no rompen.
+    COMPROBAR(guardar_ajuste("carpeta_audio", real));
+    {
+        std::ofstream f(ruta_configuracion(), std::ios::app);
+        f << "# comentario\nlinea sin igual\n=sin_clave\n";
+    }
+    const auto conf = leer_configuracion();
+    COMPROBAR(conf.size() == 2);
+    COMPROBAR(conf.at("carpeta_audio") == real);
+
+    std::filesystem::remove_all(sandbox);
+    return prueba::resumen("prueba_configuracion");
+}

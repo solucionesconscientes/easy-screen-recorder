@@ -21,6 +21,7 @@ capturia_prueba(prueba_json_ipc)
 capturia_prueba(prueba_ajustes)
 capturia_prueba(prueba_grabacion)
 capturia_prueba(prueba_audio)
+capturia_prueba(prueba_configuracion)
 
 # El CLI tiene que responder a --version y --check sin reventar aunque no haya
 # nada instalado. --check devuelve 1 en una maquina sin GSR, y eso es correcto:

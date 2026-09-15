@@ -5,6 +5,18 @@ máquina de desarrollo.
 
 ## Sin publicar
 
+### Tandas 9 y 10 (2026-09-15)
+- Selector de región propio (arrastrar elige, Esc cancela) y formatos y
+  códecs en Avanzado, con el códec de audio filtrado por formato.
+- Carpeta de destino elegible y con memoria (vídeos y audio por separado),
+  compartida entre la UI y el CLI. Defaults: Vídeos y Música (XDG).
+- Atajo global Meta+Shift+R para empezar/parar, registrado en KGlobalAccel
+  por DBus y cambiable en Preferencias del sistema.
+- La ventana se aparta al grabar pantalla y la bandeja solo enciende el
+  punto rojo grabando.
+- UI verificada como cliente X11 (xcb); borrador de manifiesto de Flathub
+  con sus bloqueos documentados en empaquetado/flathub/NOTAS.md.
+
 ### Tanda 7 (2026-09-15)
 - La interfaz gráfica: Qt6/QML + Kirigami, dos clics (Fuente, Grabar),
   "Avanzado" plegado con calidad, fps y qué audio. Arranque medido en

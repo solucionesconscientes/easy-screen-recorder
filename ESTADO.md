@@ -1,6 +1,6 @@
 # Estado del proyecto
 
-Fecha: 2026-09-15. Última tanda ejecutada: **Tanda 9: región, formatos y códecs en la UI, tras la prueba a mano del titular.**
+Fecha: 2026-09-15. Última tanda ejecutada: **Tanda 10: carpetas con memoria, atajo global, X11 y el camino a Flathub.**
 
 ## Resumen en una línea
 
@@ -80,6 +80,21 @@ Ninguno abierto.
   Sin él, los nombres cómodos no se resuelven pero uno explícito funciona.
 - `libcapturia` sigue en C++20 y POSIX, ahora con `std::thread` de la
   biblioteca estándar para las sondas.
+
+## Tanda 10: carpetas, atajo global y empaquetado
+
+Lo pedido por el titular tras confirmar la región a mano. Verificado
+ejecutando, el 2026-09-15:
+
+| Qué | Cómo se comprobó |
+|---|---|
+| **Carpeta de destino elegible y con memoria** | "Guardar en" en Avanzado (vídeos y audio por separado, FolderDialog). Persistencia en `~/.config/capturia/capturia.conf`; módulo `configuracion` con 12 comprobaciones. Ciclo entero probado: carpeta elegida por conf → la autoprueba de la UI **y** el CLI grabaron allí |
+| Defaults de carpeta | Vídeos para pantalla y Música (la carpeta XDG de audio) para solo-audio; el home como último recurso. Se crean si faltan |
+| **Atajo global Meta+Shift+R** | registrado en `org.kde.kglobalaccel` **por DBus, sin dependencia nueva** (firmas comprobadas con busctl contra el servicio vivo). Verificado sin tocar el teclado: `invokeShortcut` arrancó una grabación real y la paró; el fichero quedó en Vídeos. Cambiable en Preferencias del sistema; fuera de KDE no se registra y no pasa nada |
+| **X11** | la UI corre como cliente X11 (`QT_QPA_PLATFORM=xcb`, 1,39 s de primer frame vía XWayland) y graba igual. **Sesión X11 pura sin verificar** (esta máquina corre Wayland); la captura ahí es de GSR, que la soporta upstream. El .deb es viable |
+| Camino a Flathub | borrador de manifiesto en `empaquetado/flathub/` con los dos bloqueos documentados en NOTAS.md: la licencia, y el lanzamiento de GSR desde dentro del sandbox (`flatpak-spawn --host`), que **no se codifica hasta poder ejecutarse** (no hay flatpak-builder en esta máquina, comprobado) |
+| Prompt de licencia | `PROMPT-LICENCIA.md` en la raíz (fuera de git), con los hechos verificados de LICENSING.md y las preguntas que discriminan. Lo usa el titular en una sesión aparte |
+| Regresión | ctest **12/12**, arnés pantalla+audio en verde |
 
 ## Tanda 9: lo que pidió el titular tras probarla
 

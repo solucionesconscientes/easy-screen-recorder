@@ -13,6 +13,7 @@
 #include <cstdio>
 #include <filesystem>
 
+#include "atajos.hpp"
 #include "controlador.hpp"
 
 int main(int argc, char** argv) {
@@ -104,6 +105,10 @@ int main(int argc, char** argv) {
     // Cerrar la ventana sin grabacion sale del todo; el QML gestiona el
     // resto. Sin esto, Qt saldria al ocultar la ventana al empezar a grabar.
     app.setQuitOnLastWindowClosed(false);
+
+    // El atajo global (Meta+Shift+R por defecto, cambiable en Preferencias
+    // del sistema). Fuera de KDE no se registra y no pasa nada.
+    AtajosGlobales atajos(controlador);
 
     return app.exec();
 }

@@ -1,0 +1,39 @@
+# Manifiesto de Flathub para Capturia. BORRADOR: no se envia hasta resolver
+# los dos bloqueos de NOTAS.md (licencia y lanzamiento de GSR desde dentro
+# del sandbox, este segundo con su verificacion).
+app-id: org.capturia.Capturia
+runtime: org.kde.Platform
+runtime-version: '6.9'
+sdk: org.kde.Sdk
+command: capturia-ui
+
+finish-args:
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --share=ipc
+  # El audio: el modo solo-audio graba por PipeWire/pulse.
+  - --socket=pulseaudio
+  # Las grabaciones van a las carpetas del usuario (Videos y Musica por
+  # defecto, u otra elegida). xdg-videos/xdg-music cubren el default; el
+  # dialogo de carpeta usa el portal para el resto.
+  - --filesystem=xdg-videos
+  - --filesystem=xdg-music
+  # La sesion de grabacion (socket IPC de GSR, pid, log) vive en
+  # ~/.cache/capturia y la tienen que ver los dos lados.
+  - --filesystem=~/.cache/capturia:create
+  # Para lanzar gpu-screen-recorder EN EL ANFITRION via flatpak-spawn.
+  # Es el permiso gordo de este manifiesto; NOTAS.md explica por que no hay
+  # alternativa mientras la captura viva en un proceso del anfitrion.
+  - --talk-name=org.freedesktop.Flatpak
+  # El atajo global habla con kglobalaccel.
+  - --talk-name=org.kde.kglobalaccel
+
+modules:
+  - name: capturia
+    buildsystem: cmake-ninja
+    config-opts:
+      - -DCMAKE_BUILD_TYPE=RelWithDebInfo
+    sources:
+      # Para el envio real: url + tag + commit del repositorio publico.
+      - type: dir
+        path: ../..

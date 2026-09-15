@@ -4,7 +4,7 @@
 #
 # La UI es opcional en el build a proposito: el CI no tiene Qt y el CLI y los
 # tests tienen que seguir compilando alli. Si falta Qt se avisa y se sigue.
-find_package(Qt6 6.4 QUIET COMPONENTS Core Gui Qml Quick QuickControls2 Widgets Concurrent)
+find_package(Qt6 6.4 QUIET COMPONENTS Core DBus Gui Qml Quick QuickControls2 Widgets Concurrent)
 
 if(NOT Qt6_FOUND)
   message(STATUS "Capturia: sin Qt6 de desarrollo; la UI no se compila (el CLI y los tests si)")
@@ -17,6 +17,7 @@ qt_policy(SET QTP0001 NEW)
 qt_policy(SET QTP0004 NEW)
 
 qt_add_executable(capturia_ui
+  atajos.cpp
   main.cpp
   controlador.cpp
 )
@@ -36,7 +37,7 @@ qt_add_qml_module(capturia_ui
 
 target_link_libraries(capturia_ui PRIVATE
   capturia::core
-  Qt6::Core Qt6::Gui Qt6::Qml Qt6::Quick Qt6::QuickControls2 Qt6::Widgets Qt6::Concurrent
+  Qt6::Core Qt6::DBus Qt6::Gui Qt6::Qml Qt6::Quick Qt6::QuickControls2 Qt6::Widgets Qt6::Concurrent
 )
 # Los avisos duros del proyecto se aplican a NUESTRO codigo. El codigo que
 # genera moc/qmltc no es nuestro y sus avisos no se arreglan aqui, asi que el

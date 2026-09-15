@@ -4,6 +4,7 @@
 
 #include <cstdio>
 #include <cstdlib>
+#include <filesystem>
 #include <fstream>
 #include <sstream>
 #include <string>
@@ -11,6 +12,7 @@
 #include <vector>
 
 #include "capturia/ajustes.hpp"
+#include "capturia/configuracion.hpp"
 #include "capturia/audio.hpp"
 #include "capturia/entorno.hpp"
 #include "capturia/grabacion.hpp"
@@ -247,7 +249,10 @@ int grabar(const std::vector<std::string_view>& args) {
         }
     }
     if (a.salida.empty()) {
-        a.salida = capturia::nombre_por_defecto(capturia::carpeta_videos());
+        const std::string carpeta = capturia::carpeta_videos_elegida();
+        std::error_code ec;
+        std::filesystem::create_directories(carpeta, ec);
+        a.salida = capturia::nombre_por_defecto(carpeta);
     }
 
     const auto sesion = capturia::sesion_por_defecto();
@@ -280,8 +285,10 @@ int audio(const std::vector<std::string_view>& args) {
         }
     }
     if (a.salida.empty()) {
-        a.salida = capturia::nombre_por_defecto(capturia::carpeta_musica(),
-                                                a.formato == "flac" ? "flac" : "opus");
+        const std::string carpeta = capturia::carpeta_audio_elegida();
+        std::error_code ec;
+        std::filesystem::create_directories(carpeta, ec);
+        a.salida = capturia::nombre_por_defecto(carpeta, a.formato == "flac" ? "flac" : "opus");
     }
 
     const auto r = capturia::empezar_audio(a, capturia::sesion_audio_por_defecto());

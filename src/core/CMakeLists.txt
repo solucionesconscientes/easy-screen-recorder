@@ -3,6 +3,7 @@
 # a fallar.
 add_library(libcapturia STATIC
   capacidades.cpp
+  configuracion.cpp
   entorno.cpp
   grabacion.cpp
   ajustes.cpp
