@@ -1,9 +1,12 @@
-# Manifiesto de Flathub para Easy Screen Recorder. BORRADOR: no se envia hasta resolver
-# los dos bloqueos de NOTAS.md (licencia y lanzamiento de GSR desde dentro
-# del sandbox, este segundo con su verificacion).
+# Manifiesto de Flathub para Easy Screen Recorder. BORRADOR: la licencia ya
+# esta resuelta (GPL-3.0-or-later), pero queda el bloqueo de lanzar GSR desde
+# dentro del sandbox, con su verificacion. Ver NOTAS.md.
 app-id: es.solucionesconscientes.EasyScreenRecorder
 runtime: org.kde.Platform
-runtime-version: '6.9'
+# 6.11: la 6.9 esta EOL y el linter de Flathub avisa de que pasara a error.
+# Cambiado a ciegas: construir para comprobarlo exige bajar el SDK de KDE
+# (~2 GB) y no se ha hecho aqui. Verificar en la primera construccion real.
+runtime-version: '6.11'
 sdk: org.kde.Sdk
 command: easy-screen-recorder
 
