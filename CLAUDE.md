@@ -49,8 +49,17 @@ escribas ni una línea hasta leer `docs/gsr-audio-only.md`.
 ## Prohibido
 
 - Reimplementar la captura de pantalla.
-- Modificar nada dentro de la copia de referencia de GSR. Es GPL-3.0 de
-  terceros, solo lectura, y no se compila como parte nuestra.
+- **Copiar, adaptar o traducir codigo de GSR.** Ni una linea, ni en C++, ni
+  pegada en un documento. GSR es GPL-3.0-**only** y no se puede relicenciar: una
+  sola linea suya dentro del repositorio rompe el modelo dual, que es lo que
+  permite conceder licencias comerciales. Leer su codigo para entender el
+  protocolo si; citar `fichero:linea` si; pegar un fragmento no. La auditoria
+  del 2026-09-15 encontro nueve lineas de C suyas en `docs/gsr-ipc.md` y
+  `docs/gsr-audio-only.md` y se reescribieron como prosa.
+- Modificar nada dentro de la copia de referencia de GSR, que vive en
+  `~/Desktop/app-audio/referencia/gpu-screen-recorder/`, **fuera del
+  repositorio**. Es GPL-3.0 de terceros, solo lectura, y no se compila como
+  parte nuestra.
 - Hardcodear listas de códecs, dispositivos o resoluciones. Todo se detecta en
   runtime, en la máquina del usuario.
 - Cambiar de backend sin consultar al titular.
@@ -128,16 +137,26 @@ código, no antes.
 
 ## Licencia
 
-GSR es GPL-3.0-only. Lo usamos como **proceso externo por IPC**, sin enlazar su
-código, y esa distinción es la que mantiene nuestra UI fuera de la GPL-3.0.
+**Easy Screen Recorder es GPL-3.0-or-later.** Titular: Dalmau Romaní (Soluciones
+Conscientes). Decidido el 2026-09-15. Cada fichero lleva cabecera SPDX y lo que
+no admite comentario está en `REUSE.toml`; `reuse lint` tiene que pasar.
 
-El razonamiento completo está en `docs/LICENSING.md`, con lo que cambiaría si
-algún día enlazáramos su código. No lo enlaces; el documento explica el riesgo,
-no abre la puerta. Sus cuatro reglas, en corto: GSR solo como proceso externo,
-la copia de referencia de lectura, ni un `#include` que apunte ahí, y releerlo antes de
-empaquetar GSR con Easy Screen Recorder.
+**Y hay modelo dual:** el titular puede conceder licencias comerciales del mismo
+código. Eso impone dos disciplinas que no son opcionales:
 
-La licencia de **Easy Screen Recorder** sigue sin elegirse. Es decisión del titular.
+1. Todo el código es del titular o está cubierto por un CLA. Ninguna
+   contribución externa entra sin firmarlo (`CONTRIBUTING.md`, `docs/CLA.md`).
+2. Nada copiado de terceros. Ver «Prohibido» arriba.
+
+GSR es GPL-3.0-**only**. Lo usamos como **proceso externo por IPC**, sin enlazar
+su código, y esa distinción es la que mantiene su licencia fuera de la nuestra.
+El razonamiento completo, los cuatro requisitos del modelo dual y el resultado
+de la auditoría están en `docs/LICENSING.md`, sección «Decisión». No lo enlaces;
+el documento explica el riesgo, no abre la puerta.
+
+**Commits:** el autor es el titular y la herramienta va en `Co-Authored-By:`. Un
+modelo no puede ser autor ni firmar un CLA, y un `Author:` de un tercero deja un
+hueco en la cadena de titularidad. Ver `.mailmap`.
 
 ## Datos y cifras
 
