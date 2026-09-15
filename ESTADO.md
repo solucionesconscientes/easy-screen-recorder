@@ -96,6 +96,14 @@ ejecutando, el 2026-09-15:
 | Prompt de licencia | `PROMPT-LICENCIA.md` en la raíz (fuera de git), con los hechos verificados de LICENSING.md y las preguntas que discriminan. Lo usa el titular en una sesión aparte |
 | Regresión | ctest **12/12**, arnés pantalla+audio en verde |
 
+Un episodio de esta tanda que vale como lección operativa: en la batería
+final el arnés salió ROJO porque **la pantalla se había apagado sola** entre
+dos pasadas, y sin plano de scanout GSR no lista el monitor (la trampa
+documentada en la Tanda 2, mordiendo por primera vez en real). No era un
+fallo del código: el arnés dijo la verdad. La cura: `kscreen-doctor --dpms
+on` y repetir. Si el arnés se automatiza algún día (cron, CI local), esa
+línea va delante.
+
 ## Tanda 9: lo que pidió el titular tras probarla
 
 El titular confirmó a mano que la grabación va, y pidió tres cosas. Las tres
