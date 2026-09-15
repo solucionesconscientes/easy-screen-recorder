@@ -1,6 +1,28 @@
 # Contributing to Easy Screen Recorder
 
-Thanks for considering it. Two things are non-negotiable, so they come first.
+Thanks for considering it.
+
+## Right now: issues yes, code not yet
+
+**Bug reports and issues are very welcome. Pull requests with code cannot be
+merged yet** — the contribution agreement is still pending (see below).
+
+That is not a brush-off, and there is something better you can do: **open an
+issue and describe the problem.** A good description of what broke, on what
+hardware, with what command, is worth as much as the patch — often more. Tell me
+what line is wrong and what it should be, and I will write it. That way you are
+not blocked on paperwork and the fix still happens.
+
+Same for a fix you have already written locally: describe it in an issue. Do not
+paste the diff — if I read your code I cannot cleanly write my own version of
+it, and that is exactly the problem the agreement exists to avoid.
+
+Nothing stops you forking it, either. It is GPL-3.0-or-later; that is your
+right and it always will be.
+
+---
+
+Two things are non-negotiable, so they come first.
 
 ## 1. Sign the CLA
 
@@ -13,8 +35,11 @@ License Agreement.
 - **You keep your copyright.** The CLA is a *licence grant*, not an assignment.
 - You grant the holder the right to **relicense your contribution**, including
   under a commercial licence.
-- Signing happens through [CLA Assistant](https://cla-assistant.io/): it
-  comments on your pull request and blocks merging until you sign. One click.
+- Signing will happen through a GitHub Action
+  ([CLA Assistant Lite](https://github.com/contributor-assistant/github-action)):
+  it comments on your pull request and blocks merging until you sign. One
+  comment, and the signature record lives in this repository — no third-party
+  service holds it.
 
 The agreement lives in [`docs/CLA.md`](docs/CLA.md). If that file still shows a
 TODO, the project is not accepting external contributions yet — open an issue
@@ -83,6 +108,27 @@ that *looks* fine is exactly the failure this project cannot afford.
 ---
 
 # Contribuir — resumen en castellano
+
+## Ahora mismo: los issues sí, el código todavía no
+
+**Los reportes de fallo son muy bienvenidos. Los pull requests con código
+todavía no se pueden fusionar** — el acuerdo de contribución está pendiente de
+redactar (ver abajo).
+
+No es un «no» seco, y hay algo mejor que puedes hacer: **abre un issue y
+describe el problema.** Una buena descripción de qué se rompió, en qué hardware
+y con qué comando vale tanto como el parche, y muchas veces más. Dime qué línea
+está mal y qué debería decir, y la escribo yo. Así no te bloquea el papeleo y el
+arreglo se hace igual.
+
+Lo mismo si ya lo has arreglado en tu copia: descríbelo en un issue. **No pegues
+el diff** — si leo tu código ya no puedo escribir limpiamente mi propia versión,
+y ese es justo el problema que el acuerdo existe para evitar.
+
+Y nada te impide hacer un fork. Es GPL-3.0-or-later: es tu derecho y lo seguirá
+siendo.
+
+---
 
 **Dos reglas que no se negocian:**
 
