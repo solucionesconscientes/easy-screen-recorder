@@ -7,8 +7,9 @@ SPDX-License-Identifier: GPL-3.0-or-later
 # Hoja de ruta
 
 Escrito el 15 de septiembre de 2026. Dos partes: la frontera del backend de
-captura, que es deuda técnica con nombre y apellidos, y las tres fases de
-distribución.
+captura, que es deuda técnica con nombre y apellidos, y la distribución —
+Flathub, luego `.deb`, y **Windows descartado** con su motivo escrito para que no
+se reabra sin datos nuevos.
 
 ---
 
@@ -41,9 +42,15 @@ localizadas:
 | Estado `"sinGsr"` | `src/ui/controlador.hpp:21`, `Main.qml:108` | El nombre del backend está en la máquina de estados de la UI |
 | Campo `gsr` en la API pública | `esr/entorno.hpp:62-63` → `e.gsr.presente` | `libesr` expone dos herramientas llamadas `gsr` y `gsr_cli` |
 
-**Veredicto: no está aislada.** Si mañana hubiera que cambiar de backend —y la
-fase 3 dice que en Windows habrá que hacerlo— habría que tocar QML, no solo
-`libesr`.
+**Veredicto: no está aislada.** Si mañana hubiera que cambiar de backend habría
+que tocar QML, no solo `libesr`.
+
+Con Windows descartado (ver Parte 2), esto **deja de ser urgente**: hoy hay un
+solo backend y no se prevé un segundo. Pasa de deuda que bloquea a deuda que
+conviene. Los dos motivos que la mantienen en la lista son que el plan de
+pruebas que exige —la matriz de `verify-recording.sh`— es bueno por sí mismo, y
+que si GSR cambiara de interfaz habría que tocar QML para adaptarse, lo cual es
+absurdo.
 
 **Y no se refactoriza ahora.** Es un cambio de API pública con los tests verdes
 por delante, y el encargo de este renombrado era explícito: no cambiar
@@ -166,63 +173,76 @@ Detalle en `empaquetado/debian/NOTAS.md`.
 - Falta `control`, `rules`, `changelog` y la primera versión etiquetada.
 - X11 verificado por XWayland; sesión X11 pura sin probar.
 
-## Fase 3 · Windows
+## Windows: descartado
 
-**Hoy no hay ni una línea de código de Windows, y así se queda** hasta que las
-fases 1 y 2 estén cerradas.
+**Decidido el 15 de septiembre de 2026.** No se porta. No es un «más adelante»:
+es una decisión tomada con un motivo, y para reabrirla hace falta que cambie ese
+motivo, no que pase el tiempo.
 
-### Interfaz
+### El motivo: la propuesta de valor no sobrevive al puerto
 
-Portable con **KDE Craft**, que compila Qt y KF6 para Windows. La UI es
-Qt/QML/Kirigami y no toca el display directamente, así que es la parte que menos
-duele.
+En Linux esta aplicación existe porque **Wayland rompió la captura de pantalla y
+la única herramienta buena es de línea de comandos**. Ese hueco es real y es
+nuestro. Las tres patas que lo sostienen se caen las tres en Windows:
 
-### El backend de captura, que es el problema
+| | Linux/Wayland | Windows |
+|---|---|---|
+| ¿Trae el sistema un grabador? | No | **Dos**, los dos preinstalados: Xbox Game Bar y la Herramienta de Recortes |
+| ¿Codificación en GPU al alcance? | Hay que buscarla | La traen NVIDIA, AMD e Intel en su propio software, gratis y con atajo |
+| ¿Está roto el camino de captura? | Sí, y el ecosistema va detrás | No. Desktop Duplication API es estable desde Windows 8 |
+| Open source maduro con GPU | GSR, y poco más | OBS Studio y ShareX, los dos establecidos |
 
-GSR es Linux: usa KMS/DRM, VAAPI y NVFBC. En Windows hay dos caminos:
+En Windows el hueco lo tapan Microsoft y los tres fabricantes de GPU antes de que
+lleguemos nosotros. Seríamos la décima opción de una categoría resuelta, en vez
+de la mejor de un caso concreto.
 
-| Vía | Qué implica |
-|---|---|
-| **ffmpeg como proceso externo** con `ddagrab` (Desktop Duplication) más NVENC, AMF o QSV | Mismo patrón que hoy: proceso aparte, argumentos, sin enlazar. Es lo que encaja con la arquitectura y con la licencia |
-| **Portar GSR a Windows** | Solo si el proyecto upstream madura en esa dirección. No depende de nosotros |
+### Y el coste no era pequeño
 
-La primera es la apuesta, y **es exactamente lo que la Parte 1 desbloquea**:
-sin la interfaz `CaptureBackend`, esto significa reescribir QML.
+- **WASAPI en modo loopback** para el audio del sistema: código nativo de
+  verdad, no un argumento de ffmpeg. En Linux eso sale de un monitor de
+  PipeWire; en Windows hay que escribirlo.
+- **ffmpeg con `ddagrab`** como proceso externo era la vía correcta, pero
+  redistribuir sus binarios nos convierte en distribuidores de software GPL, con
+  la obligación de ofrecer sus fuentes.
+- **Qt y KF6 por KDE Craft**: mantenimiento continuo de una cadena de
+  construcción entera.
+- **Kirigami fuera de Plasma** se ve como lo que es, una interfaz de KDE
+  prestada.
+- **Firma de código** para no comer avisos de SmartScreen, con su coste anual.
+- Y en la Microsoft Store ya hay un **«HD Easy Screen Recorder»**, así que
+  además habría lío de nombre.
 
-### El audio del sistema es un problema aparte
+### Lo único que sí tenía hueco, y no es esta aplicación
 
-En Linux el audio del escritorio sale de un monitor de PipeWire. En Windows eso
-**no existe igual**: hace falta **WASAPI en modo loopback**, y eso es código
-nativo, no un argumento de ffmpeg. Es trabajo propio y hay que presupuestarlo
-como tal, no como «lo mismo pero en Windows».
+Grabar **solo el audio del sistema** a un fichero sigue siendo incómodo en
+Windows: o Audacity con WASAPI loopback, o OBS sin vídeo. Ese agujero es real.
 
-### Licencia al redistribuir en Windows
+Pero es una utilidad pequeña y distinta, no esta aplicación portada. Si alguna
+vez apetece, se hace como producto aparte y se decide por sus propios méritos.
 
-Si el instalador lleva binarios de **ffmpeg** o de **GSR**, pasamos a ser
-distribuidores de software GPL y **hay que ofrecer sus fuentes** —con sus parches
-si los hay, por el mismo medio o con oferta escrita válida tres años—. Eso **no
-afecta a nuestra licencia**: seguirían siendo programas separados distribuidos
-juntos. Ver `docs/LICENSING.md`, «Si algún día se empaqueta GSR».
+### Qué haría falta para reabrirlo
 
-Y Qt: en Windows, con LGPL, sigue haciendo falta enlace dinámico, los avisos y
-que el usuario pueda sustituir las bibliotecas. Un instalador monolítico con Qt
-estático necesita licencia comercial de Qt.
+- Que un cliente lo pague. Entonces el cálculo es otro y es el suyo.
+- O que Microsoft retire Game Bar y la grabación de la Herramienta de Recortes,
+  que no va a pasar.
+- O que la aplicación de Linux esté tan establecida que el nombre valga algo por
+  sí mismo, y entonces la Store sea escaparate y no producto.
 
-### El nombre puede estar cogido
+### Consecuencia inmediata: el nombre deja de ser urgente
 
-**Hay que comprobarlo antes de invertir en la Microsoft Store.** «Easy Screen
-Recorder» es un nombre descriptivo y por eso mismo es probable que esté usado:
-consta al menos una aplicación homónima en el ecosistema de Apple. Que sea
-descriptivo juega a dos bandas — es difícil que alguien tenga un derecho fuerte
-sobre él, y también es difícil que nosotros lo tengamos —.
+Estaba en la lista de «comprobar ya» **porque Windows implicaba la Microsoft
+Store**. Sin Store:
 
-Lo que hay que hacer, y en este orden:
+- **Flathub está libre**, comprobado. Es donde vamos.
+- «HD Easy Screen Recorder» en la Microsoft Store no nos afecta.
+- El nombre es descriptivo, así que es difícil que alguien tenga un derecho
+  fuerte sobre él —y difícil que lo tengamos nosotros—.
 
-1. Buscar el nombre en la Microsoft Store y en la App Store.
-2. Consultar la OEPM y la EUIPO por si hay marca registrada.
-3. Decidir: o se convive con el homónimo, o se registra, o se añade un
-   distintivo para la Store.
+Queda como conveniente, no como bloqueante: una consulta a la OEPM y a la EUIPO
+antes de gastar en marca, si algún día se gasta. No antes de publicar en
+Flathub.
 
-**No es una tarea de la fase 3, es de antes:** si el nombre tuviera que cambiar,
-cuanto antes se sepa, menos cuesta. Hoy ya está en el app-id, el `.desktop`, el
-metainfo, el nombre de los binarios y toda la marca.
+## Fase 3 · (libre)
+
+Sin asignar. Lo que salga del uso real de las fases 1 y 2 manda sobre cualquier
+plan escrito hoy.
