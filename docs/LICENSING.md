@@ -12,9 +12,9 @@ tomar decisiones técnicas con los ojos abiertos.
 
 **gpu-screen-recorder es GPL-3.0-only.** No "or later":
 
-- `third_party/gpu-screen-recorder/LICENSE`: texto íntegro de la GNU GPL versión
+- `el LICENSE de GSR`: texto íntegro de la GNU GPL versión
   3, 29 de junio de 2007.
-- `third_party/gpu-screen-recorder/README.md:246`: "This software is licensed
+- `el README de GSR, línea 246`: "This software is licensed
   under GPL-3.0-only".
 
 **Capturia todavía no tiene licencia propia.** No hay fichero `LICENSE` en la
@@ -34,16 +34,16 @@ Esto es lo que decide todo, así que conviene ser literal. Capturia:
 Y lo que **no** hace, que importa igual o más:
 
 - No incluye ni una cabecera de GSR. `libcapturia` no tiene un solo `#include`
-  que apunte a `third_party/`.
+  que apunte a la copia de referencia.
 - No enlaza nada suyo, ni estática ni dinámicamente. `src/core/CMakeLists.txt`
   no menciona GSR.
 - No copia código suyo. Ni fragmentos, ni algoritmos traducidos.
-- No compila su árbol. `third_party/gpu-screen-recorder/` es solo lectura y está
+- No compila su árbol. la copia de referencia de GSR es solo lectura y está
   fuera del build.
 - No lo redistribuye. Lo instala el usuario, por su cuenta, con su gestor de
   paquetes o su flatpak.
 
-`third_party/gpu-screen-recorder/` ni siquiera va al remoto: lo excluye
+la copia de referencia de GSR ni siquiera va al remoto: lo excluye
 `.gitignore`. Está en la máquina de desarrollo para poder leerlo y citarlo, que
 es justo lo que se ha hecho en `docs/gsr-ipc.md`.
 
@@ -95,7 +95,7 @@ nuestra, y la puerta cerrada a cualquier plan futuro que no sea GPL. Puede que
 eso acabe pareciendo bien; lo que no puede es pasar **sin decidirlo**, por
 comodidad, en un `#include` de un martes.
 
-Por eso `CLAUDE.md` lo prohíbe y por eso `third_party/` es solo lectura.
+Por eso `CLAUDE.md` lo prohíbe y por eso la copia de referencia es solo lectura.
 
 ## Las zonas grises
 
@@ -126,7 +126,7 @@ Lo accionable, en cuatro líneas:
 
 1. GSR se usa **solo** como proceso externo, por línea de comandos y por el
    socket IPC. Nada más.
-2. `third_party/gpu-screen-recorder/` es de lectura. No se compila, no se copia,
+2. la copia de referencia de GSR es de lectura. No se compila, no se copia,
    no se modifica.
 3. Ni un `#include` que apunte ahí desde `src/`.
 4. Antes de empaquetar GSR con Capturia, se vuelve a leer este documento.

@@ -49,7 +49,7 @@ escribas ni una línea hasta leer `docs/gsr-audio-only.md`.
 ## Prohibido
 
 - Reimplementar la captura de pantalla.
-- Modificar nada dentro de `third_party/gpu-screen-recorder/`. Es GPL-3.0 de
+- Modificar nada dentro de la copia de referencia de GSR. Es GPL-3.0 de
   terceros, solo lectura, y no se compila como parte nuestra.
 - Hardcodear listas de códecs, dispositivos o resoluciones. Todo se detecta en
   runtime, en la máquina del usuario.
@@ -115,7 +115,7 @@ El criterio era: la versión más antigua que ya traiga el IPC de `gsr-cli`
 completo, porque de eso depende toda nuestra capa de control. **6.0.0 es la más
 antigua que se ha podido comprobar que lo trae**, y de ahí sale el número:
 
-- `third_party/gpu-screen-recorder/project.conf:4` dice `version = "6.0.0"`.
+- `su project.conf:4` dice `version = "6.0.0"`.
 - `gpu-screen-recorder --version` responde `6.0.0` en la máquina de desarrollo.
 - Sobre esa versión se ejecutó el protocolo entero, incluida la respuesta
   diferida de `stop` que devuelve la ruta del fichero guardado. Está en
@@ -134,7 +134,7 @@ código, y esa distinción es la que mantiene nuestra UI fuera de la GPL-3.0.
 El razonamiento completo está en `docs/LICENSING.md`, con lo que cambiaría si
 algún día enlazáramos su código. No lo enlaces; el documento explica el riesgo,
 no abre la puerta. Sus cuatro reglas, en corto: GSR solo como proceso externo,
-`third_party/` de lectura, ni un `#include` que apunte ahí, y releerlo antes de
+la copia de referencia de lectura, ni un `#include` que apunte ahí, y releerlo antes de
 empaquetar GSR con Capturia.
 
 La licencia de **Capturia** sigue sin elegirse. Es decisión del titular.

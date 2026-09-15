@@ -6,7 +6,7 @@
 deducido. Eso deja el modo audio-only en manos de un backend propio con ffmpeg,
 que es la tercera fila del árbol de decisión que ya estaba escrito.
 
-Versión analizada: GSR 6.0.0, el árbol de `third_party/gpu-screen-recorder/`,
+Versión analizada: GSR 6.0.0, el árbol de referencia de GSR,
 instalado como flatpak en la máquina de desarrollo. Comprobado el 2026-09-10.
 
 ## a) ¿Puede GSR grabar audio sin fuente de vídeo, hoy?
@@ -44,25 +44,14 @@ mismo: `missing argument '-w'`. O sea que la respuesta no depende de la errata.
 
 ## b) ¿Qué lo impide exactamente a nivel de código?
 
-Una sola línea. `-w` está declarado **no opcional**:
+Una sola línea. En la tabla de argumentos, la entrada de `-w` lleva su marca de
+opcional puesta a falso, o sea que es obligatoria
+(`src/args_parser.c:536`).
 
-`third_party/gpu-screen-recorder/src/args_parser.c:536`
-
-```c
-self->args[arg_index++] = (Arg){ .key = "-w", .optional = false, .list = false, .type = ARG_TYPE_STRING };
-```
-
-Y el bucle que valida los argumentos rechaza cualquier obligatorio sin valor,
-que es de donde sale literalmente el mensaje del error:
-
-`third_party/gpu-screen-recorder/src/args_parser.c:673-676`
-
-```c
-for(int i = 0; i < NUM_ARGS; ++i) {
-    const Arg *arg = &self->args[i];
-    if(!arg->optional && arg->num_values == 0) {
-        gsr_log(GSR_LOG_LEVEL_ERROR, "missing argument '%s'", arg->key);
-```
+Y el bucle que valida los argumentos recorre la tabla entera y, en cuanto
+encuentra uno que no es opcional y no ha recibido ningún valor, emite por el log
+de error el mensaje `missing argument` con la clave de ese argumento
+(`src/args_parser.c:673-676`). De ahí sale literalmente el error que vimos.
 
 No es una comprobación semántica en mitad de la grabación ni un efecto lateral
 del pipeline: es el parser de argumentos, lo primero que corre. Cambiarlo sería
@@ -83,13 +72,8 @@ después. Se descarta:
 
 **Tres, y los tres están activos en el paquete instalado:** AAC, Opus y FLAC.
 
-El enum no tiene más (`include/defs.h:77-79`):
-
-```c
-GSR_AUDIO_CODEC_AAC,
-GSR_AUDIO_CODEC_OPUS,
-GSR_AUDIO_CODEC_FLAC,
-```
+Su enumeración de códecs de audio no tiene más miembros que esos tres
+(`include/defs.h:77-79`).
 
 Y ninguno es opcional de compilación. `meson_options.txt` tiene siete opciones
 (`systemd`, `capabilities`, `nvidia_suspend_fix`, `portal`, `app_audio`,

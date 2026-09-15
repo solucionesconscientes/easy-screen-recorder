@@ -46,7 +46,7 @@ std::string Version::texto() const {
 std::optional<Version> version_minima_gsr() {
     // 6.0.0. El criterio es "la mas antigua que ya traiga el IPC de gsr-cli
     // completo", y 6.0.0 es la mas antigua que se ha podido *comprobar* que lo
-    // trae: es la del arbol de third_party/ (project.conf, version = "6.0.0"),
+    // trae: es la del arbol de referencia de GSR (project.conf, version = "6.0.0"),
     // la que responde a --version en esta maquina, y sobre ella se ejecuto el
     // protocolo entero, incluida la respuesta diferida de «stop» que devuelve la
     // ruta del fichero guardado.

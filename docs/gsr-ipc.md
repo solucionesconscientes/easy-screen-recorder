@@ -2,11 +2,11 @@
 
 **Estado: DOCUMENTADO Y COMPROBADO.** Bloqueo B1 cerrado.
 
-Versión leída: GSR **6.0.0**, el árbol de `third_party/gpu-screen-recorder/`
+Versión leída: GSR **6.0.0**, el árbol de referencia de GSR
 (`project.conf:4`). Es la misma que está instalada en la máquina de desarrollo,
 así que las citas apuntan al código que de verdad se ejecuta aquí.
 
-Todas las citas son `fichero:línea` dentro de `third_party/gpu-screen-recorder/`.
+Todas las citas son `fichero:línea` dentro de la copia de referencia de GSR.
 Al final hay una sección con lo que se ejecutó para comprobarlo y otra con lo
 que no queda claro.
 
@@ -27,11 +27,9 @@ hay que adivinar el nombre ni leer stdout.
 ## Transporte
 
 Un socket de dominio unix orientado a conexión. Lo dice el comentario del tipo
-en `include/cli/ipc.h:71` y lo confirma la creación en `src/cli/ipc.c:873`:
-
-```c
-self->socket_fd = socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC | SOCK_NONBLOCK, 0);
-```
+en `include/cli/ipc.h:71` y lo confirma la creación en `src/cli/ipc.c:873`, que
+abre la familia `AF_UNIX` con tipo `SOCK_STREAM` y los indicadores de
+cierre-en-`exec` y no bloqueante.
 
 Detalles que importan al escribir el cliente:
 
@@ -65,11 +63,9 @@ De ningún sitio automático. **Es el argumento de `-ipc` y nada más.**
 
 - La opción está declarada como opcional en `src/args_parser.c:574`.
 - Se lee en `src/cli/main.c:523` y solo se inicializa el IPC si trae valor:
-  `src/cli/main.c:545`.
-
-```c
-if(ipc_arg->num_values > 0 && gsr_ipc_init(&ipc, ipc_arg->values[0]) != GSR_ERROR_OK) {
-```
+  `src/cli/main.c:545` comprueba que la opción tenga al menos un valor y le pasa
+  el primero al inicializador; si ese inicializador no devuelve éxito, el
+  arranque se aborta.
 
 No depende del usuario, ni del PID, ni de `XDG_RUNTIME_DIR`. Se buscó
 `XDG_RUNTIME_DIR` en todo `src/` e `include/` y no aparece. Los ejemplos del
