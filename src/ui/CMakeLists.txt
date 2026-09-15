@@ -50,5 +50,12 @@ install(FILES datos/es.solucionesconscientes.EasyScreenRecorder.desktop
         DESTINATION ${CMAKE_INSTALL_DATADIR}/applications)
 install(FILES datos/es.solucionesconscientes.EasyScreenRecorder.metainfo.xml
         DESTINATION ${CMAKE_INSTALL_DATADIR}/metainfo)
+# El icono de color va a scalable/apps y los monocromos a symbolic/apps, que es
+# donde los busca el tema de iconos cuando se pide un nombre con sufijo
+# -symbolic. Mezclarlos deja la bandeja con el icono a color, que sobre un panel
+# oscuro se ve como una pegatina.
 install(FILES datos/es.solucionesconscientes.EasyScreenRecorder.svg
         DESTINATION ${CMAKE_INSTALL_DATADIR}/icons/hicolor/scalable/apps)
+install(FILES datos/es.solucionesconscientes.EasyScreenRecorder-symbolic.svg
+              datos/es.solucionesconscientes.EasyScreenRecorder-recording-symbolic.svg
+        DESTINATION ${CMAKE_INSTALL_DATADIR}/icons/hicolor/symbolic/apps)
