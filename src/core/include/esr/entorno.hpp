@@ -27,15 +27,34 @@ inline constexpr std::string_view kAppFlatpakGsr = "com.dec05eba.gpu_screen_reco
 struct Invocacion {
     std::string programa;              // el binario que se ejecuta de verdad
     std::vector<std::string> prefijo;  // lo que va antes de los argumentos de la sonda
-    std::string origen;                // «PATH» o «flatpak»: --check lo enseña
+    std::string origen;                // ver kOrigen* abajo: --check lo enseña
     std::string ruta;                  // ruta del binario, o el id de la aplicacion
 
     // La linea de comando completa, para el envoltorio del volcado.
     std::string linea(const std::vector<std::string>& args) const;
 };
 
-// Busca un binario de GSR primero en PATH y luego en el flatpak. Devuelve
-// nullopt si no esta por ninguna de las dos vias.
+// Los cuatro origenes posibles. Importan fuera de aqui: grabacion.cpp decide
+// con ellos si el fichero de salida puede ir a /tmp, y --check los enseña.
+inline constexpr std::string_view kOrigenPath = "PATH";
+inline constexpr std::string_view kOrigenFlatpak = "flatpak";
+// Los dos de dentro de un sandbox, donde GSR vive en el anfitrion y se llega a
+// el por flatpak-spawn --host.
+inline constexpr std::string_view kOrigenAnfitrion = "anfitrion";
+inline constexpr std::string_view kOrigenAnfitrionFlatpak = "anfitrion/flatpak";
+
+// Si la salida de esa invocacion NO la escribe este proceso, o sea que una
+// ruta privada de nuestro sandbox no le sirve. Cierto para el flatpak de GSR
+// (su /tmp es suyo) y para las dos vias del anfitrion (su /tmp es del
+// anfitrion). En los dos casos el fichero acabaria donde nadie lo ve.
+bool escribe_fuera_de_nuestro_sandbox(const std::string& origen);
+
+// Si este proceso corre dentro de un flatpak.
+bool dentro_de_sandbox();
+
+// Busca un binario de GSR por las vias que tengan sentido en esta maquina: en
+// PATH, como flatpak, o en el anfitrion si estamos dentro de un sandbox.
+// Devuelve nullopt si no esta por ninguna.
 std::optional<Invocacion> localizar_gsr(const std::string& binario);
 
 struct Herramienta {

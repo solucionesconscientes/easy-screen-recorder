@@ -61,16 +61,73 @@ bool flatpak_tiene_la_app() {
     return false;
 }
 
+// Como se alcanza GSR desde DENTRO de un sandbox.
+//
+// Dentro no sirve ninguna de las dos vias de fuera: nuestro PATH no tiene los
+// binarios del anfitrion, y /var/lib/flatpak no esta montado. La unica puerta
+// es flatpak-spawn --host, que habla con el portal org.freedesktop.Flatpak
+// —de ahi el --talk-name del manifiesto— y ejecuta en el anfitrion.
+//
+// Consecuencia medida al probarlo, y que hay que conocer: flatpak-spawn es un
+// PROXY, no un exec. Su proceso se queda vivo dentro de nuestro sandbox toda
+// la grabacion, haciendo de puente. Para la UI eso es invisible y correcto:
+// la UI tambien vive mientras se graba. Pero «easy-screen-recorder-cli grabar»
+// promete volver al instante, y dentro de un flatpak no vuelve: `flatpak run`
+// no sale hasta que muere el ultimo proceso del sandbox, y el puente es uno.
+// No se arregla aqui —es como funciona el portal— y no afecta al camino real
+// del producto, que es la UI. Documentado en empaquetado/flathub/NOTAS.md.
+enum class ViaAnfitrion { Nativo, Flatpak, NoEsta };
+
+// Se sondea UNA sola vez y se guarda.
+//
+// localizar_gsr() se llama desde cinco sondas en paralelo, mas detectar(), mas
+// cada grabacion. Sondear el anfitrion en cada llamada multiplicaria el
+// arranque, y un salto al anfitrion cuesta mas que un exec local porque pasa
+// por el portal. Una estatica local: su inicializacion es segura entre hilos
+// desde C++11, que es justo lo que hace falta aqui.
+ViaAnfitrion via_anfitrion() {
+    static const ViaAnfitrion via = [] {
+        // Sonda barata y que no depende de que GSR funcione: solo pregunta al
+        // shell del anfitrion si el binario esta en su PATH. Preguntarselo a
+        // «gpu-screen-recorder --version» habria confundido «no esta» con
+        // «esta y no arranca», que son dos diagnosticos distintos.
+        const auto nativo = ejecutar(
+            "flatpak-spawn", {"--host", "sh", "-c", "command -v gpu-screen-recorder"}, 10000);
+        if (nativo.ejecutado && nativo.codigo == 0) return ViaAnfitrion::Nativo;
+
+        const auto como_flatpak = ejecutar(
+            "flatpak-spawn", {"--host", "flatpak", "info", std::string(kAppFlatpakGsr)}, 15000);
+        if (como_flatpak.ejecutado && como_flatpak.codigo == 0) return ViaAnfitrion::Flatpak;
+
+        return ViaAnfitrion::NoEsta;
+    }();
+    return via;
+}
+
 // Cuanto se le deja a una sonda antes de darla por colgada.
 //
 // Medido en esta maquina con el flatpak ya caliente: entre 217 y 746 ms por
 // sonda, frente a 104 ms de un binario nativo. El margen extra del flatpak es
-// para el primer arranque, cuando su runtime todavia no esta en cache.
+// para el primer arranque, cuando su runtime todavia no esta en cache. Las
+// vias del anfitrion llevan el mismo margen y por el mismo motivo: ademas del
+// arranque del flatpak, cada llamada cruza el portal.
 int limite_sonda_ms(const Invocacion& inv) {
-    return inv.origen == "flatpak" ? 15000 : 5000;
+    return inv.origen == kOrigenPath ? 5000 : 15000;
 }
 
 }  // namespace
+
+bool dentro_de_sandbox() {
+    // /.flatpak-info y no FLATPAK_ID: la variable la puede heredar o exportar
+    // cualquiera, el fichero lo pone el propio flatpak y solo existe dentro.
+    std::error_code ec;
+    return std::filesystem::exists("/.flatpak-info", ec);
+}
+
+bool escribe_fuera_de_nuestro_sandbox(const std::string& origen) {
+    return origen == kOrigenFlatpak || origen == kOrigenAnfitrion ||
+           origen == kOrigenAnfitrionFlatpak;
+}
 
 std::string Invocacion::linea(const std::vector<std::string>& args) const {
     std::string texto = programa;
@@ -80,13 +137,35 @@ std::string Invocacion::linea(const std::vector<std::string>& args) const {
 }
 
 std::optional<Invocacion> localizar_gsr(const std::string& binario) {
+    // Dentro de un sandbox se prueba PRIMERO el anfitrion y no se mira PATH.
+    // Mirar PATH aqui no es que falle: es que puede acertar por accidente si
+    // algun dia el runtime trae un binario con ese nombre, y entonces
+    // estariamos grabando con otro programa sin saberlo.
+    if (dentro_de_sandbox()) {
+        switch (via_anfitrion()) {
+            case ViaAnfitrion::Nativo:
+                return Invocacion{"flatpak-spawn",
+                                  {"--host", binario},
+                                  std::string(kOrigenAnfitrion),
+                                  binario + " (en el anfitrion)"};
+            case ViaAnfitrion::Flatpak:
+                return Invocacion{"flatpak-spawn",
+                                  {"--host", "flatpak", "run", "--command=" + binario,
+                                   std::string(kAppFlatpakGsr)},
+                                  std::string(kOrigenAnfitrionFlatpak),
+                                  std::string(kAppFlatpakGsr) + " (en el anfitrion)"};
+            case ViaAnfitrion::NoEsta:
+                return std::nullopt;
+        }
+    }
+
     if (const auto ruta = localizar(binario)) {
-        return Invocacion{binario, {}, "PATH", *ruta};
+        return Invocacion{binario, {}, std::string(kOrigenPath), *ruta};
     }
     if (flatpak_tiene_la_app()) {
         return Invocacion{"flatpak",
                           {"run", "--command=" + binario, std::string(kAppFlatpakGsr)},
-                          "flatpak",
+                          std::string(kOrigenFlatpak),
                           std::string(kAppFlatpakGsr)};
     }
     return std::nullopt;
@@ -137,7 +216,10 @@ std::string volcar() {
             } else {
                 h.linea = s.programa;
                 for (const auto& a : s.args) h.linea += " " + a;
-                h.r.motivo = "no se encuentra «" + s.programa + "» ni en PATH ni como flatpak";
+                h.r.motivo = dentro_de_sandbox()
+                                 ? "no se encuentra «" + s.programa + "» en el anfitrion"
+                                 : "no se encuentra «" + s.programa +
+                                       "» ni en PATH ni como flatpak";
             }
         });
     }
@@ -268,7 +350,9 @@ Entorno detectar() {
         e.gsr.origen = inv_gsr->origen;
         if (!e.capacidades.gsr_respondio) e.gsr.diagnostico = "instalado pero no respondio a --version";
     } else {
-        e.gsr.diagnostico = "no se encuentra ni en PATH ni como flatpak";
+        e.gsr.diagnostico = dentro_de_sandbox()
+                                ? "no se encuentra en el anfitrion; instalalo alli, no en el sandbox"
+                                : "no se encuentra ni en PATH ni como flatpak";
     }
 
     const auto inv_cli = localizar_gsr("gsr-cli");
@@ -277,7 +361,9 @@ Entorno detectar() {
         e.gsr_cli.ruta = inv_cli->ruta;
         e.gsr_cli.origen = inv_cli->origen;
     } else {
-        e.gsr_cli.diagnostico = "no se encuentra ni en PATH ni como flatpak";
+        e.gsr_cli.diagnostico = dentro_de_sandbox()
+                                    ? "no se encuentra en el anfitrion"
+                                    : "no se encuentra ni en PATH ni como flatpak";
     }
 
     e.ffmpeg = sondear_binario("ffmpeg", {"-version"});

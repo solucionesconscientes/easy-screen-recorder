@@ -14,6 +14,12 @@ finish-args:
   - --socket=wayland
   - --socket=fallback-x11
   - --share=ipc
+  # Sin esto la UI de QML se dibuja en software. Medido al construir el flatpak
+  # por primera vez: «MESA: error: ZINK: failed to choose pdev» y el resto de
+  # avisos de EGL, porque /dev/dri no estaba. La captura no se ve afectada —la
+  # hace GSR en el anfitrion, con su propio acceso— pero una interfaz que se
+  # dibuja en CPU en una aplicacion que presume de no gastar CPU es absurda.
+  - --device=dri
   # El audio: el modo solo-audio graba por PipeWire/pulse.
   - --socket=pulseaudio
   # Las grabaciones van a las carpetas del usuario (Videos y Musica por
