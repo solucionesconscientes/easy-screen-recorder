@@ -17,6 +17,10 @@
 #include <cstdio>
 #include <filesystem>
 
+#include <QLibraryInfo>
+#include <QLocale>
+#include <QTranslator>
+
 #include "atajos.hpp"
 #include "controlador.hpp"
 
@@ -27,6 +31,32 @@ namespace {
 // el generico de Breeze que se usaba antes: instalado se ve la marca, sin
 // instalar se ve algo. Un icono nulo en la bandeja es un hueco invisible y el
 // usuario no sabe que la aplicacion sigue viva.
+// Castellano si el sistema esta en castellano; ingles en cualquier otro caso.
+//
+// No hay un catalogo por idioma: las cadenas FUENTE estan en castellano y solo
+// existe un catalogo, el ingles. Asi que la logica es al reves de lo habitual:
+// no se carga nada para el castellano —las cadenas del codigo ya lo son— y se
+// carga el catalogo para todo lo demas.
+//
+// «Todo lo demas» incluye idiomas que no son ingles, y es a proposito: para un
+// hablante de aleman, el ingles es mucho mas util que un castellano que no
+// entiende. La alternativa seria dejarlo en castellano por no tener su idioma,
+// que es peor.
+//
+// Se mira uiLanguages() y no QLocale::system().name() porque la primera respeta
+// el orden de preferencia del usuario cuando tiene varios idiomas puestos, que
+// es lo que de verdad quiere decir «el idioma del sistema».
+bool sistemaEnCastellano() {
+    for (const QString& idioma : QLocale::system().uiLanguages()) {
+        const QString base = idioma.left(2).toLower();
+        if (base == QStringLiteral("es")) return true;
+        // El primer idioma reconocible decide: si el usuario tiene ingles
+        // delante y castellano detras, quiere ingles.
+        if (base.size() == 2) return false;
+    }
+    return false;
+}
+
 QIcon iconoBandeja(bool grabando) {
     const QString nuestro = grabando
                                 ? QStringLiteral("es.solucionesconscientes.EasyScreenRecorder-recording-symbolic")
@@ -52,6 +82,21 @@ int main(int argc, char** argv) {
     // Forma slug a proposito: esto son componentes de ruta de QStandardPaths y
     // claves de registro, no texto visible. El nombre bonito va en el .desktop
     // y en el metainfo.
+    // La traduccion, antes de construir nada de interfaz: si se instala despues,
+    // los textos ya compuestos se quedan en el idioma viejo.
+    QTranslator traductor;
+    if (!sistemaEnCastellano() &&
+        traductor.load(QStringLiteral(":/i18n/easy-screen-recorder_en.qm"))) {
+        app.installTranslator(&traductor);
+    }
+    // Y los textos que pone Qt —los botones de los dialogos de fichero, por
+    // ejemplo— en el idioma del sistema, que los trae Qt ya traducidos.
+    QTranslator traductorQt;
+    if (traductorQt.load(QLocale::system(), QStringLiteral("qtbase"), QStringLiteral("_"),
+                         QLibraryInfo::path(QLibraryInfo::TranslationsPath))) {
+        app.installTranslator(&traductorQt);
+    }
+
     app.setOrganizationName(QStringLiteral("solucionesconscientes"));
     app.setOrganizationDomain(QStringLiteral("solucionesconscientes.es"));
     app.setApplicationName(QStringLiteral("easy-screen-recorder"));

@@ -147,6 +147,43 @@ bisecar.
 
 ---
 
+# Parte 1 bis · Traducir los mensajes del núcleo
+
+La interfaz ya es bilingüe: 45 cadenas traducidas, con el idioma elegido según
+el del sistema. Lo que sigue en castellano son **~47 mensajes de error de
+`libesr`** —en `audio.cpp` (16), `grabacion.cpp` (14), `entorno.cpp` (7),
+`ipc.cpp` (6) y `proceso.cpp` (4)— y la línea de comandos entera.
+
+## Por qué no se hizo ya
+
+`libesr` **no tiene Qt a propósito**: es la capa 1 y el CLI la usa sin interfaz
+gráfica. Así que sus mensajes son `std::string` en castellano, y no hay `tr()`
+que los cubra. Enlazar Qt en el núcleo para traducirlos sería romper la
+separación que hace que el CLI funcione en una máquina sin Qt.
+
+## La vía correcta
+
+Devolver **códigos de error con sus parámetros** en vez de texto, y que la capa
+que habla con el usuario —la UI o el CLI— los redacte:
+
+```cpp
+struct Fallo {
+    enum class Clase { FormatoDesconocido, BitrateFueraDeRango, … };
+    Clase clase;
+    std::vector<std::string> datos;  // el formato pedido, la cifra, la ruta
+};
+```
+
+## Riesgo, y por eso no es trivial
+
+**Alto, y en el mismo sitio que la Parte 1:** los mensajes de `grabacion.cpp` y
+`audio.cpp` salen de las funciones que construyen la línea de comandos del
+grabador y validan los ajustes. Ahí un error no rompe la compilación ni los
+tests: rompe una grabación, y probablemente en la combinación que nadie prueba.
+
+**Se hace después de la matriz de `verify-recording.sh`**, no antes. Es la misma
+red que pide la Parte 1, y sirve para las dos.
+
 # Parte 2 · Distribución
 
 ## Fase 1 · Flathub

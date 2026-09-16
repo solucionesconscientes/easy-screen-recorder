@@ -5,6 +5,20 @@ máquina de desarrollo.
 
 ## Sin publicar
 
+### Interfaz en inglés (2026-09-16)
+- **La interfaz sigue el idioma del sistema**: castellano si el sistema está en
+  castellano, inglés en cualquier otro caso. 45 cadenas traducidas, con el
+  catálogo empotrado en el binario.
+- Y el cambio que lo hizo posible: **el texto visible deja de ser el
+  identificador.** El desplegable de fuentes pasa a `{texto, valor}`; antes el
+  QML decidía el modo con `currentText.indexOf("Solo audio")` y el atajo global
+  comparaba igual, así que traducir habría roto el formulario en silencio.
+- Las fuentes especiales dejan de enseñar su nombre interno: `portal` pasa a
+  «Preguntar al empezar», `region` a «Elegir una región arrastrando» y
+  `focused` a «La ventana que tenga el foco».
+- Sigue en castellano lo que viene del núcleo: ~47 mensajes de error de
+  `libesr` y la línea de comandos. El porqué y la vía, en `docs/ROADMAP.md`.
+
 ### Alcance y recursos, medidos (2026-09-16)
 - Los README dicen dónde funciona de verdad —cualquier escritorio, Wayland y
   X11— y qué es lo único nativo de KDE.

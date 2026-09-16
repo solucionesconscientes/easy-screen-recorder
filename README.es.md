@@ -66,6 +66,7 @@ Dependencias de compilación, exactamente las que pide el CMake:
 - **Ninja** (o el generador que prefieras)
 - **Qt 6.4+**, componentes: `Core` `DBus` `Gui` `Qml` `Quick` `QuickControls2`
   `Widgets` `Concurrent`
+- **`lrelease`** (Debian: `qt6-l10n-tools`) para compilar la traducción al inglés
 
 Qt es **opcional**: sin él la interfaz gráfica no se compila, y el CLI y los
 tests sí.
@@ -80,8 +81,22 @@ En Debian y Ubuntu:
 
 ```bash
 sudo apt install cmake ninja-build g++ qt6-base-dev qt6-declarative-dev \
-  ffmpeg
+  qt6-l10n-tools ffmpeg
 ```
+
+## Idioma
+
+La interfaz sigue el idioma del sistema: **castellano** si tu sistema está en
+castellano, **inglés** en cualquier otro caso —incluidos los idiomas que no son
+ninguno de los dos, porque a un hablante de alemán le sirve más el inglés que un
+castellano que no entiende—.
+
+**Todavía solo en castellano:** los mensajes de error que vienen de la
+biblioteca del núcleo (`libesr`) y toda la línea de comandos. Son cadenas planas
+en una biblioteca sin Qt, así que traducirlas bien significa devolver códigos de
+error en vez de texto: un refactor en los ficheros que construyen la línea de
+comandos del grabador, que es donde un error no rompe una compilación, rompe una
+grabación. Anotado en `docs/ROADMAP.md`.
 
 ## Dónde funciona
 
