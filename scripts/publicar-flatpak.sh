@@ -28,9 +28,26 @@ APP_ID="es.solucionesconscientes.EasyScreenRecorder"
 APP_TITULO="Easy Screen Recorder"
 RAMA="stable"
 REMOTO_NOMBRE="easy-screen-recorder"
-# El repositorio de GitHub que aloja el repo Flatpak, y su URL de Pages.
+# El repositorio de GitHub que aloja los ficheros, y la URL desde la que se
+# sirven.
+#
+# Se sirve desde un SUBDOMINIO propio en Cloudflare Pages y no desde
+# GitHub Pages, por tres razones:
+#
+#  - Es el dominio del proyecto. Un usuario que va a instalar software y a
+#    anclar una clave de firma se fija en de donde viene.
+#  - Cloudflare Pages ya esta en uso para el sitio, asi que no hay una cuenta
+#    ni un servicio mas que mantener.
+#  - Y cabe: medido, el repositorio de UNA version son 148 ficheros y 8,1 MB,
+#    con 4,1 MiB el fichero mas grande. Los limites del plan gratuito son
+#    20.000 ficheros y 25 MiB por fichero, y con --prune-depth=5 solo se
+#    guardan cinco versiones, asi que no se acerca nunca.
+#
+# Lo que NO se hace: meter esto en el repositorio del sitio web. Es un artefacto
+# binario de 8 MB que crece, y acabaria en el historial de git del sitio para
+# siempre, redespleegandose en cada cambio de una pagina.
 GH_REPO="git@github.com:solucionesconscientes/flatpak-repo.git"
-URL_BASE="https://solucionesconscientes.github.io/flatpak-repo"
+URL_BASE="https://flatpak.solucionesconscientes.es"
 GPG_ID="flatpak@solucionesconscientes.es"
 FLATHUB="https://dl.flathub.org/repo/flathub.flatpakrepo"
 
@@ -157,18 +174,34 @@ echo "── Listo en $publico"
 ls -1 "$publico" | sed 's/^/     /'
 
 # ─── 4. Publicar ─────────────────────────────────────────────────────────
+#
+# Se empuja a la rama `main` del repositorio de ficheros y Cloudflare Pages
+# despliega sola. El limite de 500 construcciones al mes del plan gratuito da
+# para dieciseis publicaciones diarias: de sobra.
 if ! $publicar; then
   echo
   echo "── No se ha publicado. Para hacerlo: $0 --publicar"
+  echo "   Comprueba antes lo que hay en $publico"
   exit 0
 fi
 
+# Comprobacion de tamano antes de subir, porque el limite se descubre tarde:
+# Cloudflare Pages rechaza el despliegue entero si un fichero pasa de 25 MiB o
+# si hay mas de 20.000.
+n_ficheros=$(find "$publico" -type f | wc -l)
+mayor=$(find "$publico" -type f -printf '%s\n' | sort -rn | head -1)
+echo "── $n_ficheros ficheros, el mayor de $((mayor / 1048576)) MiB"
+[ "$n_ficheros" -lt 20000 ] || fallo "mas de 20.000 ficheros: Cloudflare Pages lo rechaza"
+[ "$mayor" -lt 26214400 ] || fallo "hay un fichero de mas de 25 MiB: Cloudflare Pages lo rechaza"
+
 cd "$publico"
-git init -q -b gh-pages
+git init -q -b main
 git add -A
 git commit -qm "Repositorio flatpak $(date +%F)"
 git remote add origin "$GH_REPO"
-# Force push a proposito: esta rama es un artefacto, no historia. Lo que hay que
+# Force push a proposito: esta rama es un artefacto, no historia, y asi el
+# repositorio de ficheros no acumula 8 MB por version. Lo que SI hay que
 # conservar entre versiones es salida-flatpak/repo, que se queda en local.
-git push -f -q origin gh-pages || fallo "no se pudo empujar. ¿Existe el repositorio $GH_REPO?"
-echo "── Publicado: $URL_BASE/$APP_ID.flatpakref"
+git push -f -q origin main || fallo "no se pudo empujar. ¿Existe el repositorio $GH_REPO?"
+echo "── Empujado. Cloudflare Pages despliega en un minuto."
+echo "── Instalacion: flatpak install --user $URL_BASE/$APP_ID.flatpakref"

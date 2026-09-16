@@ -54,7 +54,7 @@ something does not work from the command line, the interface does not get it.
 
 | | |
 |---|---|
-| **Flatpak, from this project's own repo** | `flatpak install --user https://solucionesconscientes.github.io/flatpak-repo/es.solucionesconscientes.EasyScreenRecorder.flatpakref` |
+| **Flatpak, from this project's own repo** | `flatpak install --user https://flatpak.solucionesconscientes.es/es.solucionesconscientes.EasyScreenRecorder.flatpakref` |
 | **`.deb`** | On the [releases page](https://github.com/solucionesconscientes/easy-screen-recorder/releases) |
 | **From source** | Below |
 | **Flathub** | Not submitted yet — see below |

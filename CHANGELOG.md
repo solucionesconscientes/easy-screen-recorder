@@ -9,6 +9,10 @@ máquina de desarrollo.
 - `scripts/publicar-flatpak.sh`: repositorio Flatpak propio y firmado, con
   `.flatpakref`, `.flatpakrepo`, bundle y una página de instalación. Las
   actualizaciones llegan con `flatpak update`.
+- Se sirve desde `flatpak.solucionesconscientes.es` en Cloudflare Pages, que ya
+  está en uso para el sitio. Medido: 148 ficheros y 8,1 MB por versión, con
+  4,1 MiB el fichero mayor — los límites del plan gratuito son 20.000 ficheros
+  y 25 MiB, así que sobra.
 - **Verificado de punta a punta**: repositorio firmado (`summary.sig`),
   instalado desde el `.flatpakref` como lo haría un usuario, el remoto queda
   configurado, `flatpak update` opera y la app arranca.

@@ -54,7 +54,7 @@ no funciona por consola, no llega a la interfaz.
 
 | | |
 |---|---|
-| **Flatpak, del repositorio propio** | `flatpak install --user https://solucionesconscientes.github.io/flatpak-repo/es.solucionesconscientes.EasyScreenRecorder.flatpakref` |
+| **Flatpak, del repositorio propio** | `flatpak install --user https://flatpak.solucionesconscientes.es/es.solucionesconscientes.EasyScreenRecorder.flatpakref` |
 | **`.deb`** | En la [página de releases](https://github.com/solucionesconscientes/easy-screen-recorder/releases) |
 | **Desde el código** | Abajo |
 | **Flathub** | Todavía no enviado — ver abajo |
