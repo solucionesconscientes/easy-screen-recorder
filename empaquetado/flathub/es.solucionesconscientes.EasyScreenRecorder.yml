@@ -1,12 +1,13 @@
-# Manifiesto de Flathub para Easy Screen Recorder.
+# Flathub manifest for Easy Screen Recorder.
 #
-# Construido, instalado y GRABANDO desde dentro del sandbox el 2026-09-16, con
-# GSR lanzado en el anfitrion por flatpak-spawn. Lo que falta para el envio no
-# es tecnico: son las capturas de pantalla. Ver NOTAS.md.
+# Comments in English on purpose, unlike the rest of this repository: this file
+# is copied verbatim into flathub/flathub and its readers are Flathub
+# reviewers. Everything here is explained where it is decided, because every
+# unusual line in a manifest costs a reviewer a question.
 app-id: es.solucionesconscientes.EasyScreenRecorder
 runtime: org.kde.Platform
-# La 6.9 esta EOL y el linter avisaba de que pasaria a error. Verificado
-# construyendo con org.kde.Sdk//6.11.
+# 6.9 is EOL and the linter warns it will become an error. Verified building
+# against org.kde.Sdk//6.11.
 runtime-version: '6.11'
 sdk: org.kde.Sdk
 command: easy-screen-recorder
@@ -15,34 +16,50 @@ finish-args:
   - --socket=wayland
   - --socket=fallback-x11
   - --share=ipc
-  # Sin esto la UI de QML se dibuja en software. Medido al construir el flatpak
-  # por primera vez: «MESA: error: ZINK: failed to choose pdev» y el resto de
-  # avisos de EGL, porque /dev/dri no estaba. La captura no se ve afectada —la
-  # hace GSR en el anfitrion, con su propio acceso— pero una interfaz que se
-  # dibuja en CPU en una aplicacion que presume de no gastar CPU es absurda.
+
+  # Without this the QML interface falls back to software rendering. Measured
+  # on the first sandbox build: "MESA: error: ZINK: failed to choose pdev" plus
+  # a row of EGL warnings, because /dev/dri was not there. Capture itself is
+  # unaffected — that runs on the host, with its own access — but an interface
+  # burning CPU, in an app whose whole point is not burning CPU, is absurd.
   - --device=dri
-  # El audio: el modo solo-audio graba por PipeWire/pulse.
+
+  # Audio-only mode records through PipeWire/pulse.
   - --socket=pulseaudio
-  # Las grabaciones van a las carpetas del usuario (Videos y Musica por
-  # defecto, u otra elegida). xdg-videos/xdg-music cubren el default; el
-  # dialogo de carpeta usa el portal para el resto.
+
+  # Recordings go to the user's own folders: Videos and Music by default, or
+  # wherever they pick. xdg-videos/xdg-music cover the defaults; the folder
+  # chooser uses the portal for anything else.
   - --filesystem=xdg-videos
   - --filesystem=xdg-music
-  # La sesion de grabacion (socket IPC de GSR, pid, log) vive en
-  # ~/.cache/easy-screen-recorder y la tienen que ver los dos lados.
+
+  # The recording session — gpu-screen-recorder's IPC socket, its pid and its
+  # log — lives here, and both sides have to see the same path.
   - --filesystem=~/.cache/easy-screen-recorder:create
-  # Para lanzar gpu-screen-recorder EN EL ANFITRION via flatpak-spawn.
-  # Es el permiso gordo de este manifiesto; NOTAS.md explica por que no hay
-  # alternativa mientras la captura viva en un proceso del anfitrion.
-  - --talk-name=org.freedesktop.Flatpak
-  # El atajo global habla con kglobalaccel, que es de KDE Plasma.
+
+  # THE PERMISSION THAT NEEDS A REVIEW, and the reason for it:
   #
-  # La aplicacion NO exige Plasma: funciona en cualquier escritorio y sobre
-  # Wayland y X11. Este permiso solo habilita el atajo global donde ese servicio
-  # existe; donde no, no se registra y no pasa nada mas. Se pide porque el
-  # portal de atajos globales (org.freedesktop.portal.GlobalShortcuts) todavia
-  # no esta desplegado de forma fiable; cuando lo este, esta linea se cambia por
-  # el portal y el permiso desaparece.
+  # The capture is done by a HOST process on purpose. gpu-screen-recorder
+  # (GPL-3.0-only) is launched with command-line arguments and controlled over a
+  # unix socket. It is not linked, not vendored and not redistributed, so it has
+  # to be installed on the host — and reaching it from inside the sandbox means
+  # flatpak-spawn --host, which needs this.
+  #
+  # Without host access there is no GPU capture, which is the only reason this
+  # app exists. Verified: built from the public tag, installed, and recording
+  # from inside the sandbox with GSR running on the host.
+  - --talk-name=org.freedesktop.Flatpak
+
+  # The global shortcut talks to kglobalaccel, which is a KDE Plasma service.
+  #
+  # The app does NOT require Plasma: it runs on any desktop, on Wayland and on
+  # X11. This permission only enables the global shortcut where that service
+  # exists; where it does not, the shortcut is simply never registered and
+  # nothing else changes.
+  #
+  # It is requested because org.freedesktop.portal.GlobalShortcuts is not yet
+  # reliably deployed. Once it is, this line is replaced by the portal and the
+  # permission goes away.
   - --talk-name=org.kde.kglobalaccel
 
 modules:
@@ -51,17 +68,8 @@ modules:
     config-opts:
       - -DCMAKE_BUILD_TYPE=RelWithDebInfo
     sources:
-      # url + tag + commit, que es lo que Flathub exige: construye SIN RED, asi
-      # que la fuente tiene que ser publica y estar fijada. El commit va junto
-      # al tag a proposito: un tag se puede mover, un commit no, y lo que se
-      # publica tiene que ser reproducible.
-      #
-      # OJO con una trampa circular: este fichero NO puede fijar el hash de su
-      # propio commit. No hace falta, porque el manifiesto que Flathub construye
-      # vive en el repositorio flathub/flathub, no aqui; esta copia es la
-      # plantilla que se envia. Asi que el commit fijado es el ultimo con codigo
-      # —y es donde apunta v0.1.0—, y los commits que solo tocan esta plantilla
-      # van despues sin afectar a lo que se construye.
+      # Tag AND commit, not just the tag: a tag can be moved and a commit
+      # cannot, and what gets published has to be reproducible.
       - type: git
         url: https://github.com/solucionesconscientes/easy-screen-recorder.git
         tag: v0.1.0
