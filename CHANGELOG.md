@@ -5,6 +5,17 @@ máquina de desarrollo.
 
 ## Sin publicar
 
+### Diseño de pantalla + webcam (2026-09-16)
+- `docs/ROADMAP.md` gana la Parte 2 con el diseño medido, **sin implementar**.
+- Lo medido: dos grabaciones de GSR a la vez funcionan sin contención, y la
+  composición con `ffmpeg` sale a **0,17× del tiempo grabado** mezclando en CPU
+  y codificando en GPU, frente a 0,48× haciéndolo todo en CPU.
+- `overlay_vaapi` **no funciona** en esta GPU: «Function not implemented»
+  incluso en el caso mínimo. La composición entera en GPU no es una opción aquí.
+- Se descarta el plugin de GSR, que sería la vía para superponer en vivo: se
+  carga dentro de su proceso y rompería el modelo dual.
+- Capturas de pantalla rehechas en inglés.
+
 ### Interfaz en inglés (2026-09-16)
 - **La interfaz sigue el idioma del sistema**: castellano si el sistema está en
   castellano, inglés en cualquier otro caso. 45 cadenas traducidas, con el
