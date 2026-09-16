@@ -54,9 +54,25 @@ something does not work from the command line, the interface does not get it.
 
 | | |
 |---|---|
-| **Flathub** | Coming soon |
-| **`.deb`** | Coming soon |
+| **Flatpak, from this project's own repo** | `flatpak install --user https://flatpak.solucionesconscientes.es/es.solucionesconscientes.EasyScreenRecorder.flatpakref` |
+| **`.deb`** | On the [releases page](https://github.com/solucionesconscientes/easy-screen-recorder/releases) |
 | **From source** | Below |
+| **Flathub** | Not submitted yet — see below |
+
+Updates from the Flatpak repo come with `flatpak update`, like any other remote.
+The KDE runtime still comes from Flathub; this repo only hosts the app itself.
+
+### Why not on Flathub
+
+Flathub requires submitters to **disclose AI-generated material**, and reviewers
+may reject a submission based on *"the extent or role of generated material"*.
+This application was built largely with AI assistance, so that extent is
+substantial and honest disclosure is the only option. It also needs a real
+development history, which a project this young does not have yet.
+
+So: self-distributed for now, submitted later with a full disclosure written by
+hand. Nothing about this is hidden — the commit history says
+`Co-Authored-By: Claude` throughout.
 
 ### From source
 

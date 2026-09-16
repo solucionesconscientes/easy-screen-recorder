@@ -140,7 +140,69 @@ Con red da 7 avisos, y **los 7 son del mismo tipo**: `url-not-reachable` y
 y no tiene capturas. Se resuelven al renombrar el repositorio, empujar la rama y
 añadir las imágenes. No hay ni un problema estructural.
 
-## Listo para enviar
+## Por qué NO se ha enviado todavía
+
+Técnicamente está listo: construido desde el tag público, instalado y grabando
+desde dentro del sandbox. Lo que lo para es la **política de IA generativa** de
+Flathub, y conviene tener el texto exacto delante porque circula una versión
+antigua y mucho más dura:
+
+> *Submitters must **disclose** any AI-generated code, documentation, packaging,
+> or other material... The disclosure must identify the affected parts and
+> approximate extent.*
+>
+> *Disclosed AI-generated material is **evaluated at reviewer discretion**.
+> Reviewers may reject a submission, including without further review, based on
+> **the extent or role** of generated material... Disclosure does not create a
+> presumption of acceptance.*
+>
+> *AI tools or agents **must not** open or automate Flathub submission pull
+> requests, or generate their commit messages, descriptions, review comments, or
+> replies.*
+
+Tres cosas se siguen de ahí:
+
+1. **No es una prohibición.** Hay que declarar, y el revisor decide según la
+   extensión. Circula por artículos de prensa una versión previa que sí prohibía
+   —se fusionó el 29 de mayo de 2026 y fue sustituida después—; esa ya no es la
+   política. Si alguien la cita, es historia.
+2. **Con la extensión de este proyecto, el rechazo es probable.** El criterio
+   literal es «the extent or role of generated material», y aquí es casi todo.
+   Eso no se arregla escribiendo mejor la declaración.
+3. **El PR lo escribe una persona.** Título, mensajes de commit del envío,
+   descripción y respuestas al revisor. Esa parte es prohibición tajante y las
+   infracciones repetidas llevan a veto permanente.
+
+Y aparte, el requisito de historial: *«Applications that have only existed for a
+very short period of time will generally not be accepted»*, con excepciones caso
+por caso. Este repositorio se creó el 9 de septiembre de 2026.
+
+**El plan:** distribuir por cuenta propia —`scripts/publicar-flatpak.sh` y el
+`.deb`—, acumular uso real e issues atendidos, y enviar más adelante con la
+declaración completa escrita por el titular.
+
+### Un aviso sobre el app-id, por si alguien lo propone
+
+Circula el consejo de usar `io.github.usuario.App`. **Eso es para quien NO tiene
+dominio propio.** Aquí hay dominio verificable, así que el app-id es
+`es.solucionesconscientes.EasyScreenRecorder` y la verificación va por
+`https://solucionesconscientes.es/.well-known/org.flathub.VerifiedApps.txt`, que
+ya está escrito. Cambiarlo tocaría nueve ficheros, nueve nombres de fichero, el
+`.desktop`, el metainfo, los iconos y el QML, y rompería las instalaciones que
+ya existan.
+
+### Y otro sobre lo que esta aplicación es
+
+**No es un fork de gpu-screen-recorder.** Es una interfaz independiente que lo
+lanza como proceso externo: cero líneas de su código en este repositorio,
+auditado y documentado en `docs/LICENSING.md`. Describirlo como fork en un envío
+sería inexacto, y además activaría el criterio de «forked app with minimal
+changes», que es otra cosa.
+
+Lo que sí conviene, cuando llegue el envío: avisar al upstream por cortesía, y
+dejar claro qué aporta esto que su propio flatpak no da.
+
+## Listo en lo técnico
 
 Estado a 2026-09-16. **Construido desde el repositorio público**, con
 `type: git` y el tag `v0.1.0` fijado por commit, instalado y grabando desde
