@@ -5,6 +5,49 @@ máquina de desarrollo.
 
 ## Sin publicar
 
+### El atajo global llevaba tandas sin funcionar (2026-09-16)
+
+Salió de una pregunta del titular —«¿hay atajos de teclado?»— que ya era la
+respuesta: si hay que preguntarlo, no se anuncian. Al ir a mirarlo aparecieron
+**tres fallos encadenados**, y el atajo no funcionaba desde hacía tandas.
+
+- **El camino DBus llevaba guiones, y DBus no los admite.** El componente se
+  llamaba `capturia`, sin guiones, así que el camino era válido y el atajo
+  funcionaba. **Al renombrar el proyecto a `easy-screen-recorder` aparecieron
+  los guiones**, la conexión a la señal falló en silencio y el atajo dejó de
+  disparar nada. Seguía saliendo en Preferencias del sistema, eso sí.
+  Comprobado con `busctl --user tree`: el camino real es
+  `/component/easy_screen_recorder`, con guiones bajos. Ahora se calcula, para
+  que el próximo renombrado no vuelva a romperlo.
+- **Y la tecla por defecto estaba ocupada.** Meta+Shift+R la tiene **Spectacle**
+  para «Iniciar/detener grabación de región», y también Meta+Alt+R y
+  Meta+Ctrl+R. kglobalaccel no concede una tecla ocupada: devuelve un cero y no
+  se queja. Ahora se prueban varias candidatas y se coge la primera libre; en
+  esta máquina queda **Meta+Shift+G**.
+- **Y una acción guardada sin tecla no se arregla pidiendo por las buenas.**
+  Con la bandera normal, kglobalaccel carga el «sin tecla» guardado y rechaza
+  cualquier default, para siempre. Medido: bandera 2, ni una combinación libre
+  concedida; bandera 4, concedida. Se pide primero por las buenas —para no pisar
+  la tecla que el usuario haya elegido— y solo se fuerza si no ha quedado
+  ninguna.
+
+Además:
+
+- **Atajo nuevo de pausa**, que es el que de verdad hacía falta: pausar obligaba
+  a sacar la ventana a la pantalla que se está grabando. En esta máquina queda
+  **Meta+Shift+P**. Verificado midiendo: 19 s de reloj con 8 en pausa dan un
+  fichero de **10,6 s**.
+- **La interfaz los anuncia**, y con la tecla de verdad: se le pregunta a KDE
+  cuál tiene puesta en vez de suponer la que pedimos, así que si el usuario la
+  cambia, el texto le sigue.
+- **«Solo smplayer» no decía de qué.** Se leía como «solamente smplayer». Pasa a
+  **«Solo el sonido de smplayer»**, que es lo que hace: graba el audio de esa
+  aplicación y deja fuera todo lo demás.
+
+Verificado ejecutando: los tres atajos por DBus sobre la aplicación viva
+—empezar, pausar, reanudar y parar—, build sin un warning, `ctest` 12/12,
+`verify-recording.sh` con los ocho casos en verde, `reuse lint` conforme.
+
 ### El apagón, hasta el final: audio, contenedores y reparación (2026-09-16)
 
 El arreglo anterior cubría la mitad. Al medir formato por formato salieron dos

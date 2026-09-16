@@ -491,6 +491,24 @@ void Controlador::alternarGrabacion() {
     }
 }
 
+void Controlador::ponerAtajos(bool hay, const QString& grabar, const QString& pausa) {
+    hay_atajos_ = hay;
+    atajo_grabar_ = grabar;
+    atajo_pausa_ = pausa;
+    emit hayAtajosCambiado();
+}
+
+void Controlador::alternarPausa() {
+    if (estado_ == QStringLiteral("grabando")) {
+        pausar();
+    } else if (estado_ == QStringLiteral("pausado")) {
+        reanudar();
+    }
+    // En solo-audio y en replay no se hace nada: GSR no pausa el primero, y
+    // pausar un buffer de repeticion no significa gran cosa. Callar es mejor
+    // que un error por pulsar una tecla que ahi no toca.
+}
+
 void Controlador::guardarReplay() {
     ponerError({});
     // No se cambia de estado ni se para el reloj: el replay SIGUE. Esto no es

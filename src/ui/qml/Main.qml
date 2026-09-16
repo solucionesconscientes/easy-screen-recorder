@@ -540,7 +540,12 @@ Kirigami.ApplicationWindow {
                                     { texto: qsTr("Los dos, en pistas separadas (para editar)"), valor: "ambos" },
                                     { texto: qsTr("Sin audio"), valor: "nada" }
                                 ].concat(Controlador.audiosAplicacion.map(function(a) {
-                                    return { texto: qsTr("Solo %1").arg(a.texto), valor: a.valor }
+                                    // «Solo smplayer» no decia de QUE: se leia
+                                    // como «solamente smplayer» sin mas. Lo que
+                                    // hace es grabar el sonido de esa aplicacion
+                                    // y dejar fuera todo lo demas.
+                                    return { texto: qsTr("Solo el sonido de %1").arg(a.texto),
+                                             valor: a.valor }
                                 }))
                                 currentIndex: 0
                                 QQC2.ToolTip.text: qsTr(
@@ -590,6 +595,30 @@ Kirigami.ApplicationWindow {
                                                                          : qsTr("sin señal")
                                     opacity: 0.7
                                 }
+                            }
+                            QQC2.Label {
+                                // Los atajos existian desde hace tandas y la
+                                // aplicacion no los mencionaba en ningun sitio,
+                                // asi que para el usuario no existian. Un atajo
+                                // que no se anuncia es codigo muerto.
+                                visible: Controlador.hayAtajos
+                                Kirigami.FormData.label: qsTr("Atajos:")
+                                text: qsTr("%1 graba y para").arg(Controlador.atajoGrabar)
+                                      + (Controlador.atajoPausa !== ""
+                                         ? "\n" + qsTr("%1 pausa y reanuda")
+                                                   .arg(Controlador.atajoPausa)
+                                         : "")
+                                opacity: 0.8
+                                QQC2.ToolTip.text: qsTr(
+                                    "Funcionan con la ventana cerrada o minimizada, que es "
+                                    + "para lo que sirven: pausar sin que la ventana salga "
+                                    + "en el vídeo.\n\nSe pueden cambiar en Preferencias del "
+                                    + "sistema, en Atajos de teclado.")
+                                // Una etiqueta no tiene «hovered» propio, asi
+                                // que el raton lo vigila un HoverHandler.
+                                HoverHandler { id: sobreAtajos }
+                                QQC2.ToolTip.visible: sobreAtajos.hovered
+                                QQC2.ToolTip.delay: 400
                             }
                             QQC2.CheckBox {
                                 id: cuentaAtrasActiva
