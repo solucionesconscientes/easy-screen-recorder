@@ -55,7 +55,14 @@ modules:
       # que la fuente tiene que ser publica y estar fijada. El commit va junto
       # al tag a proposito: un tag se puede mover, un commit no, y lo que se
       # publica tiene que ser reproducible.
+      #
+      # OJO con una trampa circular: este fichero NO puede fijar el hash de su
+      # propio commit. No hace falta, porque el manifiesto que Flathub construye
+      # vive en el repositorio flathub/flathub, no aqui; esta copia es la
+      # plantilla que se envia. Asi que el commit fijado es el ultimo con codigo
+      # —y es donde apunta v0.1.0—, y los commits que solo tocan esta plantilla
+      # van despues sin afectar a lo que se construye.
       - type: git
         url: https://github.com/solucionesconscientes/easy-screen-recorder.git
         tag: v0.1.0
-        commit: 2b44500fc21db200d8aa067e3ece3accc44292b5
+        commit: 329b95a7e61055e7a081a0ec3348f4db5f5dc776
