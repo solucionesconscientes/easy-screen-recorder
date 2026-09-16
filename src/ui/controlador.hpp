@@ -46,6 +46,12 @@ public:
     QStringList codecsVideo() const { return codecs_video_; }
     QStringList contenedores() const;
     Q_INVOKABLE QStringList codecsAudioPara(const QString& contenedor) const;
+    // Los formatos del modo solo-audio y si el elegido pierde informacion. El
+    // QML usa lo segundo para ESCONDER el bitrate, no para deshabilitarlo: un
+    // control en gris invita a preguntarse por que, y en flac la respuesta es
+    // que ese ajuste no existe.
+    Q_INVOKABLE QStringList formatosAudio() const;
+    Q_INVOKABLE bool formatoAudioSinPerdida(const QString& formato) const;
     QString carpetaVideos() const;
     QString carpetaAudio() const;
     Q_INVOKABLE void elegirCarpeta(bool paraAudio, const QUrl& carpeta);

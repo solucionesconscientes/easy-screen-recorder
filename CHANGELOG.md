@@ -5,6 +5,25 @@ máquina de desarrollo.
 
 ## Sin publicar
 
+### Páginas de manual (2026-09-16)
+- `easy-screen-recorder(1)` y `easy-screen-recorder-cli(1)`, instaladas por el
+  CMake en `share/man/man1`. Van con el proyecto y no con el empaquetado:
+  documentan el programa, no cómo se empaqueta.
+
+### Formatos de solo audio (2026-09-15)
+- **Tres formatos nuevos**: AAC en `.m4a` (compatibilidad), WAV (sin pérdida,
+  para editar) y MP3 (solo compatibilidad heredada). Con Opus y FLAC, cinco.
+- **Calidad del audio** elegible (96/128/192 kbps) en los formatos con
+  pérdida. En FLAC y WAV el control **se esconde**, no se deshabilita: ahí ese
+  ajuste no existe.
+- «Lo que suena» pasa a llamarse **«Audio del sistema»** en la interfaz y en la
+  ayuda del CLI.
+- `--bitrate` en el CLI.
+- La tabla de formatos vive en un solo sitio, y de ella salen la lista de la
+  interfaz, la extensión por defecto y el codificador de ffmpeg. Antes la
+  extensión era un `formato == "flac" ? "flac" : "opus"` repetido en dos
+  ficheros, que con cinco formatos habría dado el fichero mal nombrado.
+
 ### Flatpak funcionando (2026-09-15)
 - **La aplicación empaquetada ya graba.** Dentro de un sandbox, GSR se lanza en
   el anfitrión con `flatpak-spawn --host`. Verificado grabando: 416 s por CLI y
@@ -14,6 +33,7 @@ máquina de desarrollo.
 - El manifiesto declara `--device=dri`: sin él la interfaz se dibujaba en
   software.
 - Runtime `org.kde.Platform` 6.11 confirmado construyendo y ejecutando.
+
 ### Empaquetado Debian (2026-09-15)
 - `debian/` con `control`, `rules`, `changelog`, `copyright` y
   `source/format`. Construcción con `dh --buildsystem=cmake+ninja`.

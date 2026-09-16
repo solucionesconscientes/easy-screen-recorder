@@ -35,11 +35,11 @@ la GPU y empiezas a grabar en dos clics.
 
 - **Graba cualquier monitor, una región que eliges arrastrando, la ventana en
   foco o una cámara**, con la codificación en la GPU.
-- **Modo de solo audio**, a Opus o FLAC, sin encender siquiera la captura de
+- **Modo de solo audio**, a Opus, AAC, FLAC, WAV o MP3, sin encender siquiera la captura de
   vídeo.
 - **Pausa y reanuda** a media grabación, y un **atajo global** para empezar y
   parar sin salir de lo que estás haciendo.
-- **Elige el dispositivo de audio por ti** —lo que suena, el micrófono o varias
+- **Elige el dispositivo de audio por ti** —el audio del sistema, el micrófono o varias
   pistas a la vez— y **recuerda dónde van tus grabaciones**.
 - **Te dice qué falta antes de darle a grabar**, en vez de fallar a mitad:
   `easy-screen-recorder-cli --check`.

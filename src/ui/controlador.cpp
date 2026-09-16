@@ -21,7 +21,7 @@ namespace {
 // Las dos entradas de solo-audio van en la misma lista que las fuentes de
 // pantalla: asi "dos clics" vale tambien para una nota de voz. Llevan prefijo
 // para que el controlador sepa por que via van.
-const QString kAudioSistema = QStringLiteral("Solo audio: lo que suena");
+const QString kAudioSistema = QStringLiteral("Solo audio: audio del sistema");
 const QString kAudioMicro = QStringLiteral("Solo audio: micrófono");
 
 }  // namespace
@@ -102,6 +102,16 @@ void Controlador::detectarEnSegundoPlano() {
         }
     });
     vigilante->setFuture(QtConcurrent::run([] { return esr::detectar(); }));
+}
+
+QStringList Controlador::formatosAudio() const {
+    QStringList lista;
+    for (const auto& f : esr::formatos_audio()) lista << QString::fromStdString(f);
+    return lista;
+}
+
+bool Controlador::formatoAudioSinPerdida(const QString& formato) const {
+    return esr::audio_sin_perdida(formato.toStdString());
 }
 
 QStringList Controlador::contenedores() const {
@@ -192,7 +202,8 @@ void Controlador::grabar(const QString& fuente, const QVariantMap& opciones) {
                         .toString()
                         .toStdString();
         const std::string carpeta = esr::carpeta_audio_elegida();
-        a.salida = esr::nombre_por_defecto(carpeta, a.formato == "flac" ? "flac" : "opus");
+        a.bitrate_kbps = opciones.value(QStringLiteral("bitrateAudio"), 0).toInt();
+        a.salida = esr::nombre_por_defecto(carpeta, esr::extension_por_defecto(a.formato));
 
         ponerEstado(QStringLiteral("arrancando"));
         auto* vigilante = new QFutureWatcher<esr::ResultadoAudio>(this);

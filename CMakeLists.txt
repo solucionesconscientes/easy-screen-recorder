@@ -33,6 +33,15 @@ add_subdirectory(src/core)
 add_subdirectory(src/cli)
 add_subdirectory(src/ui)
 
+# Las paginas de manual van con el proyecto y no con el empaquetado de Debian:
+# documentan el comportamiento del programa, no como se empaqueta. Asi las tiene
+# cualquier distribucion y tambien quien compila desde el codigo, y `lintian`
+# deja de avisar de no-manual-page sin tener que duplicarlas en debian/.
+include(GNUInstallDirs)
+install(FILES docs/man/easy-screen-recorder.1
+              docs/man/easy-screen-recorder-cli.1
+        DESTINATION ${CMAKE_INSTALL_MANDIR}/man1)
+
 include(CTest)
 if(BUILD_TESTING)
   add_subdirectory(tests)

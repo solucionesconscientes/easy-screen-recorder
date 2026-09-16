@@ -4,6 +4,8 @@
 
 #include "esr/audio.hpp"
 
+#include <algorithm>
+
 #include <signal.h>
 
 #include <cstdlib>
@@ -32,6 +34,73 @@ long leer_pid(const std::string& ruta) {
 
 }  // namespace
 
+namespace {
+
+// Formato -> contenedores que lo admiten, y el primero es el natural.
+//
+// Una sola tabla para las dos preguntas que hay que contestar —que extension
+// vale y cual se pone por defecto— porque tenerlas en dos sitios es como se
+// queda una desactualizada. «.mka» aparece en los tres con perdida y en flac
+// porque Matroska acepta cualquier codec de audio; no esta en wav ni en mp3
+// porque ahi el contenedor es el formato.
+struct Formato {
+    const char* nombre;
+    const char* codificador;              // lo que se le pasa a ffmpeg en -c:a
+    std::vector<const char*> extensiones;  // la primera es la de por defecto
+    bool sin_perdida;
+};
+
+const std::vector<Formato>& tabla() {
+    static const std::vector<Formato> t = {
+        {"opus", "libopus",    {"opus", "ogg", "mka"}, false},
+        {"aac",  "aac",        {"m4a", "aac", "mka"},  false},
+        {"flac", "flac",       {"flac", "mka"},        true},
+        {"wav",  "pcm_s16le",  {"wav"},                true},
+        {"mp3",  "libmp3lame", {"mp3"},                false},
+    };
+    return t;
+}
+
+const Formato* buscar(const std::string& nombre) {
+    for (const auto& f : tabla()) {
+        if (nombre == f.nombre) return &f;
+    }
+    return nullptr;
+}
+
+std::string lista_formatos() {
+    std::string texto;
+    const auto& t = tabla();
+    for (std::size_t i = 0; i < t.size(); ++i) {
+        if (i > 0) texto += i + 1 == t.size() ? " y " : ", ";
+        texto += t[i].nombre;
+    }
+    return texto;
+}
+
+}  // namespace
+
+const std::vector<std::string>& formatos_audio() {
+    static const std::vector<std::string> nombres = [] {
+        std::vector<std::string> v;
+        for (const auto& f : tabla()) v.emplace_back(f.nombre);
+        return v;
+    }();
+    return nombres;
+}
+
+bool audio_sin_perdida(const std::string& formato) {
+    const auto* f = buscar(formato);
+    return f != nullptr && f->sin_perdida;
+}
+
+std::string extension_por_defecto(const std::string& formato) {
+    const auto* f = buscar(formato);
+    // Un formato desconocido no revienta aqui: lo rechaza validar_audio() con
+    // un mensaje que se puede leer. Esta funcion solo compone un nombre.
+    return f != nullptr ? f->extensiones.front() : "opus";
+}
+
 std::vector<std::string> validar_audio(const AjustesAudio& a) {
     std::vector<std::string> problemas;
     if (a.dispositivo.empty()) problemas.push_back("falta el dispositivo de audio");
@@ -40,18 +109,33 @@ std::vector<std::string> validar_audio(const AjustesAudio& a) {
         return problemas;
     }
 
-    const std::string ext = extension_de(a.salida);
-    if (a.formato == "opus") {
-        if (ext != "opus" && ext != "ogg" && ext != "mka") {
-            problemas.push_back("opus va en .opus, .ogg o .mka; la salida acaba en «." + ext + "»");
-        }
-    } else if (a.formato == "flac") {
-        if (ext != "flac" && ext != "mka") {
-            problemas.push_back("flac va en .flac o .mka; la salida acaba en «." + ext + "»");
-        }
-    } else {
+    const auto* f = buscar(a.formato);
+    if (f == nullptr) {
         problemas.push_back("formato desconocido «" + a.formato +
-                            "»: el modo audio-only ofrece opus y flac");
+                            "»: el modo audio-only ofrece " + lista_formatos());
+        return problemas;
+    }
+
+    const std::string ext = extension_de(a.salida);
+    if (std::find(f->extensiones.begin(), f->extensiones.end(), ext) == f->extensiones.end()) {
+        std::string acepta;
+        for (std::size_t i = 0; i < f->extensiones.size(); ++i) {
+            if (i > 0) acepta += i + 1 == f->extensiones.size() ? " o ." : ", .";
+            acepta += f->extensiones[i];
+        }
+        problemas.push_back(std::string(f->nombre) + " va en ." + acepta +
+                            "; la salida acaba en «." + ext + "»");
+    }
+
+    if (a.bitrate_kbps != 0) {
+        if (f->sin_perdida) {
+            problemas.push_back(std::string(f->nombre) +
+                                " no tiene bitrate: no pierde informacion, asi que el tamano "
+                                "lo decide el audio y no un ajuste");
+        } else if (a.bitrate_kbps < 32 || a.bitrate_kbps > 512) {
+            problemas.push_back("el bitrate va entre 32 y 512 kbps; se pidio " +
+                                std::to_string(a.bitrate_kbps));
+        }
     }
     return problemas;
 }
@@ -88,10 +172,14 @@ std::vector<std::string> argumentos_ffmpeg(const AjustesAudio& a,
     // -y: la ruta la generamos nosotros; si existe, es una repeticion querida.
     std::vector<std::string> args = {"-nostdin", "-hide_banner", "-y",
                                      "-f", "pulse", "-i", fuente_pipewire};
-    if (a.formato == "opus") {
-        args.insert(args.end(), {"-c:a", "libopus"});
-    } else {
-        args.insert(args.end(), {"-c:a", "flac"});
+    const auto* f = buscar(a.formato);
+    // Sin formato reconocido no se adivina: opus es el default declarado en
+    // AjustesAudio y es lo que validar_audio() deja pasar.
+    args.insert(args.end(), {"-c:a", f != nullptr ? f->codificador : "libopus"});
+    // 0 significa «lo que decida el codificador», que para opus y aac es un
+    // valor sensato. Solo se pasa -b:a si el usuario pidio uno.
+    if (a.bitrate_kbps != 0 && f != nullptr && !f->sin_perdida) {
+        args.insert(args.end(), {"-b:a", std::to_string(a.bitrate_kbps) + "k"});
     }
     args.push_back(a.salida);
     return args;

@@ -1,0 +1,230 @@
+.\" SPDX-FileCopyrightText: 2026 Dalmau Romaní (Soluciones Conscientes)
+.\"
+.\" SPDX-License-Identifier: GPL-3.0-or-later
+.TH EASY-SCREEN-RECORDER-CLI 1 "2026-09-16" "easy-screen-recorder 0.1.0" "Comandos de usuario"
+.SH NOMBRE
+easy\-screen\-recorder\-cli \- graba la pantalla o solo el audio, desde la consola
+.SH SINOPSIS
+.B easy\-screen\-recorder\-cli
+.I orden
+.RI [ opciones ]
+.SH DESCRIPCIÓN
+Graba la pantalla con la codificación en la GPU, o solo el audio sin encender la
+captura de vídeo.
+.PP
+La captura de pantalla la hace
+.BR gpu\-screen\-recorder (1),
+que se lanza como
+.B proceso externo
+y tiene que estar instalado. El modo de solo audio no pasa por él: usa
+.BR ffmpeg (1)
+y PipeWire, y funciona en una máquina sin gpu\-screen\-recorder.
+.PP
+.B grabar
+y
+.B audio
+vuelven al instante y dejan la grabación en marcha;
+.B parar
+la cierra e imprime la ruta del fichero.
+.SH ÓRDENES
+.TP
+.B grabar
+Empieza a grabar la pantalla y vuelve al instante.
+.TP
+.B audio
+Graba solo audio, sin vídeo.
+.TP
+.B parar
+Para, guarda e imprime la ruta del fichero. Sirve para las dos.
+.TP
+.B pausar
+Pausa la grabación de pantalla en marcha. El modo de solo audio no se pausa.
+.TP
+.B reanudar
+Reanuda la grabación pausada.
+.TP
+.B estado
+Dice si hay una grabación en marcha.
+.TP
+.B fuentes
+Lista lo que esta máquina puede grabar: monitores, cámaras y las fuentes
+especiales.
+.TP
+.B dispositivos
+Lista los dispositivos de audio.
+.TP
+.B \-\-check " [" \-\-volcado " " \fIFICHERO\fR ]
+Comprueba el entorno y dice qué falta y qué deja de funcionar por ello. Con
+.B \-\-volcado
+lee un volcado de capacidades guardado en vez de sondear la máquina.
+.TP
+.B \-\-version
+Imprime la versión y sale.
+.SH OPCIONES DE GRABAR
+Todas tienen un valor por defecto sensato.
+.TP
+.BI \-\-fuente " F"
+Un monitor (por ejemplo
+.BR eDP\-1 ),
+.B region
+para elegir un recorte,
+.B portal
+para que el sistema pregunte qué compartir,
+.B focused
+para la ventana en foco, o una cámara
+.RB ( /dev/video0 ).
+Sin ella, el primer monitor. Usa
+.B fuentes
+para ver las de esta máquina.
+.TP
+.BI \-\-region " ANCHOxALTO+X+Y"
+El recorte. Solo con
+.BR "\-\-fuente region" .
+.TP
+.BI \-\-salida " FICHERO"
+El destino. Sin él,
+.B easy\-screen\-recorder\-FECHA.mkv
+en la carpeta de Vídeos.
+.TP
+.BI \-\-codec " C"
+Códec de vídeo. Los disponibles dependen de la GPU: mira
+.BR \-\-check .
+Sin él, lo decide gpu\-screen\-recorder.
+.TP
+.BI \-\-codec\-audio " C"
+.BR aac ,
+.B opus
+o
+.BR flac .
+Por defecto opus.
+.TP
+.BI \-\-audio " DISP"
+Una pista de audio. Repetible, y cada repetición es una pista más.
+Por defecto
+.BR default_output .
+.TP
+.B \-\-sin\-audio
+Grabar sin ninguna pista de audio.
+.TP
+.BI \-\-fps " N"
+Fotogramas por segundo. Por defecto 60.
+.TP
+.BI \-\-calidad " Q"
+.BR medium ,
+.BR high ,
+.B very_high
+o
+.BR ultra .
+Por defecto very_high.
+.SH OPCIONES DE AUDIO
+.TP
+.BI \-\-dispositivo " D"
+.B default_output
+(el audio del sistema),
+.B default_input
+(el micrófono) o un nombre de
+.BR dispositivos .
+Por defecto, el audio del sistema.
+.TP
+.BI \-\-formato " F"
+.BR opus ,
+.BR aac ,
+.BR flac ,
+.B wav
+o
+.BR mp3 .
+Por defecto opus.
+.IP
+El formato es el
+.BR códec ;
+el contenedor lo decide la extensión del fichero de salida, y se comprueba que
+sean compatibles. La extensión natural de cada uno es
+.BR .opus ,
+.BR .m4a ,
+.BR .flac ,
+.B .wav
+y
+.BR .mp3 .
+.TP
+.BI \-\-bitrate " N"
+Kilobits por segundo del audio, entre 32 y 512. Sin él, lo decide el códec, que
+es un valor sensato. No se acepta en
+.B flac
+ni en
+.BR wav :
+no pierden información, así que el tamaño lo decide el audio y no un ajuste.
+.TP
+.BI \-\-salida " FICHERO"
+El destino. Sin él,
+.B easy\-screen\-recorder\-FECHA
+con la extensión del formato elegido, en la carpeta de Música.
+.SH CÓDIGOS DE SALIDA
+.TP
+.B 0
+Bien.
+.TP
+.B 1
+La operación falló.
+.TP
+.B 2
+La orden está mal escrita.
+.SH FICHEROS
+.TP
+.I ~/.config/easy-screen-recorder/easy-screen-recorder.conf
+Las carpetas de destino elegidas.
+.TP
+.I ~/.cache/easy-screen-recorder/sesion/
+La sesión de pantalla: el socket IPC de gpu\-screen\-recorder, su pid y su log.
+.TP
+.I ~/.cache/easy-screen-recorder/sesion-audio/
+La sesión de solo audio: el pid de ffmpeg y su log.
+.SH EJEMPLOS
+Grabar el primer monitor con los valores por defecto:
+.PP
+.RS
+.EX
+easy\-screen\-recorder\-cli grabar
+easy\-screen\-recorder\-cli parar
+.EE
+.RE
+.PP
+Un recorte de 800x600 a 30 fps, sin audio:
+.PP
+.RS
+.EX
+easy\-screen\-recorder\-cli grabar \-\-fuente region \\
+    \-\-region 800x600+100+100 \-\-fps 30 \-\-sin\-audio
+.EE
+.RE
+.PP
+Grabar el audio del sistema y el micrófono en dos pistas separadas:
+.PP
+.RS
+.EX
+easy\-screen\-recorder\-cli grabar \-\-audio default_output \-\-audio default_input
+.EE
+.RE
+.PP
+Una nota de voz del micrófono, en opus a 96 kbps:
+.PP
+.RS
+.EX
+easy\-screen\-recorder\-cli audio \-\-dispositivo default_input \\
+    \-\-formato opus \-\-bitrate 96 \-\-salida ~/nota.opus
+.EE
+.RE
+.PP
+Ver qué falta antes de grabar:
+.PP
+.RS
+.EX
+easy\-screen\-recorder\-cli \-\-check
+.EE
+.RE
+.SH VÉASE TAMBIÉN
+.BR easy\-screen\-recorder (1),
+.BR gpu\-screen\-recorder (1),
+.BR ffmpeg (1),
+.BR pactl (1)
+.SH ERRORES
+https://github.com/solucionesconscientes/easy\-screen\-recorder/issues
