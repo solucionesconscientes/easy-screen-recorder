@@ -146,8 +146,8 @@ añadir las imágenes. No hay ni un problema estructural.
 |---|---|
 | Capturas de pantalla en URL pública | **Falta.** Las tres están ya referenciadas en el metainfo; ver `docs/screenshots/README.md` |
 | `<releases>` con la versión | **Hecho**: 0.1.0, tipo `development` |
-| Repositorio público con tag | **Falta.** El manifiesto de envío cambia `type: dir` por `type: git` + tag + commit |
-| Verificación de dominio | **Falta.** Hay que publicar `https://solucionesconscientes.es/.well-known/org.flathub.VerifiedApps.txt` con el app-id dentro, para que la ficha salga como verificada |
+| Repositorio público con tag | **Hecho.** Público desde el 2026-09-16, tag `v0.1.0`, y el manifiesto ya usa `type: git` con tag y commit |
+| Verificación de dominio | **Fichero escrito, sin desplegar.** Está en `websc`, en `public/.well-known/org.flathub.VerifiedApps.txt`. No bloquea el envío: la marca de verificada se resuelve cuando se despliegue el sitio |
 | Justificar `flatpak-spawn` | **Redactado abajo**, listo para pegar en el envío |
 | Construir y grabar dentro del sandbox | **Hecho y verificado** (bloqueo 2) |
 | Runtime 6.11 | **Confirmado**: construye y ejecuta. Ya no está a ciegas |

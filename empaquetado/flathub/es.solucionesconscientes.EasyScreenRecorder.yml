@@ -1,11 +1,12 @@
-# Manifiesto de Flathub para Easy Screen Recorder. BORRADOR: la licencia ya
-# esta resuelta (GPL-3.0-or-later), pero queda el bloqueo de lanzar GSR desde
-# dentro del sandbox, con su verificacion. Ver NOTAS.md.
+# Manifiesto de Flathub para Easy Screen Recorder.
+#
+# Construido, instalado y GRABANDO desde dentro del sandbox el 2026-09-16, con
+# GSR lanzado en el anfitrion por flatpak-spawn. Lo que falta para el envio no
+# es tecnico: son las capturas de pantalla. Ver NOTAS.md.
 app-id: es.solucionesconscientes.EasyScreenRecorder
 runtime: org.kde.Platform
-# 6.11: la 6.9 esta EOL y el linter de Flathub avisa de que pasara a error.
-# Cambiado a ciegas: construir para comprobarlo exige bajar el SDK de KDE
-# (~2 GB) y no se ha hecho aqui. Verificar en la primera construccion real.
+# La 6.9 esta EOL y el linter avisaba de que pasaria a error. Verificado
+# construyendo con org.kde.Sdk//6.11.
 runtime-version: '6.11'
 sdk: org.kde.Sdk
 command: easy-screen-recorder
@@ -34,7 +35,14 @@ finish-args:
   # Es el permiso gordo de este manifiesto; NOTAS.md explica por que no hay
   # alternativa mientras la captura viva en un proceso del anfitrion.
   - --talk-name=org.freedesktop.Flatpak
-  # El atajo global habla con kglobalaccel.
+  # El atajo global habla con kglobalaccel, que es de KDE Plasma.
+  #
+  # La aplicacion NO exige Plasma: funciona en cualquier escritorio y sobre
+  # Wayland y X11. Este permiso solo habilita el atajo global donde ese servicio
+  # existe; donde no, no se registra y no pasa nada mas. Se pide porque el
+  # portal de atajos globales (org.freedesktop.portal.GlobalShortcuts) todavia
+  # no esta desplegado de forma fiable; cuando lo este, esta linea se cambia por
+  # el portal y el permiso desaparece.
   - --talk-name=org.kde.kglobalaccel
 
 modules:
@@ -43,6 +51,11 @@ modules:
     config-opts:
       - -DCMAKE_BUILD_TYPE=RelWithDebInfo
     sources:
-      # Para el envio real: url + tag + commit del repositorio publico.
-      - type: dir
-        path: ../..
+      # url + tag + commit, que es lo que Flathub exige: construye SIN RED, asi
+      # que la fuente tiene que ser publica y estar fijada. El commit va junto
+      # al tag a proposito: un tag se puede mover, un commit no, y lo que se
+      # publica tiene que ser reproducible.
+      - type: git
+        url: https://github.com/solucionesconscientes/easy-screen-recorder.git
+        tag: v0.1.0
+        commit: 329b95a7e61055e7a081a0ec3348f4db5f5dc776
