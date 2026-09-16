@@ -18,8 +18,9 @@
 #   scripts/publicar-flatpak.sh                 construye y firma en local
 #   scripts/publicar-flatpak.sh --publicar      ademas empuja a GitHub Pages
 #
-# La primera vez hay que crear el repositorio de GitHub y activar Pages sobre la
-# rama gh-pages. El script avisa si no existe.
+# La primera vez hay que crear el repositorio de GitHub y conectarlo a
+# Cloudflare Pages, con la rama de produccion `main`, sin comando de
+# construccion y con el directorio de salida `/`. El script avisa si no existe.
 
 set -euo pipefail
 
@@ -101,7 +102,7 @@ flatpak-builder --user --force-clean --install-deps-from=flathub \
   "$salida/build" "$MANIFIESTO"
 
 # Los deltas estaticos hacen que una actualizacion descargue solo lo que cambio.
-# El prune evita que el repositorio crezca sin limite: GitHub Pages no es un
+# El prune evita que el repositorio crezca sin limite: Pages no es un
 # sitio donde convenga acumular.
 flatpak build-update-repo --gpg-sign="$CLAVE" --title="$APP_TITULO" \
   --default-branch="$RAMA" --generate-static-deltas --prune --prune-depth=5 \
