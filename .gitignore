@@ -10,6 +10,13 @@ docs/interno/
 
 build/
 build-*/
+
+# Lo que deja flatpak-builder: el arbol de construccion, la cache de estado y
+# el repositorio ostree local. Son cientos de ficheros y se regeneran con un
+# comando; ademas descuadran `reuse lint`, que cuenta todo lo que hay en el
+# arbol.
+salida-flatpak/
+.flatpak-builder/
 compile_commands.json
 .cache/
 *.user

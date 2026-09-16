@@ -5,6 +5,16 @@ máquina de desarrollo.
 
 ## Sin publicar
 
+### Flatpak funcionando (2026-09-15)
+- **La aplicación empaquetada ya graba.** Dentro de un sandbox, GSR se lanza en
+  el anfitrión con `flatpak-spawn --host`. Verificado grabando: 416 s por CLI y
+  2,79 s por la UI, comprobados con `ffprobe` desde fuera del sandbox.
+- Dentro de un sandbox no se busca en `PATH`, solo en el anfitrión, por las dos
+  vías (binario nativo o flatpak de GSR). Fuera, el comportamiento no cambia.
+- El manifiesto declara `--device=dri`: sin él la interfaz se dibujaba en
+  software.
+- Runtime `org.kde.Platform` 6.11 confirmado construyendo y ejecutando.
+
 ### Renombrado (2026-09-15)
 - **Proyecto renombrado desde Capturia a Easy Screen Recorder.** El nombre es
   siempre en inglés y sin abreviar, en todos los idiomas.

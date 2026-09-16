@@ -129,15 +129,23 @@ ResultadoLanzamiento empezar_grabacion(const AjustesGrabacion& ajustes,
 
     const auto inv = localizar_gsr("gpu-screen-recorder");
     if (!inv) {
-        r.motivo = "gpu-screen-recorder no esta ni en PATH ni como flatpak";
+        r.motivo = dentro_de_sandbox()
+                       ? "gpu-screen-recorder no esta en el anfitrion. Instalalo ahi, no "
+                         "dentro del sandbox: la captura la hace un proceso del anfitrion"
+                       : "gpu-screen-recorder no esta ni en PATH ni como flatpak";
         return r;
     }
 
-    // La trampa del flatpak: su /tmp es privado, asi que un fichero de salida
-    // alli se quedaria dentro del sandbox y el usuario no lo veria jamas.
-    if (inv->origen == "flatpak" && ajustes.salida.rfind("/tmp/", 0) == 0) {
-        r.motivo = "con GSR en flatpak el fichero no puede ir a /tmp: su /tmp es privado "
-                   "del sandbox y el video se quedaria alli dentro. Usa una ruta bajo tu home";
+    // La trampa de /tmp, que ahora tiene tres versiones del mismo problema:
+    // el fichero lo escribe un proceso que NO comparte /tmp con nosotros. Con
+    // GSR en flatpak, su /tmp es suyo; desde dentro de un sandbox, el /tmp que
+    // ve GSR es el del anfitrion y el nuestro es privado. En los dos casos el
+    // video acaba en un /tmp que nadie va a mirar.
+    if (escribe_fuera_de_nuestro_sandbox(inv->origen) &&
+        ajustes.salida.rfind("/tmp/", 0) == 0) {
+        r.motivo = "el fichero no puede ir a /tmp: lo escribe otro proceso y su /tmp no es "
+                   "el mismo que el tuyo, asi que el video se quedaria donde no lo ves. "
+                   "Usa una ruta bajo tu home";
         return r;
     }
 
