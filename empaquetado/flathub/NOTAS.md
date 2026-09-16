@@ -144,7 +144,7 @@ añadir las imágenes. No hay ni un problema estructural.
 
 | Qué | Estado |
 |---|---|
-| Capturas de pantalla en URL pública | **Falta.** Las tres están ya referenciadas en el metainfo; ver `docs/screenshots/README.md` |
+| Capturas de pantalla en URL pública | **Falta, y es OBLIGATORIO**: «All graphical applications must have one or more screenshots in the MetaInfo». Referenciadas al tag `v0.1.0`, no a `main`, porque Flathub exige tag o commit. Hay que tomarlas, commitearlas y MOVER el tag; ver `docs/screenshots/README.md` |
 | `<releases>` con la versión | **Hecho**: 0.1.0, tipo `development` |
 | Repositorio público con tag | **Hecho.** Público desde el 2026-09-16, tag `v0.1.0`, y el manifiesto ya usa `type: git` con tag y commit |
 | Verificación de dominio | **Fichero escrito, sin desplegar.** Está en `websc`, en `public/.well-known/org.flathub.VerifiedApps.txt`. No bloquea el envío: la marca de verificada se resuelve cuando se despliegue el sitio |

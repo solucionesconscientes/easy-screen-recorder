@@ -117,17 +117,17 @@ SPDX-License-Identifier: CC0-1.0
 
   <screenshots>
     <screenshot type="default">
-      <image>https://github.com/solucionesconscientes/easy-screen-recorder/raw/main/docs/screenshots/principal.png</image>
+      <image>https://github.com/solucionesconscientes/easy-screen-recorder/raw/v0.1.0/docs/screenshots/principal.png</image>
       <caption>The main window: pick what to record and press record</caption>
       <caption xml:lang="es">La ventana principal: eliges qué grabar y grabas</caption>
     </screenshot>
     <screenshot>
-      <image>https://github.com/solucionesconscientes/easy-screen-recorder/raw/main/docs/screenshots/grabando.png</image>
+      <image>https://github.com/solucionesconscientes/easy-screen-recorder/raw/v0.1.0/docs/screenshots/grabando.png</image>
       <caption>Recording, with the elapsed time and pause at hand</caption>
       <caption xml:lang="es">Grabando, con el tiempo y la pausa a mano</caption>
     </screenshot>
     <screenshot>
-      <image>https://github.com/solucionesconscientes/easy-screen-recorder/raw/main/docs/screenshots/ajustes.png</image>
+      <image>https://github.com/solucionesconscientes/easy-screen-recorder/raw/v0.1.0/docs/screenshots/ajustes.png</image>
       <caption>Advanced settings: format, codecs and quality</caption>
       <caption xml:lang="es">Ajustes avanzados: formato, códecs y calidad</caption>
     </screenshot>

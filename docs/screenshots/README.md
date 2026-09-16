@@ -1,12 +1,23 @@
 # Capturas: qué falta
 
-El metainfo (`src/ui/datos/es.solucionesconscientes.EasyScreenRecorder.metainfo.xml`)
-ya las referencia por URL cruda del repositorio, así que **en cuanto existan y
-se suban, Flathub las recoge sin tocar nada más**. Mientras no estén,
-`appstreamcli validate` avisa con `screenshot-image-not-found`, y ese aviso es
-correcto.
+**Flathub las exige:** «All graphical applications must have one or more
+screenshots in the MetaInfo». No es una recomendación, así que sin ellas no hay
+envío. La primera, la `type="default"`, es la que sale en la ficha.
 
-Flathub pide al menos una, y la primera es la que sale en la ficha.
+El metainfo las referencia por URL cruda del repositorio y **apuntando al tag
+`v0.1.0`, no a `main`**. Eso también lo pide Flathub: «the link should be from a
+tag or a commit and not a branch». Una rama se mueve, y la ficha publicada
+enseñaría capturas de otra versión.
+
+**Consecuencia en el orden de los pasos, y es la parte que se olvida:** las
+capturas tienen que estar DENTRO del commit etiquetado. Así que:
+
+1. Tomar las capturas y commitearlas.
+2. **Mover el tag** a ese commit: `git tag -f -a v0.1.0` y `git push --force origin v0.1.0`.
+3. Poner en el manifiesto de Flathub el commit nuevo del tag.
+
+Si se etiqueta antes de las capturas, las URLs dan 404 para siempre en esa
+versión.
 
 | Fichero | Qué tiene que enseñar | Estado |
 |---|---|---|
