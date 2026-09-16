@@ -155,11 +155,89 @@ bisecar.
 
 ---
 
-# Parte 2 · Pantalla y webcam juntas
+# Parte 2 · Pantalla y webcam juntas — HECHO, y no como se había diseñado
 
-Pedido por el titular el 2026-09-16: grabar pantalla y webcam, **con el tamaño y
-la esquina de la webcam elegibles**. Esto es el diseño, medido antes de escribir
-código. No está implementado.
+**Implementado el 2026-09-16.** Lo que hay debajo era el diseño anterior, y hay
+que leerlo sabiendo que **estaba equivocado en su premisa**. Se conserva porque
+la lección vale más que el texto.
+
+## Lo que se creía, y lo que resultó
+
+El diseño partía de que GSR no sabe superponer una cámara sin un plugin, y de
+ahí salía todo: **dos** procesos de GSR, **dos** ficheros, un `ffmpeg`
+componiendo después, un estado nuevo `componiendo`, la regla de no borrar los
+originales hasta confirmar el compuesto, y una discusión entera de CPU contra
+GPU con mediciones de 0,17× y 0,48× del tiempo grabado.
+
+Nada de eso hacía falta. **GSR ya compone en vivo, él solo, en un proceso.** La
+opción `-w` admite varias fuentes unidas por `|`, igual que `-a`, y cada una
+acepta sus propias opciones detrás con `;`:
+
+```
+-w "monitor:eDP-1|v4l2:/dev/video0;width=25%;halign=end;valign=end;hflip=true"
+```
+
+Opciones por fuente, del manual de GSR y verificadas grabando: `x`, `y`,
+`width`, `height` (en píxeles o en porcentaje), `halign`, `valign`, `hflip` y
+`vflip`. Para cámaras, además: `pixfmt`, `camera_fps` y `camera_width`.
+
+Y no toca la licencia. Es un argumento de línea de comandos a un proceso
+externo, no un plugin cargado dentro de GSR, así que el razonamiento de
+`docs/LICENSING.md` sigue intacto.
+
+**La lección, que es lo que hay que llevarse:** el diseño se hizo leyendo el
+código de GSR para ver cómo componer *por nuestra cuenta*, y no se leyó entero
+el manual de la opción que ya se estaba usando. Ocho párrafos de `-w` en
+`gpu-screen-recorder.1` habrían ahorrado un diseño completo. Antes de diseñar
+algo que rodee a GSR, leer qué hace GSR.
+
+## Cómo quedó
+
+| Qué | Cómo |
+|---|---|
+| Superponer la cámara | `AjustesGrabacion` gana `camara`, `camara_ancho_pct`, `camara_esquina` y `camara_espejo`; `fuente_gsr()` compone la cadena de `-w` |
+| Tamaño | En **porcentaje** del ancho del vídeo, del 5 % al 50 %. Un tamaño fijo en píxeles es un cuarto de pantalla en 1366 y un décimo en 4K |
+| Altura | **No se pasa.** Sin ella GSR mantiene la proporción de la cámara; fijar las dos la deformaría |
+| Espejo | Por defecto **sí**. Sin él uno se ve al revés de como se ve en un espejo y no se reconoce |
+| Vista previa | En la interfaz, con QtMultimedia, y **solo antes de grabar** |
+| Por el CLI | `--camara`, `--camara-tamano`, `--camara-esquina`, `--camara-sin-espejo` |
+| En el arnés | `verify-recording.sh` graba con cámara superpuesta y exige **un** flujo de vídeo con las dos fuentes dentro |
+
+## Lo que sigue sin poder hacerse: verte mientras grabas
+
+**Una cámara V4L2 admite un solo cliente.** Lo dice el manual de GSR —*«Other
+applications can't use the camera when GPU Screen Recorder is using the
+camera»*— y está medido aquí: un segundo proceso recibe `Device or resource
+busy`. Así que mientras GSR graba la cámara, la vista previa se apaga.
+
+La vía teórica sería que la cámara entrara por PipeWire, que sí multiplexa: el
+portal `org.freedesktop.portal.Camera` existe en esta máquina y PipeWire lista
+la cámara como nodo. Pero GSR abre V4L2 directamente (`-w v4l2:/dev/videoN`) y
+no consume del portal, así que hoy no hay puente.
+
+**Y el encuadre es lo que de verdad importaba.** Mientras grabas estás mirando
+lo que enseñas, no tu cara; lo que hace falta es que el encuadre estuviera bien
+antes de empezar. Para eso está la vista previa, y por eso el tamaño y la
+esquina se eligen antes.
+
+## El problema que sí sobrevivió del diseño viejo
+
+**La cámara se queda ocupada.** `VIDIOC_S_FMT failed: Device or resource busy`.
+La causa está localizada y volvió a aparecer el 2026-09-16 mientras se
+implementaba esto: **el envoltorio de `flatpak run` no propaga el SIGINT** al
+GSR de dentro, y un proceso huérfano con `/dev/video0` abierto bloquea la
+siguiente grabación. El usuario solo ve «busy».
+
+Por IPC no pasa, que es como para la aplicación. Queda pendiente **detectar el
+caso y decir qué tiene la cámara** en vez de repetir el error del driver.
+
+---
+
+## Diseño anterior, conservado como registro
+
+Lo que sigue describe la vía de dos procesos y composición posterior. **No se
+implementó y no hace falta**, pero las mediciones de composición valen si algún
+día hay que post-procesar por otro motivo.
 
 ## Lo que ya funciona hoy y no hay que tocar
 

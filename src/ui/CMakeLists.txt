@@ -8,7 +8,23 @@
 #
 # La UI es opcional en el build a proposito: el CI no tiene Qt y el CLI y los
 # tests tienen que seguir compilando alli. Si falta Qt se avisa y se sigue.
-find_package(Qt6 6.4 QUIET COMPONENTS Core DBus Gui Qml Quick QuickControls2 Widgets Concurrent)
+# Multimedia va en OPTIONAL_COMPONENTS y no en una llamada aparte, y eso no es
+# estilo: `find_package(Qt6 COMPONENTS X)` con X ausente pone Qt6_FOUND a FALSE.
+# Puesto en una segunda llamada, el `if(NOT Qt6_FOUND)` de abajo se disparaba y
+# la interfaz entera dejaba de compilarse en silencio, con el binario viejo
+# todavia en build/ y pareciendo que todo iba bien.
+find_package(Qt6 6.4 QUIET
+  COMPONENTS Core DBus Gui Qml Quick QuickControls2 Widgets Concurrent
+  OPTIONAL_COMPONENTS Multimedia)
+
+# Multimedia es OPCIONAL, y esa decision tiene motivo. De ella dependen dos
+# cosas —la vista previa de la camara y el vumetro del microfono— y ninguna de
+# las dos graba nada: son ayudas para acertar antes de empezar. Exigirla dejaria
+# sin interfaz a una maquina que solo tiene el Qt basico, que es peor trato que
+# quedarse sin dos ayudas.
+#
+# El paquete esta en el SDK de Flatpak (org.kde.Sdk 6.11), que es donde se
+# compila lo que se publica, asi que el usuario final las tiene.
 
 if(NOT Qt6_FOUND)
   message(STATUS "Easy Screen Recorder: sin Qt6 de desarrollo; la UI no se compila (el CLI y los tests si)")
@@ -23,6 +39,7 @@ qt_policy(SET QTP0004 NEW)
 qt_add_executable(esr_ui
   atajos.cpp
   main.cpp
+  medidor.cpp
   controlador.cpp
 )
 set_target_properties(esr_ui PROPERTIES OUTPUT_NAME easy-screen-recorder)
@@ -38,6 +55,18 @@ qt_add_qml_module(esr_ui
     qml/Main.qml
     qml/SelectorRegion.qml
 )
+
+# La vista previa entra en el modulo SOLO si hay Multimedia. Asi, sin el
+# paquete, el fichero ni existe para QML y no hay un import que falle ni un
+# aviso por consola: simplemente no se ofrece el control.
+if(Qt6Multimedia_FOUND)
+  qt_target_qml_sources(esr_ui QML_FILES qml/VistaPreviaCamara.qml)
+  target_compile_definitions(esr_ui PRIVATE ESR_CON_MULTIMEDIA)
+  target_link_libraries(esr_ui PRIVATE Qt6::Multimedia)
+  message(STATUS "Easy Screen Recorder: con Qt6Multimedia; vista previa de camara y vumetro")
+else()
+  message(STATUS "Easy Screen Recorder: sin Qt6Multimedia; sin vista previa de camara ni vumetro")
+endif()
 
 # Traduccion al ingles.
 #

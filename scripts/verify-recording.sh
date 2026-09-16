@@ -155,6 +155,62 @@ for reparto in mezcladas separadas; do
   rm -f "$ruta_pistas"
 done
 
+# --- Camara superpuesta -------------------------------------------------------
+# Pantalla y camara en UNA grabacion y un solo proceso: GSR las compone el mismo
+# («-w "pantalla|v4l2:/dev/videoN;width=..."»). Lo que se comprueba aqui es que
+# sale UN fichero con UN flujo de video, porque el fallo posible no es que se
+# vea mal: es que GSR no entienda la cadena y no grabe nada.
+#
+# Se salta si no hay camara, y eso NO es un fallo: una maquina sin webcam es
+# normal. Lo que si seria fallo es dar por buena una funcion sin probarla, y por
+# eso se dice en voz alta cuando se salta.
+camara="$("$binario" fuentes 2>/dev/null | awk '$1 ~ /^\/dev\/video/ {print $1; exit}')"
+if [ -z "$camara" ]; then
+  echo
+  echo "SALTADA la camara superpuesta: esta maquina no lista ninguna /dev/videoN"
+else
+  destino_cam="$HOME/.cache/easy-screen-recorder/verify/camara.mkv"
+  rm -f "$destino_cam"
+  echo
+  echo "grabando 3 segundos con la camara superpuesta ($camara)..."
+  "$binario" grabar --salida "$destino_cam" --camara "$camara" --camara-tamano 20 \
+    --camara-esquina arriba-derecha \
+    || fallo "«grabar» con camara superpuesta devolvio error"
+  sleep 3
+  ruta_cam="$("$binario" parar)" || fallo "«parar» devolvio error con la camara"
+  [ -s "$ruta_cam" ] || fallo "camara: no se guardo nada en $ruta_cam"
+  n_video="$(ffprobe -v error -select_streams v -show_entries stream=index -of csv=p=0 "$ruta_cam" | grep -c .)"
+  [ "$n_video" = 1 ] || fallo "se esperaba 1 flujo de video compuesto y hay $n_video"
+  echo "VERIFICADO camara superpuesta: 1 flujo de video con las dos fuentes dentro"
+  rm -f "$ruta_cam"
+fi
+
+# --- Modo repeticion ----------------------------------------------------------
+# El replay no escribe NADA hasta que se le pide, asi que aqui se comprueban las
+# dos mitades: que durante el buffer la carpeta sigue vacia, y que «guardar»
+# deja un fichero de verdad. Si lo primero fallara, estaria escribiendo a disco
+# sin parar y el modo no serviria para nada.
+dir_replay="$HOME/.cache/easy-screen-recorder/verify/replay"
+rm -rf "$dir_replay"; mkdir -p "$dir_replay"
+
+echo
+echo "grabando en modo repeticion (buffer de 5 s)..."
+"$binario" grabar --salida "$dir_replay" --replay 5 >/dev/null \
+  || fallo "«grabar --replay» devolvio error"
+sleep 6
+[ "$(ls -1 "$dir_replay" | wc -l)" = 0 ] \
+  || fallo "el modo repeticion escribio sin que se lo pidieran"
+
+ruta_replay="$("$binario" guardar)" || fallo "«guardar» devolvio error"
+[ -s "$ruta_replay" ] || fallo "el volcado del buffer no existe: $ruta_replay"
+dur_replay="$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$ruta_replay")"
+if ! awk "BEGIN{exit !($dur_replay >= 3.0)}"; then
+  fallo "el volcado dura $dur_replay s y el buffer era de 5"
+fi
+"$binario" parar >/dev/null 2>&1
+echo "VERIFICADO repeticion: nada en disco durante el buffer, y $dur_replay s al guardar"
+rm -rf "$dir_replay"
+
 # --- El contenedor y el codec de video ---------------------------------------
 # Un «.webm» no admite h264 ni hevc. Pedirlo no da un error visible: el grabador
 # arranca, muere al escribir la cabecera y NO deja fichero, asi que el fallo se

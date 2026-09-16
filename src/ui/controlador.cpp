@@ -56,7 +56,8 @@ QString resolucionBonita(const std::string& resolucion) {
 
 }  // namespace
 
-Controlador::Controlador(QObject* padre) : QObject(padre) {
+Controlador::Controlador(QObject* padre) : QObject(padre), medidor_(this) {
+    connect(&medidor_, &Medidor::nivelCambiado, this, &Controlador::nivelMicroCambiado);
     reloj_.setInterval(1000);
     connect(&reloj_, &QTimer::timeout, this, [this] {
         ++segundos_;
@@ -77,7 +78,12 @@ Controlador::Controlador(QObject* padre) : QObject(padre) {
         // arrancarla el CLI hace rato.
         const long inicio = esr::inicio_grabacion(sesion.ruta_inicio);
         if (inicio > 0) segundos_ = static_cast<int>(std::time(nullptr) - inicio);
-        ponerEstado(QStringLiteral("grabando"));
+        // De replay o normal: el socket no lo dice, lo dice la marca que dejo
+        // quien la arranco. Confundirlos hace que «Parar y guardar» tire el
+        // buffer sin guardarlo.
+        ponerEstado(esr::replay_en_marcha(sesion.ruta_replay) != 0
+                        ? QStringLiteral("replay")
+                        : QStringLiteral("grabando"));
         reloj_.start();
     } else if (esr::audio_en_marcha(sesion_audio)) {
         const long inicio = esr::inicio_grabacion(sesion_audio.ruta_inicio);
@@ -132,6 +138,36 @@ void Controlador::detectarEnSegundoPlano() {
         }
     });
     vigilante->setFuture(QtConcurrent::run([] { return esr::detectar(); }));
+}
+
+bool Controlador::modoContentEfectivo(const QString& fuente) const {
+    return esr::modo_content_efectivo(fuente.toStdString(), servidor_grafico_.toStdString());
+}
+
+QVariantList Controlador::esquinasCamara() const {
+    // El orden es el de uso: abajo a la derecha es donde la pone todo el mundo,
+    // porque es donde menos tapa.
+    QVariantList lista;
+    for (const auto& e : esr::esquinas_camara()) {
+        const QString valor = QString::fromStdString(e);
+        QString texto = valor;
+        if (valor == QStringLiteral("abajo-derecha")) texto = tr("Abajo a la derecha");
+        else if (valor == QStringLiteral("abajo-izquierda")) texto = tr("Abajo a la izquierda");
+        else if (valor == QStringLiteral("arriba-derecha")) texto = tr("Arriba a la derecha");
+        else if (valor == QStringLiteral("arriba-izquierda")) texto = tr("Arriba a la izquierda");
+        lista << fuente(valor, texto);
+    }
+    return lista;
+}
+
+bool Controlador::hayMultimedia() const { return Medidor::disponible(); }
+
+qreal Controlador::nivelMicro() const { return medidor_.nivel(); }
+
+void Controlador::escucharMicro(bool si) {
+    // Nunca mientras se graba: medir ahi no sirve para decidir nada y ademas
+    // abre un flujo de audio de mas.
+    medidor_.escuchar(si && estado_ == QStringLiteral("listo"));
 }
 
 QStringList Controlador::formatosAudio() const {
@@ -244,6 +280,28 @@ void Controlador::aplicarEntorno(const esr::Entorno& e) {
         fuentes_ << fuente(id, texto);
     }
 
+    // La camara va DOS veces en la interfaz, y no es una duplicidad: como fuente
+    // suelta (grabar solo la camara) y como superposicion (la camara ADEMAS de
+    // la pantalla). Son dos cosas distintas y las dos se usan.
+    camaras_.clear();
+    for (const auto& f : esr::fuentes_amables(e.capacidades.fuentes_captura)) {
+        if (f.tipo != esr::TipoFuente::Camara) continue;
+        QString texto = tr("Cámara");
+        if (!f.nombre.empty()) texto += QStringLiteral(" · ") + QString::fromStdString(f.nombre);
+        if (f.desempatar) texto += QStringLiteral(" (%1)").arg(QString::fromStdString(f.id));
+        camaras_ << fuente(QString::fromStdString(f.id), texto);
+    }
+
+    // Las aplicaciones que suenan AHORA. La lista cambia entre una grabacion y
+    // la siguiente, asi que se rehace en cada deteccion y no se cachea.
+    audios_aplicacion_.clear();
+    for (const auto& a : e.capacidades.audio_por_aplicacion) {
+        const QString nombre = QString::fromStdString(a.id);
+        // El identificador que viaja a GSR lleva el prefijo «app:»; el texto, no.
+        audios_aplicacion_ << fuente(QStringLiteral("app:") + nombre, nombre);
+    }
+    servidor_grafico_ = QString::fromStdString(e.capacidades.info.servidor_grafico);
+
     if (e.graba_audio_solo()) {
         fuentes_ << fuente(kAudioSistema, tr("Solo audio: audio del sistema"));
         fuentes_ << fuente(kAudioMicro, tr("Solo audio: micrófono"));
@@ -329,6 +387,21 @@ void Controlador::grabar(const QString& fuente, const QVariantMap& opciones) {
     a.codec_audio =
         opciones.value(QStringLiteral("codecAudio"), QStringLiteral("opus")).toString().toStdString();
     a.region = opciones.value(QStringLiteral("region")).toString().toStdString();
+    a.camara = opciones.value(QStringLiteral("camara")).toString().toStdString();
+    a.camara_ancho_pct = opciones.value(QStringLiteral("camaraTamano"), 25).toInt();
+    a.camara_esquina = opciones.value(QStringLiteral("camaraEsquina"),
+                                      QStringLiteral("abajo-derecha")).toString().toStdString();
+    a.camara_espejo = opciones.value(QStringLiteral("camaraEspejo"), true).toBool();
+    a.modo_fotogramas =
+        opciones.value(QStringLiteral("modoFotogramas")).toString().toStdString();
+    a.limite_resolucion =
+        opciones.value(QStringLiteral("limiteResolucion")).toString().toStdString();
+    a.replay_segundos = opciones.value(QStringLiteral("replaySegundos"), 0).toInt();
+    a.contenedor = contenedor.toStdString();
+    // En modo replay la salida es la CARPETA: el nombre de cada volcado lo pone
+    // GSR, y darle un nombre de fichero le haria escribir dentro de el como si
+    // fuera un directorio.
+    if (a.replay_segundos != 0) a.salida = carpeta_v;
 
     const QString audio = opciones.value(QStringLiteral("audio"), QStringLiteral("sistema")).toString();
     if (audio == QStringLiteral("micro")) {
@@ -354,10 +427,11 @@ void Controlador::grabar(const QString& fuente, const QVariantMap& opciones) {
 
     // empezar_grabacion espera al socket del grabador (hasta 15 s si el
     // flatpak arranca frio), asi que fuera del hilo de la ventana.
+    const bool es_replay = a.replay_segundos != 0;
     ponerEstado(QStringLiteral("arrancando"));
     auto* vigilante = new QFutureWatcher<esr::ResultadoLanzamiento>(this);
     connect(vigilante, &QFutureWatcher<esr::ResultadoLanzamiento>::finished, this,
-            [this, vigilante] {
+            [this, vigilante, es_replay] {
                 const auto r = vigilante->result();
                 vigilante->deleteLater();
                 if (!r.en_marcha) {
@@ -369,13 +443,19 @@ void Controlador::grabar(const QString& fuente, const QVariantMap& opciones) {
                 segundos_ = 0;
                 emit segundosCambiados();
                 reloj_.start();
-                ponerEstado(QStringLiteral("grabando"));
+                ponerEstado(es_replay ? QStringLiteral("replay") : QStringLiteral("grabando"));
             });
     vigilante->setFuture(QtConcurrent::run(
         [a] { return esr::empezar_grabacion(a, esr::sesion_por_defecto()); }));
 }
 
 void Controlador::alternarGrabacion() {
+    if (estado_ == QStringLiteral("replay")) {
+        // En replay el atajo GUARDA, no para: es lo que uno quiere del «se me ha
+        // escapado eso, salvalo». Terminar se hace desde la ventana.
+        guardarReplay();
+        return;
+    }
     if (estado_ == QStringLiteral("grabando") || estado_ == QStringLiteral("pausado") ||
         estado_ == QStringLiteral("grabandoAudio")) {
         parar();
@@ -399,6 +479,29 @@ void Controlador::alternarGrabacion() {
         grabar(f, {});
         return;
     }
+}
+
+void Controlador::guardarReplay() {
+    ponerError({});
+    // No se cambia de estado ni se para el reloj: el replay SIGUE. Esto no es
+    // terminar, es llevarse una copia de lo que hay en el buffer.
+    auto* vigilante = new QFutureWatcher<QPair<bool, QString>>(this);
+    connect(vigilante, &QFutureWatcher<QPair<bool, QString>>::finished, this,
+            [this, vigilante] {
+                const auto [bien, texto] = vigilante->result();
+                vigilante->deleteLater();
+                if (!bien) {
+                    ponerError(texto);
+                    return;
+                }
+                ruta_guardada_ = texto;
+                emit rutaGuardadaCambiada();
+                emit grabacionGuardada(texto);
+            });
+    vigilante->setFuture(QtConcurrent::run([]() -> QPair<bool, QString> {
+        const auto r = esr::guardar_replay(esr::sesion_por_defecto());
+        return {r.parado, QString::fromStdString(r.parado ? r.ruta_fichero : r.motivo)};
+    }));
 }
 
 void Controlador::parar() {
@@ -457,6 +560,9 @@ void Controlador::reanudar() {
 void Controlador::ponerEstado(const QString& estado) {
     if (estado_ == estado) return;
     estado_ = estado;
+    // Al salir de «listo» se suelta el microfono sin que nadie tenga que
+    // acordarse: el vumetro solo tiene sentido antes de empezar.
+    if (estado_ != QStringLiteral("listo")) medidor_.escuchar(false);
     emit estadoCambiado();
 }
 
