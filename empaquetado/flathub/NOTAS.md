@@ -140,17 +140,44 @@ Con red da 7 avisos, y **los 7 son del mismo tipo**: `url-not-reachable` y
 y no tiene capturas. Se resuelven al renombrar el repositorio, empujar la rama y
 añadir las imágenes. No hay ni un problema estructural.
 
-## Lo que falta antes del envío
+## Listo para enviar
+
+Estado a 2026-09-16. **Construido desde el repositorio público**, con
+`type: git` y el tag `v0.1.0` fijado por commit, instalado y grabando desde
+dentro del sandbox. Eso es exactamente lo que hará Flathub.
 
 | Qué | Estado |
 |---|---|
-| Capturas de pantalla en URL pública | **Falta, y es OBLIGATORIO**: «All graphical applications must have one or more screenshots in the MetaInfo». Referenciadas al tag `v0.1.0`, no a `main`, porque Flathub exige tag o commit. Hay que tomarlas, commitearlas y MOVER el tag; ver `docs/screenshots/README.md` |
+| Repositorio público con tag | **Hecho.** `v0.1.0` → `1d0ad84` |
+| Manifiesto con `type: git` + tag + commit | **Hecho** |
+| Construye desde la fuente pública | **Verificado**: 1,1 MB de aplicación más 7,4 MB de símbolos |
+| Capturas de pantalla | **Hecho.** Las tres dan HTTP 200 desde el tag |
 | `<releases>` con la versión | **Hecho**: 0.1.0, tipo `development` |
-| Repositorio público con tag | **Hecho.** Público desde el 2026-09-16, tag `v0.1.0`, y el manifiesto ya usa `type: git` con tag y commit |
-| Verificación de dominio | **Fichero escrito, sin desplegar.** Está en `websc`, en `public/.well-known/org.flathub.VerifiedApps.txt`. No bloquea el envío: la marca de verificada se resuelve cuando se despliegue el sitio |
-| Justificar `flatpak-spawn` | **Redactado abajo**, listo para pegar en el envío |
-| Construir y grabar dentro del sandbox | **Hecho y verificado** (bloqueo 2) |
-| Runtime 6.11 | **Confirmado**: construye y ejecuta. Ya no está a ciegas |
+| Runtime 6.11 | **Confirmado** construyendo |
+| Grabar dentro del sandbox | **Verificado**: `--check` dice LISTO y la UI grabó |
+| Justificar `flatpak-spawn` | **Redactado abajo**, listo para pegar |
+| Verificación de dominio | Fichero escrito en `websc`, **sin desplegar** |
+
+### El único aviso que queda
+
+```
+W: url-not-reachable  →  https://solucionesconscientes.es/easy-screen-recorder
+```
+
+La página existe y está comiteada en el repositorio del sitio, pero el sitio no
+se ha desplegado. **No bloquea el envío** —es un aviso, no un error— pero un
+revisor que pinche la homepage y vea un 404 va a preguntar, así que conviene
+desplegar antes.
+
+Si hubiera prisa, la alternativa es apuntar la homepage al repositorio de
+GitHub, que resuelve hoy; es lo que hacen muchos proyectos. Se cambia de vuelta
+cuando el sitio esté en pie.
+
+### Y el error que no se arregla
+
+`finish-args-flatpak-spawn-access` sigue ahí y **necesita excepción, no
+arreglo**: es el permiso de hablar con el anfitrión. Flathub lo trata como algo
+que se justifica en el envío. El texto está más abajo.
 
 ## El .deb (sí X11)
 

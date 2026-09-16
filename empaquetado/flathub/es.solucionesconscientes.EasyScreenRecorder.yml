@@ -65,4 +65,4 @@ modules:
       - type: git
         url: https://github.com/solucionesconscientes/easy-screen-recorder.git
         tag: v0.1.0
-        commit: 329b95a7e61055e7a081a0ec3348f4db5f5dc776
+        commit: 1d0ad84039bf24fed7d085465c986c1512a2cc42
