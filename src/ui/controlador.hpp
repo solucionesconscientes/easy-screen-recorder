@@ -32,7 +32,15 @@ class Controlador : public QObject {
     // sesiones, o el default XDG si nunca eligio.
     Q_PROPERTY(QString carpetaVideos READ carpetaVideos NOTIFY carpetasCambiadas)
     Q_PROPERTY(QString carpetaAudio READ carpetaAudio NOTIFY carpetasCambiadas)
-    Q_PROPERTY(QStringList fuentes READ fuentes NOTIFY fuentesCambiadas)
+    // Lista de {texto, valor}: el texto se TRADUCE y el valor NO.
+    //
+    // Antes era un QStringList y el valor era el propio texto visible, asi que
+    // el QML decidia el modo con `currentText.indexOf("Solo audio") === 0` y
+    // grabar() comparaba contra la cadena en castellano. Con la interfaz
+    // traducida eso se rompe en silencio: en ingles el prefijo no casa, y el
+    // formulario ensena los controles de video en modo solo-audio. El texto
+    // visible no puede ser tambien el identificador.
+    Q_PROPERTY(QVariantList fuentes READ fuentes NOTIFY fuentesCambiadas)
     Q_PROPERTY(QString diagnostico READ diagnostico NOTIFY estadoCambiado)
     Q_PROPERTY(QString rutaGuardada READ rutaGuardada NOTIFY rutaGuardadaCambiada)
     Q_PROPERTY(QString error READ error NOTIFY errorCambiado)
@@ -42,7 +50,7 @@ public:
     explicit Controlador(QObject* padre = nullptr);
 
     QString estado() const { return estado_; }
-    QStringList fuentes() const { return fuentes_; }
+    QVariantList fuentes() const { return fuentes_; }
     QStringList codecsVideo() const { return codecs_video_; }
     QStringList contenedores() const;
     Q_INVOKABLE QStringList codecsAudioPara(const QString& contenedor) const;
@@ -91,7 +99,7 @@ private:
     void ponerError(const QString& error);
 
     QString estado_ = QStringLiteral("detectando");
-    QStringList fuentes_;
+    QVariantList fuentes_;
     QStringList codecs_video_;
     QString diagnostico_;
     QString ruta_guardada_;

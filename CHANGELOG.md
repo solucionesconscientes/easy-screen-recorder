@@ -5,6 +5,31 @@ máquina de desarrollo.
 
 ## Sin publicar
 
+### Diseño de pantalla + webcam (2026-09-16)
+- `docs/ROADMAP.md` gana la Parte 2 con el diseño medido, **sin implementar**.
+- Lo medido: dos grabaciones de GSR a la vez funcionan sin contención, y la
+  composición con `ffmpeg` sale a **0,17× del tiempo grabado** mezclando en CPU
+  y codificando en GPU, frente a 0,48× haciéndolo todo en CPU.
+- `overlay_vaapi` **no funciona** en esta GPU: «Function not implemented»
+  incluso en el caso mínimo. La composición entera en GPU no es una opción aquí.
+- Se descarta el plugin de GSR, que sería la vía para superponer en vivo: se
+  carga dentro de su proceso y rompería el modelo dual.
+- Capturas de pantalla rehechas en inglés.
+
+### Interfaz en inglés (2026-09-16)
+- **La interfaz sigue el idioma del sistema**: castellano si el sistema está en
+  castellano, inglés en cualquier otro caso. 45 cadenas traducidas, con el
+  catálogo empotrado en el binario.
+- Y el cambio que lo hizo posible: **el texto visible deja de ser el
+  identificador.** El desplegable de fuentes pasa a `{texto, valor}`; antes el
+  QML decidía el modo con `currentText.indexOf("Solo audio")` y el atajo global
+  comparaba igual, así que traducir habría roto el formulario en silencio.
+- Las fuentes especiales dejan de enseñar su nombre interno: `portal` pasa a
+  «Preguntar al empezar», `region` a «Elegir una región arrastrando» y
+  `focused` a «La ventana que tenga el foco».
+- Sigue en castellano lo que viene del núcleo: ~47 mensajes de error de
+  `libesr` y la línea de comandos. El porqué y la vía, en `docs/ROADMAP.md`.
+
 ### Alcance y recursos, medidos (2026-09-16)
 - Los README dicen dónde funciona de verdad —cualquier escritorio, Wayland y
   X11— y qué es lo único nativo de KDE.

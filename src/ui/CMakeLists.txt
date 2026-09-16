@@ -39,6 +39,49 @@ qt_add_qml_module(esr_ui
     qml/SelectorRegion.qml
 )
 
+# Traduccion al ingles.
+#
+# Las cadenas fuente estan en castellano —es la regla del repositorio,
+# CLAUDE.md— asi que el catalogo traduce castellano a ingles, al reves de la
+# costumbre de Qt. Funciona igual y evita reescribir las 45 cadenas del codigo.
+#
+# Se usa `lrelease` a pelo y NO `qt_add_translations()`, que seria lo idiomatico.
+# El motivo es una dependencia: qt_add_translations viene del paquete de CMake
+# Qt6LinguistTools, o sea de qt6-tools-dev, que no esta en esta maquina y es un
+# paquete gordo. `lrelease` lo trae qt6-l10n-tools, que es lo minimo y ya
+# estaba. Asi el proyecto compila con la traduccion en mas sitios, que es lo
+# que importa en algo que se empaqueta para varias distribuciones.
+#
+# El .qm se EMPOTRA en el binario. Un fichero de traduccion suelto en el disco
+# es algo que se pierde al empaquetar, y entonces la interfaz sale en castellano
+# sin que nadie sepa por que.
+find_program(ESR_LRELEASE
+  NAMES lrelease lrelease-qt6
+  HINTS /usr/lib/qt6/bin /usr/lib/x86_64-linux-gnu/qt6/bin
+  PATH_SUFFIXES bin)
+
+if(ESR_LRELEASE)
+  set(ESR_QM "${CMAKE_CURRENT_BINARY_DIR}/easy-screen-recorder_en.qm")
+  add_custom_command(
+    OUTPUT "${ESR_QM}"
+    COMMAND "${ESR_LRELEASE}" -silent
+            "${CMAKE_CURRENT_SOURCE_DIR}/i18n/easy-screen-recorder_en.ts"
+            -qm "${ESR_QM}"
+    DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/i18n/easy-screen-recorder_en.ts"
+    COMMENT "Compilando la traduccion al ingles"
+    VERBATIM)
+  set_source_files_properties("${ESR_QM}" PROPERTIES
+    QT_RESOURCE_ALIAS easy-screen-recorder_en.qm)
+  qt_add_resources(esr_ui "traducciones"
+    PREFIX "/i18n"
+    BASE "${CMAKE_CURRENT_BINARY_DIR}"
+    FILES "${ESR_QM}")
+else()
+  message(WARNING
+    "Easy Screen Recorder: no se encuentra lrelease (paquete qt6-l10n-tools). "
+    "La interfaz solo saldra en castellano.")
+endif()
+
 target_link_libraries(esr_ui PRIVATE
   esr::core
   Qt6::Core Qt6::DBus Qt6::Gui Qt6::Qml Qt6::Quick Qt6::QuickControls2 Qt6::Widgets Qt6::Concurrent

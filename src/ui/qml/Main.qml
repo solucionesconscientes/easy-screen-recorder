@@ -59,7 +59,7 @@ Kirigami.ApplicationWindow {
             bitrateAudio: bitrateAudio.currentValue
         }
         if (region !== "") opciones.region = region
-        Controlador.grabar(fuente.currentText, opciones)
+        Controlador.grabar(fuente.currentValue, opciones)
     }
 
     function tiempoBonito(s) {
@@ -131,8 +131,15 @@ Kirigami.ApplicationWindow {
                     id: fuente
                     Layout.fillWidth: true
                     model: Controlador.fuentes
+                    textRole: "texto"
+                    valueRole: "valor"
                     enabled: !ocupado
-                    readonly property bool esAudio: currentText.indexOf("Solo audio") === 0
+                    // Por el IDENTIFICADOR, no por el texto. Antes era
+                    // `currentText.indexOf("Solo audio") === 0`, y con la
+                    // interfaz traducida ese prefijo no casa: el formulario
+                    // ensenaria los controles de video en modo solo-audio.
+                    readonly property bool esAudio:
+                        String(currentValue).indexOf("audio:") === 0
                 }
 
                 QQC2.Button {
@@ -142,9 +149,12 @@ Kirigami.ApplicationWindow {
                     text: Controlador.estado === "arrancando" ? qsTr("Arrancando…")
                         : Controlador.estado === "guardando" ? qsTr("Guardando…")
                         : qsTr("Grabar")
-                    enabled: !ocupado && fuente.currentText !== ""
+                    enabled: !ocupado && String(fuente.currentValue) !== ""
                     onClicked: {
-                        if (fuente.currentText === "region") {
+                        // «region» es el identificador de GSR, no texto visible:
+                        // por eso se compara con currentValue y sigue valiendo en
+                        // cualquier idioma.
+                        if (String(fuente.currentValue) === "region") {
                             selectorRegion.abrir()
                         } else {
                             raiz.lanzarGrabacion("")

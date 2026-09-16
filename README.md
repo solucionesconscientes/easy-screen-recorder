@@ -66,6 +66,7 @@ Build dependencies, exactly what the CMake asks for:
 - **Ninja** (or any generator you prefer)
 - **Qt 6.4+**, components: `Core` `DBus` `Gui` `Qml` `Quick` `QuickControls2`
   `Widgets` `Concurrent`
+- **`lrelease`** (Debian: `qt6-l10n-tools`) to build the English translation
 
 Qt is **optional**: without it the GUI is skipped and the CLI and the tests
 still build.
@@ -80,8 +81,21 @@ On Debian and Ubuntu:
 
 ```bash
 sudo apt install cmake ninja-build g++ qt6-base-dev qt6-declarative-dev \
-  ffmpeg
+  qt6-l10n-tools ffmpeg
 ```
+
+## Language
+
+The interface follows your system language: **Spanish** if your system is in
+Spanish, **English** otherwise — including languages that are neither, because
+English is more useful to a German speaker than Spanish they cannot read.
+
+**Still in Spanish only:** the error messages that come from the core library
+(`libesr`), and the whole command-line interface. Those are plain strings in a
+Qt-free library, so translating them properly means returning error codes
+instead of text — a refactor in the files that build the recorder's command
+line, which is where a mistake does not fail a build, it breaks a recording.
+Tracked in `docs/ROADMAP.md`.
 
 ## Where it runs
 

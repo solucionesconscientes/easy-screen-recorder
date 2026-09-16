@@ -21,8 +21,17 @@ namespace {
 // Las dos entradas de solo-audio van en la misma lista que las fuentes de
 // pantalla: asi "dos clics" vale tambien para una nota de voz. Llevan prefijo
 // para que el controlador sepa por que via van.
-const QString kAudioSistema = QStringLiteral("Solo audio: audio del sistema");
-const QString kAudioMicro = QStringLiteral("Solo audio: micrófono");
+// Identificadores internos de las dos fuentes de solo-audio. NO son texto
+// visible y NO se traducen: viajan del QML a grabar() y se comparan aqui. El
+// texto que ve el usuario se compone aparte, con tr(), y puede cambiar de
+// idioma sin que nada de esto se entere.
+const QString kAudioSistema = QStringLiteral("audio:sistema");
+const QString kAudioMicro = QStringLiteral("audio:micro");
+
+// Una entrada del desplegable de fuentes.
+QVariantMap fuente(const QString& valor, const QString& texto) {
+    return {{QStringLiteral("valor"), valor}, {QStringLiteral("texto"), texto}};
+}
 
 }  // namespace
 
@@ -141,7 +150,7 @@ void Controlador::elegirCarpeta(bool paraAudio, const QUrl& carpeta) {
     if (ruta.isEmpty()) return;
     if (!esr::guardar_ajuste(paraAudio ? "carpeta_audio" : "carpeta_videos",
                                   ruta.toStdString())) {
-        ponerError(QStringLiteral("no se pudo guardar la elección de carpeta"));
+        ponerError(tr("no se pudo guardar la elección de carpeta"));
         return;
     }
     emit carpetasCambiadas();
@@ -157,21 +166,37 @@ void Controlador::aplicarEntorno(const esr::Entorno& e) {
     for (const auto& c : e.capacidades.info.codecs_video) {
         codecs_video_ << QString::fromStdString(c);
     }
+    QStringList vistas;
     for (const auto& f : e.capacidades.fuentes_captura) {
-        QString etiqueta = QString::fromStdString(f.id);
+        const QString id = QString::fromStdString(f.id);
         // Una camara con N modos es UNA fuente para el usuario; el modo lo
         // elige GSR. Sin esto la lista enseñaba /dev/video0 ocho veces.
-        if (fuentes_.contains(etiqueta)) continue;
-        fuentes_ << etiqueta;
+        if (vistas.contains(id)) continue;
+        vistas << id;
+        // El identificador es el de GSR y no se toca. Solo se traduce el texto
+        // de las fuentes especiales, que son las que tienen un nombre que no
+        // significa nada para el usuario; un monitor o una camara se enseñan
+        // tal como los nombra la maquina.
+        QString texto = id;
+        if (id == QStringLiteral("region")) {
+            texto = tr("Elegir una región arrastrando");
+        } else if (id == QStringLiteral("portal")) {
+            texto = tr("Preguntar al empezar (lo elige el sistema)");
+        } else if (id == QStringLiteral("focused")) {
+            texto = tr("La ventana que tenga el foco");
+        }
+        fuentes_ << fuente(id, texto);
     }
     if (e.graba_audio_solo()) {
-        fuentes_ << kAudioSistema << kAudioMicro;
+        fuentes_ << fuente(kAudioSistema, tr("Solo audio: audio del sistema"));
+        fuentes_ << fuente(kAudioMicro, tr("Solo audio: micrófono"));
     }
 
     if (!e.gsr.presente) {
-        diagnostico_ = QStringLiteral(
-            "gpu-screen-recorder no está instalado. Sin él no hay grabación de pantalla.\n"
-            "Instálalo nativo o como flatpak y vuelve a abrir Easy Screen Recorder.");
+        diagnostico_ = tr("gpu-screen-recorder no está instalado. Sin él no hay "
+                          "grabación de pantalla.\n"
+                          "Instálalo nativo o como flatpak y vuelve a abrir "
+                          "Easy Screen Recorder.");
         ponerEstado(e.graba_audio_solo() ? QStringLiteral("listo") : QStringLiteral("sinGsr"));
         emit fuentesCambiadas();
         return;
@@ -295,8 +320,16 @@ void Controlador::alternarGrabacion() {
         return;
     }
     if (estado_ != QStringLiteral("listo")) return;
-    for (const QString& f : fuentes_) {
-        if (f.indexOf(QStringLiteral("Solo audio")) == 0) continue;
+    // El atajo global graba lo mas obvio: el primer monitor. Se descartan las
+    // fuentes que necesitan una decision del usuario —region, portal, la
+    // ventana en foco— y las camaras y el solo-audio, que no son «grabar la
+    // pantalla». Se compara contra el IDENTIFICADOR y no contra el texto
+    // visible: antes buscaba el prefijo «Solo audio», y en cualquier idioma que
+    // no fuera castellano eso habria dejado que el atajo arrancara una
+    // grabacion de audio creyendo que era un monitor.
+    for (const QVariant& entrada : fuentes_) {
+        const QString f = entrada.toMap().value(QStringLiteral("valor")).toString();
+        if (f.startsWith(QStringLiteral("audio:"))) continue;
         if (f == QStringLiteral("region") || f == QStringLiteral("portal") ||
             f == QStringLiteral("focused") || f.startsWith(QStringLiteral("/dev/"))) {
             continue;

@@ -6,10 +6,18 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 # Hoja de ruta
 
-Escrito el 15 de septiembre de 2026. Dos partes: la frontera del backend de
-captura, que es deuda técnica con nombre y apellidos, y la distribución —
-Flathub, luego `.deb`, y **Windows descartado** con su motivo escrito para que no
-se reabra sin datos nuevos.
+Escrito el 15 de septiembre de 2026, ampliado el 16.
+
+| Parte | Qué es |
+|---|---|
+| **1 · Frontera del backend** | Deuda técnica con nombre y apellidos |
+| **2 · Pantalla y webcam juntas** | Funcionalidad pedida, con el diseño medido |
+| **3 · Mensajes del núcleo en inglés** | Lo que quedó fuera de la traducción |
+| **4 · Distribución** | Flathub, luego `.deb`, y **Windows descartado** con su motivo escrito para que no se reabra sin datos nuevos |
+
+Las tres primeras comparten un prerrequisito y no es casualidad: **la matriz de
+`verify-recording.sh`**. Las tres tocan los ficheros donde un error no rompe una
+compilación, rompe una grabación.
 
 ---
 
@@ -45,7 +53,7 @@ localizadas:
 **Veredicto: no está aislada.** Si mañana hubiera que cambiar de backend habría
 que tocar QML, no solo `libesr`.
 
-Con Windows descartado (ver Parte 2), esto **deja de ser urgente**: hoy hay un
+Con Windows descartado (ver Parte 4), esto **deja de ser urgente**: hoy hay un
 solo backend y no se prevé un segundo. Pasa de deuda que bloquea a deuda que
 conviene. Los dos motivos que la mantienen en la lista son que el plan de
 pruebas que exige —la matriz de `verify-recording.sh`— es bueno por sí mismo, y
@@ -147,7 +155,180 @@ bisecar.
 
 ---
 
-# Parte 2 · Distribución
+# Parte 2 · Pantalla y webcam juntas
+
+Pedido por el titular el 2026-09-16: grabar pantalla y webcam, **con el tamaño y
+la esquina de la webcam elegibles**. Esto es el diseño, medido antes de escribir
+código. No está implementado.
+
+## Lo que ya funciona hoy y no hay que tocar
+
+**Grabar solo la webcam.** Está en el desplegable como `/dev/video0` y graba;
+verificado: 1280×720 h264. Lo único que le falta es cosmética, y está en la
+lista de UX: se enseña con su nombre de dispositivo y aparece una vez por cada
+modo que reporta GSR.
+
+## La decisión de fondo: post-proceso, no plugin
+
+GSR soporta superposición **en vivo** con su sistema de plugins: `-p plugin.so`,
+con una función `draw()` que recibe el framebuffer y un contexto OpenGL. Su
+manual lo llama «Plugin system for custom graphics overlay», así que
+técnicamente es la vía prevista.
+
+**Se descarta, y no por dificultad.** Un plugin se carga *dentro del proceso de
+GSR*, y eso es obra combinada: GSR es GPL-3.0-**only**, así que ese plugin no se
+podría licenciar comercialmente. Sería el primer componente fuera del modelo
+dual, y el razonamiento entero de `docs/LICENSING.md` —que se apoya en que GSR
+es un proceso externo sin enlazar— dejaría de ser cierto para él.
+
+Si algún día un cliente paga la superposición en vivo, el cálculo es otro y es
+suyo. Hasta entonces: dos procesos y composición después.
+
+## Lo medido, que es lo que hace viable el diseño
+
+### Dos grabaciones a la vez: funciona
+
+Dos procesos de GSR simultáneos, cámara y pantalla, **cero errores** en los
+logs: 769 paquetes de vídeo en la cámara (1280×720) y 540 en la pantalla
+(1366×768), las dos codificando en la misma GPU sin contención.
+
+### Composición: tres vías, y solo una sirve
+
+Medido sobre 20 s de 1080p30 sintético, en el i5-6200U con HD Graphics 520:
+
+| Vía | Tiempo | Factor sobre lo grabado |
+|---|---|---|
+| Todo en CPU (`libx264 -preset veryfast`) | 9,55 s | **0,48×** |
+| Todo en GPU (`scale_vaapi` + `overlay_vaapi`) | **falla** | `overlay_vaapi` da «Function not implemented» en esta GPU, incluso en el caso mínimo |
+| **Mezcla en CPU + codificación en GPU** | **3,37 s** | **0,17×** |
+
+**La tercera es la que va**, y el motivo importa: la mezcla de dos fotogramas es
+barata, lo caro es codificar. Dejando el `overlay` en CPU y el `h264_vaapi` en
+GPU se gana casi el triple. Verificado visualmente: la webcam aparece a su
+tamaño y en su esquina.
+
+Que la primera vía cueste el 48 % del tiempo grabado **no es un detalle**: para
+un tutorial de media hora son catorce minutos de CPU a tope, que es exactamente
+lo que esta aplicación promete evitar. Si algún día la mezcla en GPU funciona en
+otra máquina, se usa; el código debe poder elegir.
+
+### La receta
+
+```bash
+ffmpeg -init_hw_device vaapi=va:/dev/dri/renderD128 -filter_hw_device va \
+  -i pantalla.mkv -i camara.mkv \
+  -filter_complex "[1:v]scale=384:-2[pip];\
+                   [0:v][pip]overlay=W-w-32:H-h-32,format=nv12,hwupload[v]" \
+  -map "[v]" -map 0:a? -c:v h264_vaapi -qp 23 compuesto.mkv
+```
+
+Dos detalles que cuestan una tarde si se descubren tarde:
+
+- **`scale=384:-2` y no `-1`.** El `-2` fuerza altura par, que es lo que H.264
+  necesita. Con `-1` sale una altura impar y el codificador la rechaza.
+- **`format=nv12,hwupload` antes del codificador.** Sin eso, la mezcla se queda
+  en memoria de CPU y `h264_vaapi` no la acepta.
+
+Tamaño y esquina son parámetros: el `384` del `scale` y las cuatro expresiones
+de `overlay` —`24:24`, `W-w-24:24`, `24:H-h-24`, `W-w-24:H-h-24`—.
+
+## El cambio de modelo, que es la parte de diseño
+
+Hoy hay **una** sesión de pantalla (`~/.cache/easy-screen-recorder/sesion`) y
+**una** de audio (`sesion-audio`), con cerrojos separados. La webcam añade una
+tercera.
+
+**Y la clave para no complicarlo: no son dos grabaciones, es UNA con dos
+fuentes.** Empiezan juntas, paran juntas y se pausan juntas, porque es lo que el
+usuario pide. Con eso, el estado de la interfaz sigue siendo un solo valor y no
+hay que rehacer la máquina de estados: `grabando` cubre las dos.
+
+Lo que sí cambia:
+
+| Qué | Cómo |
+|---|---|
+| Sesión de la cámara | `sesion-camara/`, con su socket IPC, su pid y su log. Mismo patrón que `sesion-audio`, que ya existe |
+| Arranque | Los dos procesos, y **si el segundo falla, se para el primero**. Media grabación es peor que ninguna |
+| Parada | Los dos por IPC, y esperar los dos ficheros antes de dar por terminado |
+| Ajustes | `AjustesGrabacion` gana `camara` (dispositivo o vacío), `pip_ancho` y `pip_esquina` |
+| Estado nuevo | `componiendo`, porque al parar ya no se acaba: empieza un ffmpeg que tarda |
+
+### Los tres problemas que ya aparecieron en las pruebas
+
+**1. La cámara se queda ocupada.** Lo topé tres veces:
+`VIDIOC_S_FMT failed, error: Device or resource busy`. La causa está localizada:
+**el envoltorio de `flatpak run` no propaga el SIGINT** al GSR de dentro, y un
+proceso huérfano con `/dev/video0` abierto bloquea la siguiente grabación. El
+usuario solo vería «busy».
+
+No afecta a la pantalla, que se para por IPC. Para la cámara hay que pararla por
+IPC igual, y además detectar el caso: si el dispositivo está ocupado, decir *qué*
+lo tiene en vez de repetir el error del driver.
+
+**2. La composición puede fallar, y los originales tienen que sobrevivir.** Si
+el ffmpeg revienta, el usuario se queda con `pantalla.mkv` y `camara.mkv`, que
+es una salida perfectamente válida. **Nunca borrar los originales antes de
+confirmar que el compuesto existe y tiene duración.** Y decírselo: «no se pudo
+componer, tienes los dos ficheros en …».
+
+**3. Componer no es gratis.** 0,17× del tiempo grabado con la GPU codificando.
+Para media hora de grabación son cinco minutos. Eso se avisa **antes** de
+empezar, no después: la casilla de componer debería decir el coste aproximado.
+
+## Las dos tandas
+
+**Tanda A · Dos ficheros.** Pantalla y webcam a la vez, cada una a su fichero,
+sin composición. Es la mitad del valor por una fracción del coste, y es lo que
+quiere quien va a editar: dos pistas dan más libertad que un vídeo ya compuesto.
+Aquí está todo el cambio de modelo.
+
+**Tanda B · Composición opcional.** La casilla de «componer al terminar», con
+tamaño y esquina. El patrón de post-proceso ya está pensado en
+`docs/post-proceso.md`, de la Tanda 6.
+
+**Orden con lo demás:** la Tanda A toca `grabacion.cpp`, que es donde la Parte 1
+avisa de que un error no rompe una compilación sino una grabación. **Antes va la
+matriz de `verify-recording.sh`.** Es la misma red que piden la Parte 1 y la
+Parte 3, y sirve para las tres.
+
+# Parte 3 · Traducir los mensajes del núcleo
+
+La interfaz ya es bilingüe: 45 cadenas traducidas, con el idioma elegido según
+el del sistema. Lo que sigue en castellano son **~47 mensajes de error de
+`libesr`** —en `audio.cpp` (16), `grabacion.cpp` (14), `entorno.cpp` (7),
+`ipc.cpp` (6) y `proceso.cpp` (4)— y la línea de comandos entera.
+
+## Por qué no se hizo ya
+
+`libesr` **no tiene Qt a propósito**: es la capa 1 y el CLI la usa sin interfaz
+gráfica. Así que sus mensajes son `std::string` en castellano, y no hay `tr()`
+que los cubra. Enlazar Qt en el núcleo para traducirlos sería romper la
+separación que hace que el CLI funcione en una máquina sin Qt.
+
+## La vía correcta
+
+Devolver **códigos de error con sus parámetros** en vez de texto, y que la capa
+que habla con el usuario —la UI o el CLI— los redacte:
+
+```cpp
+struct Fallo {
+    enum class Clase { FormatoDesconocido, BitrateFueraDeRango, … };
+    Clase clase;
+    std::vector<std::string> datos;  // el formato pedido, la cifra, la ruta
+};
+```
+
+## Riesgo, y por eso no es trivial
+
+**Alto, y en el mismo sitio que la Parte 1:** los mensajes de `grabacion.cpp` y
+`audio.cpp` salen de las funciones que construyen la línea de comandos del
+grabador y validan los ajustes. Ahí un error no rompe la compilación ni los
+tests: rompe una grabación, y probablemente en la combinación que nadie prueba.
+
+**Se hace después de la matriz de `verify-recording.sh`**, no antes. Es la misma
+red que pide la Parte 1, y sirve para las dos.
+
+# Parte 4 · Distribución
 
 ## Fase 1 · Flathub
 

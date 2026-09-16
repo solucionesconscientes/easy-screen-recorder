@@ -8,6 +8,9 @@ Build-Depends:
  ninja-build,
  qt6-base-dev (>= 6.4),
  qt6-declarative-dev (>= 6.4),
+# lrelease, para compilar el catalogo de traduccion al ingles. Es el paquete
+# minimo que lo trae: qt6-tools-dev tambien vale pero es mucho mas gordo.
+ qt6-l10n-tools,
 Standards-Version: 4.7.0
 Homepage: https://solucionesconscientes.es/easy-screen-recorder
 Vcs-Browser: https://github.com/solucionesconscientes/easy-screen-recorder
