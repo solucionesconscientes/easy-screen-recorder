@@ -5,6 +5,39 @@ máquina de desarrollo.
 
 ## Sin publicar
 
+### El apagón, hasta el final: audio, contenedores y reparación (2026-09-16)
+
+El arreglo anterior cubría la mitad. Al medir formato por formato salieron dos
+agujeros más, y uno era grave.
+
+- **El modo de solo audio lo perdía TODO menos wav.** Medido matando ffmpeg a
+  los 8 segundos: opus, flac y mp3 dejaban un fichero de **0 bytes** y aac uno
+  de 44. Nuestro backend de audio no forzaba el volcado a disco, y el arreglo
+  anterior solo tocaba la grabación de pantalla, que va por otro camino. Ahora
+  también lo fuerza: opus 7,1 s, mp3 8,3 s, wav 8,4 s.
+- **Y aac seguía perdiéndose entero**, porque la familia mp4 guarda su índice al
+  final. Medido cortando un fichero por la mitad: sin fragmentar salen **cero**
+  segundos de audio; fragmentado, **29,4 de los 30** que había dentro. Se
+  fragmenta con `frag_duration` y no con `frag_keyframe`: en audio puro todos
+  los fotogramas son clave y aun así ffmpeg no cerraba un solo fragmento.
+- **Los contenedores de vídeo no se comportan igual**, y conviene saberlo:
+
+  | | ¿Se abre tal cual tras el corte? | Recuperado de 10 s |
+  |---|---|---|
+  | mp4 | **sí** — GSR lo escribe fragmentado | 8,14 s |
+  | mkv | no, sin duración | 8,13 s al rehacerlo |
+  | webm | no, sin duración | 8,13 s al rehacerlo |
+
+- Así que **la aplicación repara sola** lo que quedó a medias. Al abrirla, si
+  detecta una grabación sin cerrar lo dice y ofrece arreglarla; rehace el
+  contenedor copiando los flujos, sin recodificar y sin perder calidad. Orden
+  nueva `easy-screen-recorder-cli reparar`. El original no se toca hasta que el
+  arreglado existe y tiene duración.
+- `flac` es el único que queda a medias: conserva **todo** el audio —verificado,
+  se decodifica entero— pero sin la duración en la cabecera.
+- El arnés pasa a **ocho casos**: mata al grabador con SIGKILL y exige que lo
+  grabado siga ahí y que `reparar` lo deje utilizable.
+
 ### Lo grabado sobrevive a un apagón, y la interfaz explica lo que hace (2026-09-16)
 
 - **Un corte de luz se llevaba TODA la grabación.** Medido con un A/B limpio —10

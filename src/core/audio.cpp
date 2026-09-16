@@ -181,6 +181,37 @@ std::vector<std::string> argumentos_ffmpeg(const AjustesAudio& a,
     if (a.bitrate_kbps != 0 && f != nullptr && !f->sin_perdida) {
         args.insert(args.end(), {"-b:a", std::to_string(a.bitrate_kbps) + "k"});
     }
+    // Volcar cada paquete al disco en vez de dejarlo en el buffer del muxor.
+    //
+    // Sin esto, una nota de voz de media hora que acabe en un apagon vale CERO.
+    // Medido el 2026-09-16 matando ffmpeg a los 8 segundos: opus, flac y mp3
+    // dejaban un fichero de 0 bytes y aac uno de 44. El unico que sobrevivia era
+    // wav, y solo porque escribe las muestras segun llegan.
+    //
+    // No es lo mismo que en la grabacion de pantalla y por eso se repite aqui:
+    // ese camino va por GSR y esta opcion se le pasa a el; este va por nuestro
+    // propio ffmpeg y hay que ponerla en su linea de comandos.
+    args.insert(args.end(), {"-flush_packets", "1"});
+
+    // Y en la familia mp4, ademas, FRAGMENTAR.
+    //
+    // Un .m4a normal guarda su indice al final, asi que uno a medio escribir no
+    // vale para nada: volcar cada paquete no basta. Medido cortando un fichero
+    // por la mitad: el normal devuelve CERO audio, el fragmentado devuelve 29,4
+    // de los 30 segundos que habia dentro.
+    //
+    // Es lo mismo que hace GSR con el video (muxer.c:93, «hybrid_fragmented»),
+    // asi que las dos vias quedan igual de resistentes.
+    //
+    // «frag_duration» y no «frag_keyframe»: en audio puro todos los fotogramas
+    // son clave, y aun asi ffmpeg no cerraba ningun fragmento hasta el final.
+    // Medido matando el proceso: con frag_keyframe quedaban 712 bytes
+    // irrecuperables; cerrando un fragmento por segundo se salva casi todo.
+    const std::string ext = extension_de(a.salida);
+    if (ext == "m4a" || ext == "mp4") {
+        args.insert(args.end(), {"-movflags", "+empty_moov"});
+        args.insert(args.end(), {"-frag_duration", "1000000"});  // un fragmento por segundo
+    }
     args.push_back(a.salida);
     return args;
 }

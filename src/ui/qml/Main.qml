@@ -694,6 +694,31 @@ Kirigami.ApplicationWindow {
                     }
                 }
 
+                // Lo que quedo a medias la ultima vez. Se ofrece arreglarlo
+                // aqui y no en un dialogo al arrancar: un dialogo obliga a
+                // decidir antes de saber de que va, y esto puede esperar.
+                Kirigami.InlineMessage {
+                    Layout.fillWidth: true
+                    visible: Controlador.grabacionAMedias !== ""
+                    type: Kirigami.MessageType.Warning
+                    text: qsTr("Una grabación quedó a medias: %1.\nEl vídeo está "
+                               + "dentro, pero le falta el cierre y muchos "
+                               + "reproductores no lo abrirán tal cual.")
+                          .arg(Controlador.grabacionAMedias)
+                    actions: [
+                        Kirigami.Action {
+                            text: qsTr("Arreglarlo")
+                            icon.name: "tools-wizard"
+                            onTriggered: Controlador.repararGrabacion()
+                        },
+                        Kirigami.Action {
+                            text: qsTr("Dejarlo así")
+                            icon.name: "dialog-cancel"
+                            onTriggered: Controlador.olvidarGrabacionAMedias()
+                        }
+                    ]
+                }
+
                 // La ruta de lo ultimo guardado, clicable de palabra.
                 Kirigami.InlineMessage {
                     Layout.fillWidth: true

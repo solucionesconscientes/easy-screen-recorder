@@ -12,12 +12,12 @@
 <context>
     <name>Controlador</name>
     <message>
-        <location filename="../controlador.cpp" line="226"/>
+        <location filename="../controlador.cpp" line="231"/>
         <source>no se pudo guardar la elección de carpeta</source>
         <translation>could not save the folder you chose</translation>
     </message>
     <message>
-        <location filename="../controlador.cpp" line="258"/>
+        <location filename="../controlador.cpp" line="263"/>
         <source>Elegir una región arrastrando</source>
         <translation>Pick a region by dragging</translation>
     </message>
@@ -52,33 +52,33 @@
         <translation>Screen</translation>
     </message>
     <message>
-        <location filename="../controlador.cpp" line="265"/>
+        <location filename="../controlador.cpp" line="270"/>
         <source>Elegir ventana o pantalla al empezar</source>
         <translation>Pick a window or a screen when starting</translation>
     </message>
     <message>
-        <location filename="../controlador.cpp" line="268"/>
+        <location filename="../controlador.cpp" line="273"/>
         <source>La ventana activa</source>
         <translation>The active window</translation>
     </message>
     <message>
-        <location filename="../controlador.cpp" line="271"/>
-        <location filename="../controlador.cpp" line="292"/>
+        <location filename="../controlador.cpp" line="276"/>
+        <location filename="../controlador.cpp" line="297"/>
         <source>Cámara</source>
         <translation>Camera</translation>
     </message>
     <message>
-        <location filename="../controlador.cpp" line="311"/>
+        <location filename="../controlador.cpp" line="316"/>
         <source>Solo audio: audio del sistema</source>
         <translation>Audio only: system audio</translation>
     </message>
     <message>
-        <location filename="../controlador.cpp" line="312"/>
+        <location filename="../controlador.cpp" line="317"/>
         <source>Solo audio: micrófono</source>
         <translation>Audio only: microphone</translation>
     </message>
     <message>
-        <location filename="../controlador.cpp" line="316"/>
+        <location filename="../controlador.cpp" line="321"/>
         <source>gpu-screen-recorder no está instalado. Sin él no hay grabación de pantalla.
 Instálalo nativo o como flatpak y vuelve a abrir Easy Screen Recorder.</source>
         <translation>gpu-screen-recorder is not installed. Without it there is no screen recording.
@@ -296,9 +296,9 @@ On a mostly still screen, measured: Medium 1.5 MB/min · High 2.4 · Very high 3
         <source>«En una sola pista» mezcla los dos y se oye todo en cualquier reproductor.
 
 «En pistas separadas» deja cada uno por su lado para poder equilibrarlos al editar, pero casi todos los reproductores suenan solo la primera: el micrófono parecerá mudo.</source>
-        <translation>"In a single track" mixes both and everything is audible in any player.
+        <translation>&quot;In a single track&quot; mixes both and everything is audible in any player.
 
-"In separate tracks" keeps each one apart so you can balance them when editing, but most players only play the first one: the microphone will seem muted.</translation>
+&quot;In separate tracks&quot; keeps each one apart so you can balance them when editing, but most players only play the first one: the microphone will seem muted.</translation>
     </message>
     <message>
         <location filename="../qml/Main.qml" line="572"/>
@@ -349,7 +349,7 @@ It only shows up where it actually works; on Wayland recording a monitor it does
         <source>Graba sin escribir nada: va guardando en memoria los últimos minutos y solo los vuelca a un fichero cuando pulsas «Guardar lo último».
 
 Sirve para lo que YA ha pasado: te das cuenta de que querías grabarlo cuando ya ha ocurrido, y todavía estás a tiempo.</source>
-        <translation>Records without writing anything: it keeps the last few minutes in memory and only dumps them to a file when you press "Save the last bit".
+        <translation>Records without writing anything: it keeps the last few minutes in memory and only dumps them to a file when you press &quot;Save the last bit&quot;.
 
 It is for what has ALREADY happened: you realise you wanted to record it after the fact, and you are still in time.</translation>
     </message>
@@ -389,57 +389,74 @@ It is for what has ALREADY happened: you realise you wanted to record it after t
         <translation>Cancel</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="702"/>
+        <location filename="../qml/Main.qml" line="704"/>
+        <source>Una grabación quedó a medias: %1.
+El vídeo está dentro, pero le falta el cierre y muchos reproductores no lo abrirán tal cual.</source>
+        <translation>A recording was left unfinished: %1.
+The video is inside, but it is missing its closing header and many players will not open it as is.</translation>
+    </message>
+    <message>
+        <location filename="../qml/Main.qml" line="710"/>
+        <source>Arreglarlo</source>
+        <translation>Fix it</translation>
+    </message>
+    <message>
+        <location filename="../qml/Main.qml" line="715"/>
+        <source>Dejarlo así</source>
+        <translation>Leave it</translation>
+    </message>
+    <message>
+        <location filename="../qml/Main.qml" line="727"/>
         <source>Guardado en %1</source>
         <translation>Saved to %1</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="704"/>
+        <location filename="../qml/Main.qml" line="729"/>
         <source>Abrir carpeta</source>
         <translation>Open folder</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="745"/>
+        <location filename="../qml/Main.qml" line="770"/>
         <source>En pausa</source>
         <translation>Paused</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="746"/>
+        <location filename="../qml/Main.qml" line="771"/>
         <source>Grabando audio</source>
         <translation>Recording audio</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="747"/>
+        <location filename="../qml/Main.qml" line="772"/>
         <source>En memoria, sin guardar</source>
         <translation>In memory, not saved</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="748"/>
+        <location filename="../qml/Main.qml" line="773"/>
         <source>Grabando</source>
         <translation>Recording</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="763"/>
+        <location filename="../qml/Main.qml" line="788"/>
         <source>Guardar lo último</source>
         <translation>Save the last bit</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="773"/>
+        <location filename="../qml/Main.qml" line="798"/>
         <source>Reanudar</source>
         <translation>Resume</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="773"/>
+        <location filename="../qml/Main.qml" line="798"/>
         <source>Pausa</source>
         <translation>Pause</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="781"/>
+        <location filename="../qml/Main.qml" line="806"/>
         <source>Terminar</source>
         <translation>Finish</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="782"/>
+        <location filename="../qml/Main.qml" line="807"/>
         <source>Parar y guardar</source>
         <translation>Stop and save</translation>
     </message>

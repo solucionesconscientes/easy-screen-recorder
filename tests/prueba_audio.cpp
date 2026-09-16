@@ -146,8 +146,32 @@ int main() {
         const auto args = argumentos_ffmpeg(a, "fuente.monitor");
         const std::vector<std::string> esperado = {"-nostdin", "-hide_banner", "-y",
                                                    "-f", "pulse", "-i", "fuente.monitor",
-                                                   "-c:a", "libopus", "/x/nota.opus"};
+                                                   "-c:a", "libopus",
+                                                   "-flush_packets", "1", "/x/nota.opus"};
         COMPROBAR(args == esperado);
+    }
+    {
+        // El volcado forzado va SIEMPRE. Sin el, una nota de voz que acabe en un
+        // apagon vale cero: medido, opus, flac y mp3 dejaban 0 bytes en disco.
+        AjustesAudio a;
+        a.salida = "/x/nota.opus";
+        const auto args = argumentos_ffmpeg(a, "fuente");
+        const auto flush = std::find(args.begin(), args.end(), "-flush_packets");
+        COMPROBAR(flush != args.end() && flush + 1 != args.end() && *(flush + 1) == "1");
+        // En opus no se fragmenta: ese contenedor no lleva el indice al final.
+        COMPROBAR(std::find(args.begin(), args.end(), "-movflags") == args.end());
+    }
+    {
+        // La familia mp4, ademas, FRAGMENTADA: su indice va al final, asi que un
+        // .m4a a medias no vale ni volcando cada paquete. Medido cortando un
+        // fichero por la mitad: sin fragmentar salen CERO segundos de audio;
+        // fragmentado, 29,4 de los 30 que habia dentro.
+        AjustesAudio m;
+        m.formato = "aac";
+        m.salida = "/x/nota.m4a";
+        const auto args = argumentos_ffmpeg(m, "fuente");
+        COMPROBAR(std::find(args.begin(), args.end(), "-movflags") != args.end());
+        COMPROBAR(std::find(args.begin(), args.end(), "-frag_duration") != args.end());
     }
     {
         AjustesAudio a;

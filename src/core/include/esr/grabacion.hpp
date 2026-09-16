@@ -27,10 +27,34 @@ struct SesionGrabacion {
     // UI que se abriera a mitad ofreceria «Parar y guardar» sobre un replay, y
     // eso no guarda nada. Tirarias el buffer creyendo que lo salvabas.
     std::string ruta_replay;  // dir/replay.txt
+    // La ruta del fichero que se esta escribiendo. Existe para poder repararlo
+    // si el equipo se apaga: sin esto no se sabria ni que fichero mirar.
+    std::string ruta_salida;  // dir/salida.txt
 };
 
 // Los segundos de buffer de la grabacion en marcha, o 0 si no es de replay.
 int replay_en_marcha(const std::string& ruta_replay);
+
+// La grabacion que quedo a medias, si la hay: devuelve su ruta, o vacio.
+//
+// «A medias» es que hay una salida apuntada y NO hay socket vivo: alguien apago
+// el equipo, o el grabador murio. El fichero existe y trae el video, pero en
+// mkv y webm le falta el cierre y un reproductor normal no lo abre.
+//
+// Devuelve vacio tambien cuando el fichero ya esta bien, para no ofrecer una
+// reparacion que no hace falta.
+std::string grabacion_a_medias(const SesionGrabacion& sesion);
+
+// Rehace el contenedor de un fichero al que le falta el cierre.
+//
+// No recodifica: copia los flujos tal cual y escribe una cabecera completa, asi
+// que no pierde calidad y tarda un segundo. Lo grabado que estuviera escrito se
+// conserva; lo que quedo en el aire cuando se corto no existe y no hay magia
+// que lo traiga.
+//
+// El original NO se borra hasta que el reparado existe y tiene duracion: si algo
+// sale mal, es preferible quedarse con el fichero raro que con ninguno.
+bool reparar_grabacion(const std::string& ruta, std::string& motivo);
 
 // Lee ese instante. 0 si no hay grabacion o no se puede leer.
 long inicio_grabacion(const std::string& ruta_inicio);

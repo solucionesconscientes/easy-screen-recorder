@@ -64,6 +64,11 @@ Controlador::Controlador(QObject* padre) : QObject(padre), medidor_(this) {
         emit segundosCambiados();
     });
 
+    // ¿Quedo algo a medias la ultima vez? Se mira al abrir, que es cuando el
+    // usuario puede hacer algo al respecto. Es barato: mirar un fichero.
+    grabacion_a_medias_ =
+        QString::fromStdString(esr::grabacion_a_medias(esr::sesion_por_defecto()));
+
     // La ventana pinta ya; la deteccion (0,7-0,9 s con el flatpak, medido)
     // llega por detras. Es la via honesta de cumplir "arranque < 1 s" sin
     // cachear capacidades que dependen del estado de la sesion.
@@ -507,6 +512,43 @@ void Controlador::guardarReplay() {
         const auto r = esr::guardar_replay(esr::sesion_por_defecto());
         return {r.parado, QString::fromStdString(r.parado ? r.ruta_fichero : r.motivo)};
     }));
+}
+
+void Controlador::repararGrabacion() {
+    if (grabacion_a_medias_.isEmpty()) return;
+    const std::string ruta = grabacion_a_medias_.toStdString();
+    ponerError({});
+
+    auto* vigilante = new QFutureWatcher<QPair<bool, QString>>(this);
+    connect(vigilante, &QFutureWatcher<QPair<bool, QString>>::finished, this,
+            [this, vigilante, ruta] {
+                const auto [bien, motivo] = vigilante->result();
+                vigilante->deleteLater();
+                if (!bien) {
+                    ponerError(motivo);
+                    return;
+                }
+                // Se deja de ofrecer y se enseña como recien guardada, que es lo
+                // que es: un fichero que ya se puede abrir.
+                olvidarGrabacionAMedias();
+                ruta_guardada_ = QString::fromStdString(ruta);
+                emit rutaGuardadaCambiada();
+            });
+    vigilante->setFuture(QtConcurrent::run([ruta]() -> QPair<bool, QString> {
+        std::string motivo;
+        const bool bien = esr::reparar_grabacion(ruta, motivo);
+        return {bien, QString::fromStdString(motivo)};
+    }));
+}
+
+void Controlador::olvidarGrabacionAMedias() {
+    if (grabacion_a_medias_.isEmpty()) return;
+    grabacion_a_medias_.clear();
+    // Se borra la marca para no volver a preguntar por lo mismo en cada
+    // arranque: quien dice que no, lo dice una vez.
+    std::error_code ec;
+    std::filesystem::remove(esr::sesion_por_defecto().ruta_salida, ec);
+    emit grabacionAMediasCambiada();
 }
 
 void Controlador::parar() {

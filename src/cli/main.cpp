@@ -39,6 +39,8 @@ void uso() {
         "  easy-screen-recorder-cli audio [opciones]   graba solo audio, sin video (via ffmpeg)\n"
         "  easy-screen-recorder-cli parar              para, guarda e imprime la ruta del fichero\n"
         "  easy-screen-recorder-cli guardar            vuelca el buffer de replay a un fichero\n"
+        "  easy-screen-recorder-cli reparar            arregla la grabacion que quedo a medias\n"
+        "                              si el equipo se apago mientras grababa\n"
         "  easy-screen-recorder-cli pausar             pausa la grabacion en marcha\n"
         "  easy-screen-recorder-cli reanudar           reanuda la grabacion pausada\n"
         "  easy-screen-recorder-cli estado             dice si hay una grabacion en marcha\n"
@@ -390,6 +392,23 @@ int audio(const std::vector<std::string_view>& args) {
     return kBien;
 }
 
+int reparar() {
+    const auto sesion = esr::sesion_por_defecto();
+    const std::string ruta = esr::grabacion_a_medias(sesion);
+    if (ruta.empty()) {
+        std::printf("no hay ninguna grabacion a medias\n");
+        return kBien;
+    }
+    std::printf("rehaciendo %s...\n", ruta.c_str());
+    std::string motivo;
+    if (!esr::reparar_grabacion(ruta, motivo)) {
+        std::fprintf(stderr, "easy-screen-recorder-cli: %s\n", motivo.c_str());
+        return kFallo;
+    }
+    std::printf("%s\n", ruta.c_str());
+    return kBien;
+}
+
 int parar() {
     // Puede haber una grabacion de pantalla o una de audio; se para la que
     // este. Las dos a la vez tambien: primero la pantalla.
@@ -520,6 +539,7 @@ int main(int argc, char** argv) {
     if (orden == "audio") return audio(args);
     if (orden == "parar") return parar();
     if (orden == "guardar") return guardar();
+    if (orden == "reparar") return reparar();
     if (orden == "pausar") return pausar(true);
     if (orden == "reanudar") return pausar(false);
     if (orden == "estado") return estado();
