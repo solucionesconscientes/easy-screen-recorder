@@ -16,6 +16,9 @@
 #include "esr/ipc.hpp"
 #include "esr/proceso.hpp"
 
+#include <stdexcept>
+#include <string>
+
 namespace esr {
 namespace {
 
@@ -29,6 +32,23 @@ constexpr int kPasoEsperaMs = 100;
 // Limite para los comandos con respuesta inmediata. gsr-cli usa 10 s
 // (tools/gsr-cli/main.c:18-19); se copia.
 constexpr int kLimiteInmediatoMs = 10000;
+
+// La duracion que ffprobe le saca a un fichero, o 0 si no se la saca.
+//
+// Es el criterio para saber si un fichero esta bien cerrado: al que le falta el
+// cierre, ffprobe le devuelve «N/A». Se usa ffprobe y no una lectura propia
+// porque es lo que hace cualquier reproductor y aqui lo que importa es si el
+// fichero se va a poder abrir.
+double duracion_de(const std::string& ruta) {
+    const auto r = ejecutar("ffprobe", {"-v", "error", "-show_entries", "format=duration",
+                                        "-of", "csv=p=0", ruta});
+    if (!r.ejecutado || r.codigo != 0) return 0.0;
+    try {
+        return std::stod(r.salida);
+    } catch (const std::exception&) {
+        return 0.0;  // «N/A» y cualquier otra cosa que no sea un numero
+    }
+}
 
 std::string leer_pid(const std::string& ruta) {
     std::ifstream f(ruta);
@@ -74,6 +94,7 @@ SesionGrabacion sesion_por_defecto() {
     s.ruta_pid = s.dir + "/gsr.pid";
     s.ruta_inicio = s.dir + "/inicio.txt";
     s.ruta_replay = s.dir + "/replay.txt";
+    s.ruta_salida = s.dir + "/salida.txt";
     return s;
 }
 
@@ -197,6 +218,13 @@ ResultadoLanzamiento empezar_grabacion(const AjustesGrabacion& ajustes,
     } else {
         std::filesystem::remove(sesion.ruta_replay, ec);
     }
+    // En replay la salida es una carpeta y cada volcado se cierra solo, asi que
+    // no hay nada que reparar despues.
+    if (ajustes.replay_segundos == 0) {
+        std::ofstream(sesion.ruta_salida) << ajustes.salida << "\n";
+    } else {
+        std::filesystem::remove(sesion.ruta_salida, ec);
+    }
 
     // Esperar a que el socket escuche. Si GSR muere antes, el log dice por que.
     for (int esperado = 0; esperado < kEsperaSocketMs; esperado += kPasoEsperaMs) {
@@ -254,7 +282,62 @@ ResultadoParada parar_grabacion(const SesionGrabacion& sesion) {
     std::filesystem::remove(sesion.ruta_pid, ec);
     std::filesystem::remove(sesion.ruta_inicio, ec);
     std::filesystem::remove(sesion.ruta_replay, ec);
+    std::filesystem::remove(sesion.ruta_salida, ec);
     return r;
+}
+
+std::string grabacion_a_medias(const SesionGrabacion& sesion) {
+    std::ifstream f(sesion.ruta_salida);
+    std::string ruta;
+    if (!std::getline(f, ruta) || ruta.empty()) return {};
+    // Con el socket vivo la grabacion sigue: no es que quedara a medias.
+    if (grabacion_en_marcha(sesion)) return {};
+
+    std::error_code ec;
+    if (!std::filesystem::exists(ruta, ec) || std::filesystem::file_size(ruta, ec) == 0) {
+        return {};
+    }
+    // Si ya se abre bien, no hay nada que ofrecer. Es el caso de mp4, que GSR
+    // escribe fragmentado y sobrevive sin ayuda.
+    if (duracion_de(ruta) > 0.0) return {};
+    return ruta;
+}
+
+bool reparar_grabacion(const std::string& ruta, std::string& motivo) {
+    // El temporal CONSERVA la extension: ffmpeg deduce el formato de salida de
+    // ella, y un «.mkv.reparando» le hace decir que no sabe que escribir. Se
+    // descubrio con el fichero delante, no leyendo el manual.
+    const std::string ext = extension_de(ruta);
+    const std::string temporal =
+        ruta.substr(0, ruta.size() - (ext.empty() ? 0 : ext.size() + 1)) +
+        ".reparando." + (ext.empty() ? std::string("mkv") : ext);
+    std::error_code ec;
+    std::filesystem::remove(temporal, ec);
+
+    // -c copy: se copian los flujos tal cual. No se recodifica nada, asi que no
+    // se pierde calidad y tarda lo que tarde en leer el fichero.
+    const auto r = ejecutar("ffmpeg", {"-v", "error", "-y", "-i", ruta,
+                                       "-c", "copy", temporal});
+    if (!r.ejecutado) {
+        motivo = "hace falta ffmpeg para rehacer el fichero: " + r.motivo;
+        std::filesystem::remove(temporal, ec);
+        return false;
+    }
+    // El codigo de salida de ffmpeg no basta: leer un fichero truncado siempre
+    // da error aunque el resultado sea bueno. Lo que decide es si lo que sale
+    // tiene duracion.
+    if (duracion_de(temporal) <= 0.0) {
+        motivo = "no se pudo rehacer el fichero: lo que hay dentro no se puede leer";
+        std::filesystem::remove(temporal, ec);
+        return false;
+    }
+
+    std::filesystem::rename(temporal, ruta, ec);
+    if (ec) {
+        motivo = "no se pudo sustituir el fichero: " + ec.message();
+        return false;
+    }
+    return true;
 }
 
 ResultadoParada guardar_replay(const SesionGrabacion& sesion) {

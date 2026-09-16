@@ -63,6 +63,10 @@ class Controlador : public QObject {
     Q_PROPERTY(QString diagnostico READ diagnostico NOTIFY estadoCambiado)
     Q_PROPERTY(QString rutaGuardada READ rutaGuardada NOTIFY rutaGuardadaCambiada)
     Q_PROPERTY(QString error READ error NOTIFY errorCambiado)
+    // La grabacion que quedo a medias por un apagon, si la hay. Vacio si no.
+    // La interfaz lo ofrece sola: el fichero tiene el video dentro pero en mkv
+    // no se abre sin rehacerlo, y nadie tiene por que saber eso.
+    Q_PROPERTY(QString grabacionAMedias READ grabacionAMedias NOTIFY grabacionAMediasCambiada)
     Q_PROPERTY(int segundos READ segundos NOTIFY segundosCambiados)
     // Si esta compilacion trae vista previa de camara y vumetro. Sale de si
     // habia Qt6Multimedia al compilar; el QML esconde los controles cuando no.
@@ -111,6 +115,12 @@ public:
     QString rutaGuardada() const { return ruta_guardada_; }
     QString error() const { return error_; }
     int segundos() const { return segundos_; }
+    QString grabacionAMedias() const { return grabacion_a_medias_; }
+    // Rehace esa grabacion. Va en hilo aparte: copiar los flujos de un video
+    // largo tarda, y bloquear la ventana para esto seria absurdo.
+    Q_INVOKABLE void repararGrabacion();
+    // Y dejarla como esta, que tambien es una respuesta valida.
+    Q_INVOKABLE void olvidarGrabacionAMedias();
     bool hayMultimedia() const;
     qreal nivelMicro() const;
     // Enciende o apaga el vumetro. Lo llama el QML: escucha solo cuando el
@@ -148,6 +158,7 @@ signals:
     void errorCambiado();
     void segundosCambiados();
     void nivelMicroCambiado();
+    void grabacionAMediasCambiada();
     void grabacionGuardada(const QString& ruta);
 
 private:
@@ -165,6 +176,7 @@ private:
     QStringList codecs_video_;
     QString diagnostico_;
     QString ruta_guardada_;
+    QString grabacion_a_medias_;
     QString error_;
     int segundos_ = 0;
     QTimer reloj_;

@@ -235,6 +235,37 @@ esac
 echo "VERIFICADO webm: video $codec_webm, que es de los que webm admite"
 rm -f "$ruta_webm"
 
+# --- Sobrevivir a un apagon --------------------------------------------------
+# Se mata al grabador con SIGKILL, que es lo mas parecido a un corte de luz que
+# se puede provocar a mano, y se exige que lo grabado siga ahi. Sin el volcado
+# forzado a disco esto devolvia CERO segundos: el fichero existia y estaba vacio
+# de contenido util.
+destino_corte="$HOME/.cache/easy-screen-recorder/verify/corte.mkv"
+rm -f "$destino_corte"
+
+echo
+echo "grabando 8 segundos y matando el grabador a lo bruto..."
+"$binario" grabar --salida "$destino_corte" >/dev/null || fallo "«grabar» devolvio error"
+sleep 8
+pid_gsr="$(cat "$HOME/.cache/easy-screen-recorder/sesion/gsr.pid" 2>/dev/null)"
+[ -n "$pid_gsr" ] || fallo "no se apunto el pid del grabador"
+pkill -9 -P "$pid_gsr" 2>/dev/null
+kill -9 "$pid_gsr" 2>/dev/null
+sleep 3
+
+[ -s "$destino_corte" ] || fallo "tras el corte no quedo nada en $destino_corte"
+# Un mkv a medias no trae duracion: hace falta rehacerlo, y eso lo hace la
+# aplicacion sola. Esto comprueba las dos mitades.
+a_medias="$("$binario" reparar | tail -1)"
+[ "$a_medias" = "$destino_corte" ] || fallo "«reparar» no arreglo $destino_corte (dijo «$a_medias»)"
+dur_corte="$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$destino_corte")"
+case "$dur_corte" in ''|N/A) fallo "tras reparar sigue sin duracion" ;; esac
+if ! awk "BEGIN{exit !($dur_corte >= 4.0)}"; then
+  fallo "del corte solo se salvaron $dur_corte s de los 8 grabados"
+fi
+echo "VERIFICADO apagon: $dur_corte s de los 8 grabados, recuperados y reparados"
+rm -f "$destino_corte"
+
 # --- Modo audio-only ---------------------------------------------------------
 # Va por ffmpeg, no por GSR (docs/gsr-audio-only.md), asi que se verifica
 # aparte y con sus propias herramientas.
