@@ -9,6 +9,7 @@
 #include <QIcon>
 #include <QQmlApplicationEngine>
 #include <QQuickStyle>
+#include <QMenu>
 #include <QQuickWindow>
 #include <QSystemTrayIcon>
 
@@ -140,38 +141,85 @@ int main(int argc, char** argv) {
     // rojo SOLO cuando se graba: un indicador siempre encendido miente.
     QSystemTrayIcon bandeja(iconoBandeja(false));
     bandeja.setToolTip(QStringLiteral("Easy Screen Recorder"));
+
+    // Y con menu, no solo con clic. Mientras se graba, la ventana esta
+    // minimizada y apartada: si la unica forma de pausar fuera restaurarla, la
+    // ventana entraria en el video justo en el momento en que uno intenta que
+    // no salga. Desde aqui se pausa y se para sin que aparezca nada.
+    QMenu menu;
+    QAction* accion_mostrar = menu.addAction(QObject::tr("Mostrar la ventana"));
+    menu.addSeparator();
+    QAction* accion_pausa = menu.addAction(QObject::tr("Pausa"));
+    QAction* accion_parar = menu.addAction(QObject::tr("Parar y guardar"));
+    menu.addSeparator();
+    QAction* accion_salir = menu.addAction(QObject::tr("Salir"));
+    bandeja.setContextMenu(&menu);
+
+    // El icono no se enseña hasta aqui: con el menu ya puesto, el escritorio lo
+    // recoge de una vez y no hay un instante con un icono sin menu detras.
     bandeja.show();
+
+    const auto traer = [ventana] {
+        if (ventana == nullptr) return;
+        ventana->show();
+        ventana->raise();
+        ventana->requestActivate();
+    };
+    // Minimizada cuenta como apartada aunque `isVisible()` siga diciendo que
+    // si: si no, el clic en la bandeja durante una grabacion la «ocultaba»
+    // otra vez en vez de traerla.
+    const auto a_la_vista = [ventana] {
+        return ventana != nullptr && ventana->isVisible() &&
+               ventana->visibility() != QWindow::Minimized;
+    };
 
     if (ventana != nullptr) {
         QObject::connect(&bandeja, &QSystemTrayIcon::activated, ventana,
-                         [ventana](QSystemTrayIcon::ActivationReason motivo) {
+                         [ventana, traer, a_la_vista](QSystemTrayIcon::ActivationReason motivo) {
                              if (motivo != QSystemTrayIcon::Trigger) return;
-                             if (ventana->isVisible()) {
-                                 ventana->hide();
+                             if (a_la_vista()) {
+                                 ventana->showMinimized();
                              } else {
-                                 ventana->show();
-                                 ventana->raise();
-                                 ventana->requestActivate();
+                                 traer();
                              }
                          });
+        QObject::connect(accion_mostrar, &QAction::triggered, ventana, traer);
     }
+    QObject::connect(accion_salir, &QAction::triggered, &app, &QCoreApplication::quit);
+
     if (controlador != nullptr) {
+        QObject::connect(accion_pausa, &QAction::triggered, controlador, [controlador] {
+            if (controlador->estado() == QStringLiteral("pausado")) {
+                controlador->reanudar();
+            } else {
+                controlador->pausar();
+            }
+        });
+        QObject::connect(accion_parar, &QAction::triggered, controlador, &Controlador::parar);
+
         QObject::connect(controlador, &Controlador::grabacionGuardada, &bandeja,
                          [&bandeja](const QString& ruta) {
-                             bandeja.showMessage(QStringLiteral("Grabación guardada"), ruta,
+                             bandeja.showMessage(QObject::tr("Grabación guardada"), ruta,
                                                  QSystemTrayIcon::Information, 6000);
                          });
-        QObject::connect(controlador, &Controlador::estadoCambiado, &bandeja,
-                         [&bandeja, controlador] {
-                             const QString estado = controlador->estado();
-                             const bool grabando = estado == QStringLiteral("grabando") ||
-                                                   estado == QStringLiteral("grabandoAudio") ||
-                                                   estado == QStringLiteral("pausado");
-                             bandeja.setIcon(iconoBandeja(grabando));
-                             bandeja.setToolTip(grabando
-                                                    ? QStringLiteral("Easy Screen Recorder: grabando")
-                                                    : QStringLiteral("Easy Screen Recorder"));
-                         });
+        const auto refrescar = [&bandeja, controlador, accion_pausa, accion_parar] {
+            const QString estado = controlador->estado();
+            const bool pausado = estado == QStringLiteral("pausado");
+            const bool audio = estado == QStringLiteral("grabandoAudio");
+            const bool grabando = estado == QStringLiteral("grabando") || audio || pausado;
+            bandeja.setIcon(iconoBandeja(grabando));
+            bandeja.setToolTip(grabando ? QObject::tr("Easy Screen Recorder: grabando")
+                                        : QStringLiteral("Easy Screen Recorder"));
+            // GSR no pausa el modo audio-only: la pausa es del IPC de la
+            // pantalla. Igual que en la ventana, ahi no se ofrece.
+            accion_pausa->setVisible(grabando && !audio);
+            accion_pausa->setText(pausado ? QObject::tr("Reanudar") : QObject::tr("Pausa"));
+            accion_parar->setVisible(grabando);
+        };
+        QObject::connect(controlador, &Controlador::estadoCambiado, &bandeja, refrescar);
+        // Y una vez ya, porque la aplicacion puede arrancar con una grabacion
+        // en marcha que lanzo el CLI.
+        refrescar();
     }
 
     // Cerrar la ventana sin grabacion sale del todo; el QML gestiona el

@@ -33,6 +33,27 @@ QVariantMap fuente(const QString& valor, const QString& texto) {
     return {{QStringLiteral("valor"), valor}, {QStringLiteral("texto"), texto}};
 }
 
+// El nombre de un monitor, ya clasificado por libesr. Aqui solo estan las
+// palabras: la logica —agrupar, ordenar, desempatar— vive en el nucleo, que es
+// donde se puede probar con ctest y sin Qt.
+QString textoMonitor(const esr::FuenteAmable& f) {
+    switch (f.familia) {
+        case esr::FamiliaMonitor::Interna: return Controlador::tr("Pantalla del portátil");
+        case esr::FamiliaMonitor::Hdmi: return Controlador::tr("Pantalla HDMI");
+        case esr::FamiliaMonitor::DisplayPort: return Controlador::tr("Pantalla DisplayPort");
+        case esr::FamiliaMonitor::Vga: return Controlador::tr("Pantalla VGA");
+        case esr::FamiliaMonitor::Dvi: return Controlador::tr("Pantalla DVI");
+        case esr::FamiliaMonitor::Otra: break;
+    }
+    return Controlador::tr("Pantalla");
+}
+
+// «1366x768» se enseña como «1366×768»: el signo de multiplicar, no una equis.
+QString resolucionBonita(const std::string& resolucion) {
+    if (resolucion.empty()) return {};
+    return QString::fromStdString(resolucion).replace(QLatin1Char('x'), QChar(0x00D7));
+}
+
 }  // namespace
 
 Controlador::Controlador(QObject* padre) : QObject(padre) {
@@ -129,9 +150,22 @@ QStringList Controlador::contenedores() const {
     return lista;
 }
 
-QStringList Controlador::codecsAudioPara(const QString& contenedor) const {
+QStringList Controlador::codecsVideoPara(const QString& contenedor,
+                                         const QStringList& disponibles) const {
+    std::vector<std::string> entrada;
+    entrada.reserve(static_cast<std::size_t>(disponibles.size()));
+    for (const QString& c : disponibles) entrada.push_back(c.toStdString());
+
     QStringList lista;
-    for (const auto& c : esr::codecs_audio_para(contenedor.toStdString())) {
+    for (const auto& c : esr::codecs_video_para(contenedor.toStdString(), entrada)) {
+        lista << QString::fromStdString(c);
+    }
+    return lista;
+}
+
+QStringList Controlador::codecsAudioPara(const QString& contenedor, bool mezcla) const {
+    QStringList lista;
+    for (const auto& c : esr::codecs_audio_para(contenedor.toStdString(), mezcla)) {
         lista << QString::fromStdString(c);
     }
     return lista;
@@ -159,34 +193,57 @@ void Controlador::elegirCarpeta(bool paraAudio, const QUrl& carpeta) {
 void Controlador::aplicarEntorno(const esr::Entorno& e) {
     fuentes_.clear();
     codecs_video_.clear();
-    // «auto» delante: delega en GSR, que es el criterio probado. El resto,
-    // tal como la maquina los nombra; el sufijo _software se enseña como CPU
-    // para que nadie lo confunda con hardware.
+    // «auto» delante: delega en GSR, que es el criterio probado, y ademas es el
+    // unico que acierta siempre con el contenedor. El resto, tal como la maquina
+    // los nombra, pero solo los que GSR acepta de verdad en -k: «h264_software»
+    // salia de --info y mataba al grabador al arrancar.
     codecs_video_ << QStringLiteral("auto");
-    for (const auto& c : e.capacidades.info.codecs_video) {
+    for (const auto& c : esr::codecs_video_ofrecibles(e.capacidades.info)) {
         codecs_video_ << QString::fromStdString(c);
     }
-    QStringList vistas;
-    for (const auto& f : e.capacidades.fuentes_captura) {
+    // El identificador que viaja a GSR es el suyo y no se toca NUNCA. Lo que se
+    // compone aqui es solo el texto visible.
+    //
+    // Antes ese texto era el identificador tal cual, y el desplegable decia
+    // «eDP-1» y «/dev/video0». Eso es el nombre de un conector DRM y la ruta de
+    // un nodo de dispositivo: correcto, comprobable y completamente opaco para
+    // quien solo quiere grabar su pantalla.
+    for (const auto& f : esr::fuentes_amables(e.capacidades.fuentes_captura)) {
         const QString id = QString::fromStdString(f.id);
-        // Una camara con N modos es UNA fuente para el usuario; el modo lo
-        // elige GSR. Sin esto la lista enseñaba /dev/video0 ocho veces.
-        if (vistas.contains(id)) continue;
-        vistas << id;
-        // El identificador es el de GSR y no se toca. Solo se traduce el texto
-        // de las fuentes especiales, que son las que tienen un nombre que no
-        // significa nada para el usuario; un monitor o una camara se enseñan
-        // tal como los nombra la maquina.
-        QString texto = id;
-        if (id == QStringLiteral("region")) {
-            texto = tr("Elegir una región arrastrando");
-        } else if (id == QStringLiteral("portal")) {
-            texto = tr("Preguntar al empezar (lo elige el sistema)");
-        } else if (id == QStringLiteral("focused")) {
-            texto = tr("La ventana que tenga el foco");
+        QString texto;
+        switch (f.tipo) {
+            case esr::TipoFuente::Monitor:
+                texto = textoMonitor(f);
+                break;
+            case esr::TipoFuente::Region:
+                texto = tr("Elegir una región arrastrando");
+                break;
+            case esr::TipoFuente::Portal:
+                // El texto anterior era «Preguntar al empezar (lo elige el
+                // sistema)», que dice quien decide y no QUE se decide. Lo que
+                // pasa de verdad es que el escritorio abre su dialogo de
+                // compartir pantalla y ahi se elige una ventana o una pantalla.
+                texto = tr("Elegir ventana o pantalla al empezar");
+                break;
+            case esr::TipoFuente::VentanaActiva:
+                texto = tr("La ventana activa");
+                break;
+            case esr::TipoFuente::Camara:
+                texto = tr("Cámara");
+                if (!f.nombre.empty()) {
+                    texto += QStringLiteral(" · ") + QString::fromStdString(f.nombre);
+                }
+                break;
         }
+        // El identificador solo aparece cuando hace falta para distinguir: con
+        // dos pantallas DisplayPort, «Pantalla DisplayPort» dos veces no se
+        // puede elegir.
+        if (f.desempatar) texto += QStringLiteral(" (%1)").arg(id);
+        const QString resolucion = resolucionBonita(f.resolucion);
+        if (!resolucion.isEmpty()) texto += QStringLiteral(" · ") + resolucion;
         fuentes_ << fuente(id, texto);
     }
+
     if (e.graba_audio_solo()) {
         fuentes_ << fuente(kAudioSistema, tr("Solo audio: audio del sistema"));
         fuentes_ << fuente(kAudioMicro, tr("Solo audio: micrófono"));
@@ -276,10 +333,15 @@ void Controlador::grabar(const QString& fuente, const QVariantMap& opciones) {
     const QString audio = opciones.value(QStringLiteral("audio"), QStringLiteral("sistema")).toString();
     if (audio == QStringLiteral("micro")) {
         a.audios = {"default_input"};
+    } else if (audio == QStringLiteral("mezclado")) {
+        // Una sola pista con las dos fuentes dentro, que es la sintaxis «a|b»
+        // de GSR. Es lo que hay que pedir para que se oiga todo en cualquier
+        // reproductor: con dos pistas separadas, casi todos suenan solo la
+        // primera y el microfono parece que no se grabo.
+        a.audios = {"default_output|default_input"};
     } else if (audio == QStringLiteral("ambos")) {
-        // Dos pistas separadas, no mezcladas: mezclar con «a|b» cambiaria
-        // FLAC a Opus por detras (codec_select.c:186-191) y separadas se
-        // pueden equilibrar despues.
+        // Dos pistas separadas: se pueden equilibrar despues al editar, a
+        // cambio de que un reproductor normal solo suene una.
         a.audios = {"default_output", "default_input"};
     } else if (audio == QStringLiteral("nada")) {
         a.audios.clear();

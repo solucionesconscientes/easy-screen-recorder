@@ -5,6 +5,104 @@ máquina de desarrollo.
 
 ## Sin publicar
 
+### Lo que se rompía al usarla de verdad (2026-09-16)
+
+Cuatro cosas que salieron de instalar el flatpak y usarlo, no de leer el código.
+
+- **Al grabar, la aplicación desaparecía.** La ventana se ocultaba para no salir
+  en el vídeo, y la única vía de vuelta era el icono de la bandeja, que **en el
+  flatpak no llegaba a existir**: el manifiesto no pedía
+  `--talk-name=org.kde.StatusNotifierWatcher` y el registro fallaba en silencio,
+  con una sola línea en stderr («KDE platform plugin is loaded but SNI
+  unavailable»). Había que reabrir la aplicación desde el menú de inicio para
+  poder pausar.
+  - El permiso entra en el manifiesto. Verificado en los dos sentidos: sin él, el
+    watcher no lista ningún item nuestro; con él, lo lista y el aviso desaparece.
+  - Y la ventana **se minimiza en vez de ocultarse**, así que sigue en la barra
+    de tareas aunque no haya bandeja. Medido: `visibility` pasa a `Minimized` y
+    `visible` sigue en `true`, que es justo por lo que la comprobación anterior
+    (`!visible`) nunca la habría traído de vuelta.
+  - La bandeja gana **menú**: mostrar, pausa/reanudar, parar y guardar, salir.
+    Pausar sin sacar la ventana, que es lo que hacía falta. Verificado por DBus
+    sobre el flatpak instalado: se pausa, se reanuda y se para desde el menú, y
+    el fichero queda escrito.
+- **El desplegable de fuentes decía `eDP-1` y `/dev/video0`.** Ahora dice
+  «Pantalla del portátil · 1366×768» y «Cámara · Integrated Webcam HD». El
+  identificador de GSR no se toca: solo cambia el texto.
+  - El nombre de la cámara sale de `/sys/class/video4linux/videoN/name`, que es
+    donde lo pone el driver; la clase de pantalla, del prefijo del conector DRM.
+    Si no se reconoce, «Pantalla» a secas: genérico es honesto, adivinar no.
+  - Las fuentes se **agrupan y ordenan**: monitores, luego lo que hay que decidir
+    al empezar, luego cámaras. GSR las listaba como le salían y la cámara caía
+    entre «region» y «portal».
+  - El identificador solo reaparece cuando hace falta para distinguir dos
+    fuentes que se llamarían igual.
+- **«Preguntar al empezar (lo elige el sistema)»** decía quién decide y no QUÉ
+  se decide. Pasa a «Elegir ventana o pantalla al empezar». Y «La ventana que
+  tenga el foco», a «La ventana activa».
+- **El audio de las dos fuentes solo se podía grabar en pistas separadas**, y
+  con dos pistas casi todos los reproductores suenan solo la primera: el
+  micrófono parecía no haberse grabado. Se añade «Los dos, en una sola pista»,
+  la sintaxis `a|b` de GSR, y va **delante** de la opción de pistas separadas,
+  que queda etiquetada «(para editar)».
+  - `scripts/verify-recording.sh` lo comprueba de aquí en adelante: graba de las
+    dos maneras y exige **una** pista de audio en la mezclada y **dos** en la
+    separada. En verde.
+  - Mezclando, `flac` desaparece del selector de códec y la validación lo
+    rechaza: GSR lo cambiaría a opus por detrás (`codec_select.c:186-191`).
+
+Y de repasar qué ofrece el desplegable de códecs, tres más:
+
+- **`h264_software` no grababa nunca.** Sale de `--info`, que lo imprime solo
+  porque la máquina tiene libx264 (`commands.c:75-76` de GSR), pero **no es un
+  valor de `-k`** (`args_parser.c:20-38`): el grabador muere al arrancar con
+  «-k should either be 'auto', 'h264', …». Se quita del selector. La
+  codificación por CPU en GSR es `-encoder cpu`, otra opción y otra
+  conversación; queda apuntada, sin implementar, en ESTADO.md.
+- **El códec de vídeo y el formato se elegían por separado, y tres de las
+  parejas que la interfaz permitía no grababan NADA.** Medido grabando: `h264`
+  en webm, `hevc` en webm y `vp8` en mp4 arrancan, mueren al escribir la
+  cabecera («Only VP8 or VP9 or AV1 video … are supported for WebM») y no dejan
+  fichero. Es el fallo más caro que puede tener esto, porque se descubre cuando
+  ya has grabado.
+  - El selector de códec pasa a filtrarse por el formato elegido, igual que ya
+    hacía el de audio, y `validar()` rechaza la pareja antes de lanzar, así que
+    el CLI también queda cubierto.
+  - La tabla sale de meter un flujo de cada códec en cada contenedor con ffmpeg:
+    webm solo admite vp8, vp9 y av1; mp4 admite todo menos vp8; mkv todo.
+  - `auto` vale siempre: GSR mira el contenedor antes de elegir. Verificado —
+    `auto` en un `.webm` da vp8, no h264.
+  - `scripts/verify-recording.sh` graba ahora también en webm y exige que el
+    vídeo sea de los que webm acepta.
+- **«Automática (recomendada)» en la calidad del audio no era un nivel de
+  calidad.** Medido: es el default del codificador, y coincide con una opción
+  que ya estaba en la lista — 96 kbps en opus, 128 en aac. O sea, vaguedad y una
+  entrada repetida. Se quita; queda **96 kbps · voz** preseleccionada, que es
+  exactamente lo que entregaba antes en opus, así que nadie recibe algo distinto
+  de lo de ayer. No se añaden escalones por encima de 192: el núcleo llega a 512
+  y el CLI los acepta, pero opus es transparente bastante antes y quien quiere
+  más no quiere más kbps, quiere flac, que ya está en el selector de Formato.
+
+Y un quinto, encontrado al ir a tocar el control del audio:
+
+- **El panel «Avanzado» no cabía en la ventana.** Crecía a 32 unidades de
+  rejilla fijas y en una pantalla de 1366×768 las tres últimas filas —imágenes
+  por segundo, carpeta y **audio**— quedaban fuera del borde inferior, sin barra
+  de desplazamiento ni nada que insinuara que seguían ahí. Ahora la ventana se
+  ajusta a lo que el formulario mide, hasta donde dé la pantalla. Medido: la
+  ventana converge a 711 px con el contenido entero dentro.
+
+Verificación: compilación sin un warning, `ctest` **12/12** (148 comprobaciones
+en `prueba_capacidades` y 86 en `prueba_ajustes`), `scripts/verify-recording.sh`
+en verde con las tres comprobaciones nuevas —pistas mezcladas, pistas separadas
+y webm—, y `reuse lint` conforme.
+
+Lo que esta máquina graba de verdad, medido grabando 3 s con cada códec y
+pasando ffprobe el 2026-09-16 (Intel, `/dev/dri/card1`, Wayland, GSR 6.0.0):
+**h264**, **hevc** y **vp8**. `vp9` falla y lo dice; `av1` **cae a h264 en
+silencio**, con un aviso solo en el log — ninguno de los dos los lista `--info`
+aquí, así que la interfaz no los ofrece.
+
 ### Distribución propia (2026-09-16)
 - `scripts/publicar-flatpak.sh`: repositorio Flatpak propio y firmado, con
   `.flatpakref`, `.flatpakrepo`, bundle y una página de instalación. Las

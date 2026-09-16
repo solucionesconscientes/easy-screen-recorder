@@ -50,6 +50,22 @@ finish-args:
   # from inside the sandbox with GSR running on the host.
   - --talk-name=org.freedesktop.Flatpak
 
+  # The tray icon. Qt registers a StatusNotifierItem with this watcher, and
+  # without the permission the registration silently fails: the icon never
+  # appears and the only trace is one line on stderr, "KDE platform plugin is
+  # loaded but SNI unavailable".
+  #
+  # That was not cosmetic. The window steps aside while recording so it does not
+  # end up in the video, and the tray icon was how you got it back — so on the
+  # first installed build the app simply vanished when you pressed Record.
+  # Verified both ways on Plasma 6 / Wayland: without the line the watcher lists
+  # no item for us, with it the item registers and the warning is gone.
+  #
+  # StatusNotifierWatcher is a freedesktop spec that KDE named; GNOME needs an
+  # extension for it. Where nothing implements it the window is still reachable,
+  # because it is minimised and not hidden.
+  - --talk-name=org.kde.StatusNotifierWatcher
+
   # The global shortcut talks to kglobalaccel, which is a KDE Plasma service.
   #
   # The app does NOT require Plasma: it runs on any desktop, on Wayland and on

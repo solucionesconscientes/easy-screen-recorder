@@ -5,6 +5,7 @@
 #include "esr/capacidades.hpp"
 
 #include <algorithm>
+#include <fstream>
 
 namespace esr {
 namespace {
@@ -143,6 +144,152 @@ std::optional<std::string> mejor_codec_hardware(const InfoGsr& info) {
         if (tiene(candidato)) return std::string(candidato);
     }
     return std::nullopt;
+}
+
+namespace {
+
+bool es_camara(std::string_view id) { return empieza_por(id, "/dev/"); }
+
+FamiliaMonitor familia_de(std::string_view id) {
+    // En mayusculas para no depender de como lo escriba cada driver, y eDP
+    // antes que DP: «eDP-1» tambien acaba en DP y no es un cable.
+    std::string may(id);
+    for (char& c : may) {
+        if (c >= 'a' && c <= 'z') c = static_cast<char>(c - 'a' + 'A');
+    }
+    if (empieza_por(may, "EDP") || empieza_por(may, "LVDS") || empieza_por(may, "DSI")) {
+        return FamiliaMonitor::Interna;
+    }
+    if (empieza_por(may, "HDMI")) return FamiliaMonitor::Hdmi;
+    if (empieza_por(may, "DP") || empieza_por(may, "DISPLAYPORT")) {
+        return FamiliaMonitor::DisplayPort;
+    }
+    if (empieza_por(may, "VGA")) return FamiliaMonitor::Vga;
+    if (empieza_por(may, "DVI")) return FamiliaMonitor::Dvi;
+    // Lo que no se reconoce es un monitor sin mas. Generico es honesto;
+    // adivinar no lo seria.
+    return FamiliaMonitor::Otra;
+}
+
+// «1366x768» si el campo tiene esa forma. Vacio si no: el parser no adorna lo
+// que no ha entendido, que es la misma regla que en el resto del fichero.
+std::string resolucion_de(std::string_view campo) {
+    if (campo.empty()) return {};
+    const auto equis = campo.find('x');
+    if (equis == std::string_view::npos || equis == 0 || equis + 1 == campo.size()) return {};
+    const auto solo_digitos = [](std::string_view s) {
+        return !s.empty() && std::all_of(s.begin(), s.end(), [](char c) {
+            return c >= '0' && c <= '9';
+        });
+    };
+    if (!solo_digitos(campo.substr(0, equis)) || !solo_digitos(campo.substr(equis + 1))) {
+        return {};
+    }
+    return std::string(campo);
+}
+
+}  // namespace
+
+std::vector<FuenteAmable> fuentes_amables(const std::vector<Opcion>& fuentes_captura) {
+    std::vector<FuenteAmable> monitores;
+    std::vector<FuenteAmable> especiales;
+    std::vector<FuenteAmable> camaras;
+
+    for (const auto& o : fuentes_captura) {
+        // Una camara con N modos es UNA fuente para el usuario; el modo lo elige
+        // GSR. Sin esto la lista enseñaba /dev/video0 ocho veces.
+        const auto ya_esta = [&o](const std::vector<FuenteAmable>& v) {
+            return std::any_of(v.begin(), v.end(),
+                               [&o](const FuenteAmable& f) { return f.id == o.id; });
+        };
+        if (ya_esta(monitores) || ya_esta(especiales) || ya_esta(camaras)) continue;
+
+        FuenteAmable f;
+        f.id = o.id;
+        if (o.id == "region") {
+            f.tipo = TipoFuente::Region;
+            especiales.push_back(f);
+        } else if (o.id == "portal") {
+            f.tipo = TipoFuente::Portal;
+            especiales.push_back(f);
+        } else if (o.id == "focused") {
+            f.tipo = TipoFuente::VentanaActiva;
+            especiales.push_back(f);
+        } else if (es_camara(o.id)) {
+            f.tipo = TipoFuente::Camara;
+            f.nombre = nombre_camara(o.id);
+            camaras.push_back(f);
+        } else {
+            f.tipo = TipoFuente::Monitor;
+            f.familia = familia_de(o.id);
+            f.resolucion = o.campos.empty() ? std::string() : resolucion_de(o.campos.front());
+            monitores.push_back(f);
+        }
+    }
+
+    // El desempate se decide con la lista entera delante: para saber si hay que
+    // enseñar «(DP-2)» hay que haber contado cuantas DisplayPort hay, y eso no
+    // se sabe mientras se recorre.
+    for (auto& f : monitores) {
+        f.desempatar = std::count_if(monitores.begin(), monitores.end(),
+                                     [&f](const FuenteAmable& otra) {
+                                         return otra.familia == f.familia;
+                                     }) > 1;
+    }
+    for (auto& f : camaras) {
+        f.desempatar = std::count_if(camaras.begin(), camaras.end(),
+                                     [&f](const FuenteAmable& otra) {
+                                         return otra.nombre == f.nombre;
+                                     }) > 1;
+    }
+
+    // Los monitores primero: grabar la pantalla es el caso de siempre y el que
+    // el atajo global elige solo. Luego lo que exige decidir al empezar, y al
+    // final las camaras, que no son «grabar la pantalla».
+    std::vector<FuenteAmable> todas;
+    todas.reserve(monitores.size() + especiales.size() + camaras.size());
+    todas.insert(todas.end(), monitores.begin(), monitores.end());
+    todas.insert(todas.end(), especiales.begin(), especiales.end());
+    todas.insert(todas.end(), camaras.begin(), camaras.end());
+    return todas;
+}
+
+std::string limpiar_nombre_camara(std::string_view crudo) {
+    // Los dos puntos separan el nombre de lo que el driver pega detras, que en
+    // esta maquina es el mismo nombre otra vez y cortado. Lo de delante basta.
+    const auto dos_puntos = crudo.find(':');
+    std::string nombre(recortar(dos_puntos == std::string_view::npos ? crudo
+                                                                    : crudo.substr(0, dos_puntos)));
+    for (char& c : nombre) {
+        if (c == '_') c = ' ';
+    }
+    return std::string(recortar(nombre));
+}
+
+std::string nombre_camara(std::string_view ruta_dispositivo) {
+    // Solo /dev/videoN. Cualquier otra cosa no es una camara V4L2 y no tiene
+    // entrada en /sys/class/video4linux.
+    constexpr std::string_view kPrefijo = "/dev/";
+    if (!empieza_por(ruta_dispositivo, kPrefijo)) return {};
+    const std::string_view nodo = ruta_dispositivo.substr(kPrefijo.size());
+    if (nodo.empty() || nodo.find('/') != std::string_view::npos) return {};
+
+    std::ifstream f("/sys/class/video4linux/" + std::string(nodo) + "/name");
+    std::string linea;
+    if (!std::getline(f, linea)) return {};
+    return limpiar_nombre_camara(linea);
+}
+
+std::vector<std::string> codecs_video_ofrecibles(const InfoGsr& info) {
+    std::vector<std::string> lista;
+    for (const auto& c : info.codecs_video) {
+        // El unico nombre que --info imprime y -k no acepta. Se descarta por
+        // nombre exacto y no por sufijo: si algun dia GSR añade otro, mejor
+        // que aparezca y se vea, que descartarlo a ciegas por parecerse.
+        if (c == "h264_software") continue;
+        lista.push_back(c);
+    }
+    return lista;
 }
 
 std::string Opcion::detalle() const {

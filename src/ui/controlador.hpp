@@ -24,8 +24,10 @@ class Controlador : public QObject {
 
     // "detectando" | "listo" | "grabando" | "pausado" | "grabandoAudio" | "sinGsr"
     Q_PROPERTY(QString estado READ estado NOTIFY estadoCambiado)
-    // Lo que la maquina soporta de verdad: el selector de codecs se llena de
-    // aqui, nunca de una lista escrita en el QML.
+    // Lo que la maquina soporta de verdad Y GSR acepta en -k. Nunca una lista
+    // escrita en el QML. Se expone para que el QML sepa cuando cambia; lo que
+    // pinta el selector sale de codecsVideoPara(), que ademas filtra por el
+    // contenedor elegido.
     Q_PROPERTY(QStringList codecsVideo READ codecsVideo NOTIFY fuentesCambiadas)
     Q_PROPERTY(QStringList contenedores READ contenedores CONSTANT)
     // Donde se guarda: lo elegido por el usuario, con memoria entre
@@ -53,7 +55,21 @@ public:
     QVariantList fuentes() const { return fuentes_; }
     QStringList codecsVideo() const { return codecs_video_; }
     QStringList contenedores() const;
-    Q_INVOKABLE QStringList codecsAudioPara(const QString& contenedor) const;
+    // Los codecs de video que caben en ese contenedor. Un «.webm» no admite h264
+    // ni hevc y un «.mp4» no admite vp8: sin este filtro se podia pedir una
+    // pareja que no graba NADA.
+    //
+    // `disponibles` se PASA y no se lee de dentro, aunque de dentro estaria a
+    // mano. El motivo es de QML: un binding a una funcion invocable solo se
+    // reevalua cuando cambia alguna propiedad que el binding lee, y la
+    // deteccion del entorno termina despues de pintar la ventana. Leyendo la
+    // lista por dentro, el selector se quedaba vacio para siempre; recibiendola
+    // como argumento, el binding depende de `codecsVideo`, que notifica.
+    Q_INVOKABLE QStringList codecsVideoPara(const QString& contenedor,
+                                            const QStringList& disponibles) const;
+    // `mezcla` es «las dos fuentes van en una sola pista»: ahi flac no entra,
+    // porque GSR lo cambiaria a opus por detras (codec_select.c:186-191).
+    Q_INVOKABLE QStringList codecsAudioPara(const QString& contenedor, bool mezcla = false) const;
     // Los formatos del modo solo-audio y si el elegido pierde informacion. El
     // QML usa lo segundo para ESCONDER el bitrate, no para deshabilitarlo: un
     // control en gris invita a preguntarse por que, y en flac la respuesta es
@@ -69,7 +85,7 @@ public:
     int segundos() const { return segundos_; }
 
     // opciones: calidad (medium|high|very_high|ultra), fps, audio
-    // (sistema|micro|ambos|nada), contenedor (mkv|mp4|webm), codecVideo
+    // (sistema|micro|mezclado|ambos|nada), contenedor (mkv|mp4|webm), codecVideo
     // ("auto" o uno detectado), codecAudio, region ("WxH+X+Y", solo con
     // fuente «region») y formatoAudio (opus|flac, solo para solo-audio).
     // Lo ausente cae al default del proyecto.

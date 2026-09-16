@@ -77,6 +77,17 @@ bool codec_es_hardware(std::string_view nombre);
 // Alli h264 solo se descarta por resolucion maxima, que aqui no se conoce.
 std::optional<std::string> mejor_codec_hardware(const InfoGsr& info);
 
+// Los codecs de video que se le pueden PEDIR a GSR con -k, de entre los que
+// esta maquina dice soportar.
+//
+// No es lo mismo que `info.codecs_video`, y la diferencia costo una opcion rota
+// en la interfaz: `--info` imprime «h264_software» solo porque existe libx264
+// (commands.c:75-76 de GSR), pero ese nombre NO esta en la tabla de -k
+// (args_parser.c:20-38). Medido: pedirlo mata al grabador al arrancar, con
+// «-k should either be 'auto', 'h264', ...». La codificacion por CPU en GSR se
+// pide con `-encoder cpu`, que es otra opcion y otra conversacion.
+std::vector<std::string> codecs_video_ofrecibles(const InfoGsr& info);
+
 struct Capacidades {
     bool gsr_respondio = false;
     bool gsr_cli_respondio = false;
@@ -89,6 +100,68 @@ struct Capacidades {
     // parser nunca inventa una capacidad, prefiere avisar de que no entendio.
     std::vector<std::string> avisos;
 };
+
+// Que clase de cosa es una fuente de captura. GSR las lista todas juntas y con
+// su identificador interno («eDP-1», «/dev/video0», «portal»), que es correcto y
+// no significa nada para quien solo quiere grabar su pantalla.
+//
+// Aqui se CLASIFICA, no se nombra: las palabras que ve el usuario se componen en
+// la interfaz, que es quien tiene el traductor. Asi esta parte —la que tiene
+// logica de verdad: agrupar, ordenar, desempatar— se puede probar sin Qt.
+enum class TipoFuente {
+    Monitor,
+    Region,         // «region»: el usuario arrastra un recorte
+    Portal,         // «portal»: lo pregunta el escritorio al empezar
+    VentanaActiva,  // «focused»
+    Camara,         // /dev/videoN
+};
+
+// De que tipo de conector cuelga un monitor. El prefijo del identificador lo
+// dice, y la convencion no es nuestra: son los nombres que el kernel da a cada
+// tipo de conector DRM, los mismos que salen en xrandr y en Preferencias del
+// sistema. eDP, LVDS y DSI son el panel de un portatil o una tableta; los demas
+// son un cable.
+enum class FamiliaMonitor { Interna, Hdmi, DisplayPort, Vga, Dvi, Otra };
+
+// Una fuente lista para enseñar, con todo lo que hace falta para escribir su
+// nombre pero sin escribirlo.
+struct FuenteAmable {
+    std::string id;          // el identificador de GSR, intacto: es lo que viaja
+    TipoFuente tipo = TipoFuente::Monitor;
+    FamiliaMonitor familia = FamiliaMonitor::Otra;  // solo con tipo Monitor
+    std::string resolucion;  // «1366x768» si GSR la dijo; vacio si no
+    std::string nombre;      // el de la camara segun el kernel; vacio si no se sabe
+    // Si hay otra fuente que se llamaria igual, y por tanto el identificador
+    // tiene que aparecer para poder distinguirlas. Dos «Pantalla DisplayPort»
+    // en un desplegable no se pueden elegir.
+    bool desempatar = false;
+};
+
+// Ordena y clasifica lo que GSR lista.
+//
+// Hace tres cosas que la lista cruda no trae. Una, quita repetidos: una camara
+// con ocho modos son ocho lineas y UNA fuente, porque el modo lo elige GSR. Dos,
+// agrupa: monitores, luego lo que exige decidir al empezar, luego camaras; GSR
+// las saca como le vienen y la camara caia entre «region» y «portal». Tres,
+// marca cuales necesitan enseñar su identificador para no confundirse.
+std::vector<FuenteAmable> fuentes_amables(const std::vector<Opcion>& fuentes_captura);
+
+// El nombre que el kernel le da a una camara V4L2, listo para enseñarselo a
+// alguien. GSR lista «/dev/video0|1280x720@30hz|mjpeg»: la ruta no le dice nada
+// a nadie y el modo lo elige el. El nombre de verdad esta en
+// /sys/class/video4linux/videoN/name, que es donde lo pone el driver.
+//
+// Vacio si no se puede leer. Vacio significa «no se sabe», y quien llame tiene
+// que enseñar otra cosa; nunca se inventa un nombre.
+std::string nombre_camara(std::string_view ruta_dispositivo);
+
+// La limpieza de ese nombre, aparte para poder probarla sin /sys delante.
+//
+// El driver escribe lo que declara el dispositivo y el kernel lo trunca a lo
+// que cabe: esta maquina responde «Integrated_Webcam_HD: Integrate», con los
+// espacios como guiones bajos y el nombre repetido a medias detras de los dos
+// puntos. Se corta en los dos puntos y se deshacen los guiones bajos.
+std::string limpiar_nombre_camara(std::string_view crudo);
 
 // Marcadores del formato de volcado. Son NUESTROS, no de GSR: el envoltorio lo
 // generamos nosotros (scripts/volcar-capacidades.sh y detectar()), asi que este
