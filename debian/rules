@@ -1,0 +1,23 @@
+#!/usr/bin/make -f
+# SPDX-FileCopyrightText: 2026 Dalmau Romaní (Soluciones Conscientes)
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+export DEB_BUILD_MAINT_OPTIONS = hardening=+all
+
+%:
+	dh $@ --buildsystem=cmake+ninja
+
+# ESR_WERROR se apaga SOLO aqui, y a proposito.
+#
+# En este repositorio los warnings son errores: lo manda CLAUDE.md y es lo que
+# hace el CI. Pero un paquete se compila en la maquina de otro, con la version
+# del compilador de esa distribucion, y un gcc mas nuevo saca avisos nuevos que
+# no existian cuando se escribio el codigo. Con -Werror, ese aviso nuevo no es
+# un aviso: es un paquete que no compila para un usuario que no puede
+# arreglarlo. Debian lo desaconseja explicitamente por este motivo.
+#
+# La garantia no se pierde: se sigue exigiendo cero warnings en el CI y en la
+# verificacion local, que es donde hay alguien que puede corregirlos.
+override_dh_auto_configure:
+	dh_auto_configure -- -DESR_WERROR=OFF

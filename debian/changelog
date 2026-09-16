@@ -1,0 +1,10 @@
+easy-screen-recorder (0.1.0-1) unstable; urgency=medium
+
+  * Primera version empaquetada.
+  * Graba pantalla y audio en KDE Plasma sobre Wayland, con seleccion de
+    region, modo de solo audio, pausa, atajo global y comprobacion del entorno.
+  * gpu-screen-recorder va en Recommends y no en Depends: no esta en los
+    repositorios de Debian ni de Ubuntu, asi que un Depends dejaria el paquete
+    sin instalar. Ver empaquetado/debian/NOTAS.md.
+
+ -- Dalmau Romaní (Soluciones Conscientes) <contacto@solucionesconscientes.es>  Tue, 15 Sep 2026 22:57:22 +0200
