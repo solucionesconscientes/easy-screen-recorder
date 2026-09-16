@@ -122,6 +122,41 @@ cp -r "$salida/repo" "$publico/repo"
 # ficheros, y un `flatpak install` que falla sin decir por que.
 touch "$publico/.nojekyll"
 
+# Cloudflare Pages excluia .git, .wrangler y node_modules del despliegue por su
+# cuenta. Workers con assets estaticos NO lo hace: sube el directorio tal cual.
+#
+# Medido en el primer despliegue: 323 ficheros en vez de 155, y `/.git/config`
+# servido con un 200 en el dominio publico. No es una fuga —el repositorio de
+# ficheros es publico y solo tiene el artefacto— pero sirve la historia de git
+# entera para nada, dobla el numero de ficheros contra el limite de 20.000 y es
+# justo lo que rastrea cualquier escaner buscando repositorios expuestos.
+#
+# `.assetsignore` es el mecanismo de Workers para esto, y va en el directorio de
+# assets.
+cat > "$publico/.assetsignore" <<'FIN'
+**/.git
+**/.wrangler
+**/node_modules
+**/.DS_Store
+wrangler.jsonc
+.assetsignore
+FIN
+
+# Y el despliegue se declara en vez de dejar que wrangler lo adivine. Sin este
+# fichero, wrangler detecta el proyecto en cada construccion, escribe su propio
+# wrangler.jsonc y un .gitignore dentro del repositorio de ficheros, y los sube
+# tambien. Con el, lo que se despliega es exactamente lo que dice aqui.
+#
+# La fecha de compatibilidad se fija y no se genera: una fecha que se mueve sola
+# cambia el comportamiento del runtime sin que nadie lo haya decidido.
+cat > "$publico/wrangler.jsonc" <<'FIN'
+{
+  "name": "flatpak-repo",
+  "compatibility_date": "2026-09-16",
+  "assets": { "directory": "." }
+}
+FIN
+
 cat > "$publico/$REMOTO_NOMBRE.flatpakrepo" <<EOF
 [Flatpak Repo]
 Title=$APP_TITULO
@@ -190,8 +225,14 @@ if ! $publicar; then
 fi
 
 # Comprobacion de tamano antes de subir, porque el limite se descubre tarde:
-# Cloudflare Pages rechaza el despliegue entero si un fichero pasa de 25 MiB o
-# si hay mas de 20.000.
+# Cloudflare rechaza el despliegue entero si un fichero pasa de 25 MiB o si hay
+# mas de 20.000.
+#
+# Se cuenta ANTES del `git init` de abajo, asi que el contador no ve el .git que
+# se crea despues. Eso solo es correcto porque `.assetsignore` lo excluye del
+# despliegue: lo que se cuenta aqui y lo que se sube son el mismo conjunto. Si
+# alguna vez se quita ese fichero, este contador se queda corto y hay que
+# moverlo despues del commit.
 n_ficheros=$(find "$publico" -type f | wc -l)
 mayor=$(find "$publico" -type f -printf '%s\n' | sort -rn | head -1)
 echo "── $n_ficheros ficheros, el mayor de $((mayor / 1048576)) MiB"
