@@ -188,6 +188,27 @@ std::vector<Sonda> sondas() {
     };
 }
 
+std::vector<Opcion> aplicaciones_sonando() {
+    const auto inv = localizar_gsr("gpu-screen-recorder");
+    if (!inv) return {};
+
+    std::vector<std::string> args = inv->prefijo;
+    args.emplace_back("--list-application-audio");
+    const auto r = ejecutar(inv->programa, args, limite_sonda_ms(*inv));
+    if (!r.ejecutado || r.codigo != 0) return {};
+
+    BloqueVolcado bloque;
+    bloque.comando = inv->linea({"--list-application-audio"});
+    bloque.salida = r.salida;
+    bloque.codigo = r.codigo;
+    bloque.tiene_codigo = true;
+    // Una lista vacia es normal: si no hay nada sonando, GSR no imprime nada y
+    // sale con 0 (commands.c:302-316). Los avisos se descartan a proposito: esto
+    // se llama al desplegar un menu y ahi no hay donde enseñarlos.
+    std::vector<std::string> avisos;
+    return interpretar_lista(bloque, avisos, FormatoLista{false, true});
+}
+
 std::string volcar() {
     // Las sondas corren a la vez y el volcado se arma en orden al final. En
     // serie el coste era la suma (1,3 s medidos con el flatpak, ESTADO.md);

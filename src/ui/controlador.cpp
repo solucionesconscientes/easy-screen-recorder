@@ -302,14 +302,7 @@ void Controlador::aplicarEntorno(const esr::Entorno& e) {
         camaras_ << entrada;
     }
 
-    // Las aplicaciones que suenan AHORA. La lista cambia entre una grabacion y
-    // la siguiente, asi que se rehace en cada deteccion y no se cachea.
-    audios_aplicacion_.clear();
-    for (const auto& a : e.capacidades.audio_por_aplicacion) {
-        const QString nombre = QString::fromStdString(a.id);
-        // El identificador que viaja a GSR lleva el prefijo «app:»; el texto, no.
-        audios_aplicacion_ << fuente(QStringLiteral("app:") + nombre, nombre);
-    }
+    ponerAplicacionesSonando(e.capacidades.audio_por_aplicacion);
     servidor_grafico_ = QString::fromStdString(e.capacidades.info.servidor_grafico);
 
     if (e.graba_audio_solo()) {
@@ -496,6 +489,28 @@ void Controlador::ponerAtajos(bool hay, const QString& grabar, const QString& pa
     atajo_grabar_ = grabar;
     atajo_pausa_ = pausa;
     emit hayAtajosCambiado();
+}
+
+void Controlador::ponerAplicacionesSonando(const std::vector<esr::Opcion>& lista) {
+    audios_aplicacion_.clear();
+    for (const auto& a : lista) {
+        const QString nombre = QString::fromStdString(a.id);
+        // El identificador que viaja a GSR lleva el prefijo «app:»; el texto, no.
+        audios_aplicacion_ << fuente(QStringLiteral("app:") + nombre, nombre);
+    }
+    emit audiosAplicacionCambiados();
+}
+
+void Controlador::refrescarAplicacionesSonando() {
+    // En hilo aparte: es un proceso externo y con el flatpak de GSR tarda unas
+    // decimas. Congelar el menu justo al desplegarlo se nota mucho.
+    auto* vigilante = new QFutureWatcher<std::vector<esr::Opcion>>(this);
+    connect(vigilante, &QFutureWatcher<std::vector<esr::Opcion>>::finished, this,
+            [this, vigilante] {
+                ponerAplicacionesSonando(vigilante->result());
+                vigilante->deleteLater();
+            });
+    vigilante->setFuture(QtConcurrent::run([] { return esr::aplicaciones_sonando(); }));
 }
 
 void Controlador::alternarPausa() {

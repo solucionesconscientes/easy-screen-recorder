@@ -68,17 +68,17 @@
         <translation>Camera</translation>
     </message>
     <message>
-        <location filename="../controlador.cpp" line="316"/>
+        <location filename="../controlador.cpp" line="309"/>
         <source>Solo audio: audio del sistema</source>
         <translation>Audio only: system audio</translation>
     </message>
     <message>
-        <location filename="../controlador.cpp" line="317"/>
+        <location filename="../controlador.cpp" line="310"/>
         <source>Solo audio: micrófono</source>
         <translation>Audio only: microphone</translation>
     </message>
     <message>
-        <location filename="../controlador.cpp" line="321"/>
+        <location filename="../controlador.cpp" line="314"/>
         <source>gpu-screen-recorder no está instalado. Sin él no hay grabación de pantalla.
 Instálalo nativo o como flatpak y vuelve a abrir Easy Screen Recorder.</source>
         <translation>gpu-screen-recorder is not installed. Without it there is no screen recording.
@@ -169,7 +169,7 @@ Install it natively or as a flatpak and open Easy Screen Recorder again.</transl
         <translation>Video codec:</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="564"/>
+        <location filename="../qml/Main.qml" line="571"/>
         <source>Códec de audio:</source>
         <translation>Audio codec:</translation>
     </message>
@@ -229,12 +229,12 @@ Install it natively or as a flatpak and open Easy Screen Recorder again.</transl
         <translation>Only the sound from %1</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="687"/>
+        <location filename="../qml/Main.qml" line="694"/>
         <source>Guardar en:</source>
         <translation>Save to:</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="696"/>
+        <location filename="../qml/Main.qml" line="703"/>
         <source>Cambiar…</source>
         <translation>Change…</translation>
     </message>
@@ -292,7 +292,7 @@ On a mostly still screen, measured: Medium 1.5 MB/min · High 2.4 · Very high 3
         <translation>No audio</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="551"/>
+        <location filename="../qml/Main.qml" line="558"/>
         <source>«En una sola pista» mezcla los dos y se oye todo en cualquier reproductor.
 
 «En pistas separadas» deja cada uno por su lado para poder equilibrarlos al editar, pero casi todos los reproductores suenan solo la primera: el micrófono parecerá mudo.</source>
@@ -301,37 +301,37 @@ On a mostly still screen, measured: Medium 1.5 MB/min · High 2.4 · Very high 3
 &quot;In separate tracks&quot; keeps each one apart so you can balance them when editing, but most players only play the first one: the microphone will seem muted.</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="577"/>
+        <location filename="../qml/Main.qml" line="584"/>
         <source>Nivel del micro:</source>
         <translation>Mic level:</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="594"/>
+        <location filename="../qml/Main.qml" line="601"/>
         <source>te oigo</source>
         <translation>I can hear you</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="595"/>
+        <location filename="../qml/Main.qml" line="602"/>
         <source>sin señal</source>
         <translation>no signal</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="605"/>
+        <location filename="../qml/Main.qml" line="612"/>
         <source>Atajos:</source>
         <translation>Shortcuts:</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="606"/>
+        <location filename="../qml/Main.qml" line="613"/>
         <source>%1 graba y para</source>
         <translation>%1 records and stops</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="608"/>
+        <location filename="../qml/Main.qml" line="615"/>
         <source>%1 pausa y reanuda</source>
         <translation>%1 pauses and resumes</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="612"/>
+        <location filename="../qml/Main.qml" line="619"/>
         <source>Funcionan con la ventana cerrada o minimizada, que es para lo que sirven: pausar sin que la ventana salga en el vídeo.
 
 Se pueden cambiar en Preferencias del sistema, en Atajos de teclado.</source>
@@ -340,22 +340,22 @@ Se pueden cambiar en Preferencias del sistema, en Atajos de teclado.</source>
 You can change them in System Settings, under Keyboard Shortcuts.</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="625"/>
+        <location filename="../qml/Main.qml" line="632"/>
         <source>Al empezar:</source>
         <translation>When starting:</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="627"/>
+        <location filename="../qml/Main.qml" line="634"/>
         <source>Contar 3 segundos</source>
         <translation>Count 3 seconds</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="637"/>
+        <location filename="../qml/Main.qml" line="644"/>
         <source>Codificar solo al cambiar la pantalla</source>
         <translation>Encode only when the screen changes</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="638"/>
+        <location filename="../qml/Main.qml" line="645"/>
         <source>Mientras la pantalla esté quieta no gasta GPU ni ocupa sitio. Va bien en un tutorial con pausas.
 
 Solo aparece donde funciona de verdad; en Wayland grabando un monitor no hace nada, así que ahí no se ofrece.</source>
@@ -364,12 +364,12 @@ Solo aparece donde funciona de verdad; en Wayland grabando un monitor no hace na
 It only shows up where it actually works; on Wayland recording a monitor it does nothing, so it is not offered there.</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="650"/>
+        <location filename="../qml/Main.qml" line="657"/>
         <source>Modo repetición</source>
         <translation>Replay mode</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="651"/>
+        <location filename="../qml/Main.qml" line="658"/>
         <source>Graba sin escribir nada: va guardando en memoria los últimos minutos y solo los vuelca a un fichero cuando pulsas «Guardar lo último».
 
 Sirve para lo que YA ha pasado: te das cuenta de que querías grabarlo cuando ya ha ocurrido, y todavía estás a tiempo.</source>
@@ -378,109 +378,109 @@ Sirve para lo que YA ha pasado: te das cuenta de que querías grabarlo cuando ya
 It is for what has ALREADY happened: you realise you wanted to record it after the fact, and you are still in time.</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="665"/>
+        <location filename="../qml/Main.qml" line="672"/>
         <source>Guardar los últimos:</source>
         <translation>Keep the last:</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="669"/>
+        <location filename="../qml/Main.qml" line="676"/>
         <source>30 segundos</source>
         <translation>30 seconds</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="670"/>
+        <location filename="../qml/Main.qml" line="677"/>
         <source>1 minuto</source>
         <translation>1 minute</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="671"/>
+        <location filename="../qml/Main.qml" line="678"/>
         <source>5 minutos</source>
         <translation>5 minutes</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="672"/>
+        <location filename="../qml/Main.qml" line="679"/>
         <source>15 minutos</source>
         <translation>15 minutes</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="715"/>
+        <location filename="../qml/Main.qml" line="722"/>
         <source>Empieza en %1…</source>
         <translation>Starting in %1…</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="717"/>
+        <location filename="../qml/Main.qml" line="724"/>
         <source>Cancelar</source>
         <translation>Cancel</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="733"/>
+        <location filename="../qml/Main.qml" line="740"/>
         <source>Una grabación quedó a medias: %1.
 El vídeo está dentro, pero le falta el cierre y muchos reproductores no lo abrirán tal cual.</source>
         <translation>A recording was left unfinished: %1.
 The video is inside, but it is missing its closing header and many players will not open it as is.</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="739"/>
+        <location filename="../qml/Main.qml" line="746"/>
         <source>Arreglarlo</source>
         <translation>Fix it</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="744"/>
+        <location filename="../qml/Main.qml" line="751"/>
         <source>Dejarlo así</source>
         <translation>Leave it</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="756"/>
+        <location filename="../qml/Main.qml" line="763"/>
         <source>Guardado en %1</source>
         <translation>Saved to %1</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="758"/>
+        <location filename="../qml/Main.qml" line="765"/>
         <source>Abrir carpeta</source>
         <translation>Open folder</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="799"/>
+        <location filename="../qml/Main.qml" line="806"/>
         <source>En pausa</source>
         <translation>Paused</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="800"/>
+        <location filename="../qml/Main.qml" line="807"/>
         <source>Grabando audio</source>
         <translation>Recording audio</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="801"/>
+        <location filename="../qml/Main.qml" line="808"/>
         <source>En memoria, sin guardar</source>
         <translation>In memory, not saved</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="802"/>
+        <location filename="../qml/Main.qml" line="809"/>
         <source>Grabando</source>
         <translation>Recording</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="817"/>
+        <location filename="../qml/Main.qml" line="824"/>
         <source>Guardar lo último</source>
         <translation>Save the last bit</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="827"/>
+        <location filename="../qml/Main.qml" line="834"/>
         <source>Reanudar</source>
         <translation>Resume</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="827"/>
+        <location filename="../qml/Main.qml" line="834"/>
         <source>Pausa</source>
         <translation>Pause</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="835"/>
+        <location filename="../qml/Main.qml" line="842"/>
         <source>Terminar</source>
         <translation>Finish</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="836"/>
+        <location filename="../qml/Main.qml" line="843"/>
         <source>Parar y guardar</source>
         <translation>Stop and save</translation>
     </message>

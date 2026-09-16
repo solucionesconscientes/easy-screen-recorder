@@ -56,7 +56,8 @@ class Controlador : public QObject {
     // Las aplicaciones que estan sonando ahora mismo, para grabar solo su audio
     // («app:nombre» de GSR). Cambia entre grabacion y grabacion, asi que se
     // relee al desplegar, no se cachea.
-    Q_PROPERTY(QVariantList audiosAplicacion READ audiosAplicacion NOTIFY fuentesCambiadas)
+    Q_PROPERTY(QVariantList audiosAplicacion READ audiosAplicacion
+                   NOTIFY audiosAplicacionCambiados)
     // «wayland» o «x11», segun lo que diga GSR. La UI lo necesita para no
     // ofrecer el modo «content», que en Wayland sobre un monitor no hace nada.
     Q_PROPERTY(QString servidorGrafico READ servidorGrafico NOTIFY fuentesCambiadas)
@@ -160,6 +161,10 @@ public:
     // Pausa si esta grabando, reanuda si esta en pausa, y no hace nada en el
     // resto de estados. Lo dispara el atajo global, que es la unica via de
     // pausar sin que la ventana aparezca en el video que se esta grabando.
+    // Vuelve a preguntar que aplicaciones estan sonando. Lo llama el QML al
+    // desplegar el selector de audio: la lista caduca en cuanto alguien abre o
+    // cierra algo, y la calculada al arrancar casi nunca es la buena.
+    Q_INVOKABLE void refrescarAplicacionesSonando();
     Q_INVOKABLE void alternarPausa();
     Q_INVOKABLE void guardarReplay();
     Q_INVOKABLE void parar();
@@ -176,12 +181,14 @@ signals:
     void nivelMicroCambiado();
     void grabacionAMediasCambiada();
     void hayAtajosCambiado();
+    void audiosAplicacionCambiados();
     void grabacionGuardada(const QString& ruta);
 
 private:
     void autoprueba(const QString& fuente);
     void detectarEnSegundoPlano();
     void aplicarEntorno(const esr::Entorno& e);
+    void ponerAplicacionesSonando(const std::vector<esr::Opcion>& lista);
     void ponerEstado(const QString& estado);
     void ponerError(const QString& error);
 

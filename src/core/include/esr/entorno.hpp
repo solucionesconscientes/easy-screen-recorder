@@ -98,6 +98,17 @@ struct Sonda {
 };
 std::vector<Sonda> sondas();
 
+// Las aplicaciones que estan sonando AHORA MISMO.
+//
+// Se pregunta suelta y no dentro de detectar() porque la respuesta caduca: la
+// lista sale de lo que suena en este instante, y entre abrir la aplicacion y
+// darle a grabar el usuario ha abierto justo lo que queria grabar. Una lista
+// calculada al arrancar solo acierta si ya estaba sonando entonces.
+//
+// Es UNA sonda, no las cinco: cuesta lo que tarde GSR en contestar, no los
+// 0,7-0,9 s de la deteccion completa.
+std::vector<Opcion> aplicaciones_sonando();
+
 // Ejecuta las sondas, arma un volcado en el formato de capacidades.hpp y lo
 // interpreta. Un solo parser para produccion y para tests.
 std::string volcar();
