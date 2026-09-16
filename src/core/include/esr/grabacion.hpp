@@ -22,7 +22,15 @@ struct SesionGrabacion {
     // Epoch (segundos) de cuando arranco la grabacion. Existe para que una
     // UI que se abra a mitad enseñe el tiempo real y no un reloj a cero.
     std::string ruta_inicio;  // dir/inicio.txt
+    // Los segundos de buffer, si esta grabacion es de replay. Existe por lo
+    // mismo y por algo mas grave: el socket no dice de que modo es, asi que una
+    // UI que se abriera a mitad ofreceria «Parar y guardar» sobre un replay, y
+    // eso no guarda nada. Tirarias el buffer creyendo que lo salvabas.
+    std::string ruta_replay;  // dir/replay.txt
 };
+
+// Los segundos de buffer de la grabacion en marcha, o 0 si no es de replay.
+int replay_en_marcha(const std::string& ruta_replay);
 
 // Lee ese instante. 0 si no hay grabacion o no se puede leer.
 long inicio_grabacion(const std::string& ruta_inicio);
@@ -52,6 +60,13 @@ struct ResultadoParada {
 // Pide stop y espera SIN limite de tiempo: la respuesta llega cuando el
 // fichero esta escrito. Cortar antes tiraria la peticion.
 ResultadoParada parar_grabacion(const SesionGrabacion& sesion);
+
+// Vuelca los ultimos segundos del buffer de replay a un fichero.
+//
+// La respuesta es diferida y trae la ruta, igual que la de stop, asi que se
+// espera SIN limite de tiempo (docs/gsr-ipc.md). Falla con «option -r is
+// required» si la grabacion en marcha no es de replay.
+ResultadoParada guardar_replay(const SesionGrabacion& sesion);
 
 // Un connect() que entra es la señal de "grabando", igual que el status de
 // gsr-cli. No se manda nada.

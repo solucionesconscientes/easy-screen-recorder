@@ -38,6 +38,7 @@ void uso() {
         "  easy-screen-recorder-cli grabar [opciones]  empieza a grabar la pantalla y vuelve al instante\n"
         "  easy-screen-recorder-cli audio [opciones]   graba solo audio, sin video (via ffmpeg)\n"
         "  easy-screen-recorder-cli parar              para, guarda e imprime la ruta del fichero\n"
+        "  easy-screen-recorder-cli guardar            vuelca el buffer de replay a un fichero\n"
         "  easy-screen-recorder-cli pausar             pausa la grabacion en marcha\n"
         "  easy-screen-recorder-cli reanudar           reanuda la grabacion pausada\n"
         "  easy-screen-recorder-cli estado             dice si hay una grabacion en marcha\n"
@@ -64,6 +65,24 @@ void uso() {
         "  --sin-audio       grabar sin ninguna pista de audio\n"
         "  --fps N           por defecto 60\n"
         "  --calidad Q       medium, high, very_high o ultra. Por defecto very_high\n"
+        "  --camara D        superpone una camara (/dev/videoN) sobre la pantalla, en\n"
+        "                    la MISMA grabacion: lo compone GSR en vivo\n"
+        "  --camara-tamano N  ancho de la camara en %% del video, del 5 al 50. Por\n"
+        "                    defecto 25\n"
+        "  --camara-esquina E abajo-derecha (por defecto), abajo-izquierda,\n"
+        "                    arriba-derecha o arriba-izquierda\n"
+        "  --camara-sin-espejo  la camara sale como la ve ella, no como un espejo.\n"
+        "                    Por defecto va espejada, que es como te reconoces\n"
+        "  --modo-fotogramas M  cfr, vfr o content. «content» solo codifica cuando la\n"
+        "                    pantalla cambia: menos consumo y menos tamaño en un\n"
+        "                    tutorial con pausas. Sin el, el default de GSR (vfr)\n"
+        "  --limite-resolucion WxH  escala la salida para caber ahi, respetando la\n"
+        "                    proporcion. Por ejemplo 1920x1080 grabando en 4K\n"
+        "  --replay N        modo replay: guarda en memoria los ultimos N segundos y no\n"
+        "                    escribe nada hasta que se lo pides con «guardar». De 2 a\n"
+        "                    86400. Ojo: aqui --salida es una CARPETA, no un fichero\n"
+        "  --contenedor C    mkv, mp4 o webm. Solo en modo replay; fuera de el sale de\n"
+        "                    la extension de --salida\n"
         "\n"
         "Opciones de audio:\n"
         "  --dispositivo D   default_output (audio del sistema), default_input (el micro)\n"
@@ -241,6 +260,22 @@ int grabar(const std::vector<std::string_view>& args) {
             a.fps = std::atoi(std::string(valor()).c_str());
         } else if (opcion == "--calidad") {
             a.calidad = std::string(valor());
+        } else if (opcion == "--camara") {
+            a.camara = std::string(valor());
+        } else if (opcion == "--camara-tamano") {
+            a.camara_ancho_pct = std::atoi(std::string(valor()).c_str());
+        } else if (opcion == "--camara-esquina") {
+            a.camara_esquina = std::string(valor());
+        } else if (opcion == "--camara-sin-espejo") {
+            a.camara_espejo = false;
+        } else if (opcion == "--modo-fotogramas") {
+            a.modo_fotogramas = std::string(valor());
+        } else if (opcion == "--limite-resolucion") {
+            a.limite_resolucion = std::string(valor());
+        } else if (opcion == "--replay") {
+            a.replay_segundos = std::atoi(std::string(valor()).c_str());
+        } else if (opcion == "--contenedor") {
+            a.contenedor = std::string(valor());
         } else {
             std::fprintf(stderr, "easy-screen-recorder-cli: no entiendo «%.*s»\n\n",
                          static_cast<int>(opcion.size()), opcion.data());
@@ -266,7 +301,9 @@ int grabar(const std::vector<std::string_view>& args) {
         const std::string carpeta = esr::carpeta_videos_elegida();
         std::error_code ec;
         std::filesystem::create_directories(carpeta, ec);
-        a.salida = esr::nombre_por_defecto(carpeta);
+        // En replay la salida es la carpeta a secas: el nombre de cada volcado
+        // lo pone GSR.
+        a.salida = a.replay_segundos != 0 ? carpeta : esr::nombre_por_defecto(carpeta);
     }
 
     const auto sesion = esr::sesion_por_defecto();
@@ -276,8 +313,29 @@ int grabar(const std::vector<std::string_view>& args) {
         return kFallo;
     }
 
-    std::printf("grabando %s -> %s\n", a.fuente.c_str(), a.salida.c_str());
-    std::printf("para y guarda con: easy-screen-recorder-cli parar\n");
+    std::printf("grabando %s -> %s\n", esr::fuente_gsr(a).c_str(), a.salida.c_str());
+    if (a.replay_segundos != 0) {
+        std::printf("modo replay: no se escribe nada hasta que pidas\n"
+                    "  easy-screen-recorder-cli guardar    vuelca los ultimos %d s\n"
+                    "  easy-screen-recorder-cli parar      termina sin guardar nada mas\n",
+                    a.replay_segundos);
+    } else {
+        std::printf("para y guarda con: easy-screen-recorder-cli parar\n");
+    }
+    return kBien;
+}
+
+int guardar() {
+    const auto r = esr::guardar_replay(esr::sesion_por_defecto());
+    if (!r.parado) {
+        std::fprintf(stderr, "easy-screen-recorder-cli: %s\n", r.motivo.c_str());
+        return kFallo;
+    }
+    if (r.ruta_fichero.empty()) {
+        std::printf("guardado, pero el grabador no dijo donde\n");
+        return kBien;
+    }
+    std::printf("%s\n", r.ruta_fichero.c_str());
     return kBien;
 }
 
@@ -457,6 +515,7 @@ int main(int argc, char** argv) {
     if (orden == "grabar") return grabar(args);
     if (orden == "audio") return audio(args);
     if (orden == "parar") return parar();
+    if (orden == "guardar") return guardar();
     if (orden == "pausar") return pausar(true);
     if (orden == "reanudar") return pausar(false);
     if (orden == "estado") return estado();

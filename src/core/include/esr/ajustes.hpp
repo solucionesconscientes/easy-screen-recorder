@@ -38,7 +38,72 @@ struct AjustesGrabacion {
     int fps = 60;
     std::string calidad = "very_high";
     std::string ruta_socket;  // para -ipc; vacio = sin IPC
+
+    // --- La camara superpuesta ------------------------------------------
+    //
+    // GSR compone la camara sobre la pantalla EL MISMO, en vivo y en un solo
+    // proceso: `-w` admite varias fuentes unidas por «|», y cada una acepta
+    // tamaño, posicion y volteo (gpu-screen-recorder.1, seccion -w).
+    //
+    // Eso evita el diseño que habia planeado este proyecto —dos grabaciones y
+    // un ffmpeg componiendo despues— que costaba 0,21x del tiempo grabado,
+    // dejaba dos ficheros que cuadrar y añadia un estado «componiendo». Nada de
+    // eso hace falta. Y no toca la licencia: es un argumento de linea de
+    // comandos, no un plugin cargado dentro de GSR.
+    std::string camara;  // «/dev/video0»; vacio = sin camara
+    // El ancho en PORCENTAJE del video, no en pixeles: un 384 fijo es un cuarto
+    // de pantalla en 1366 y un decimo en 4K.
+    int camara_ancho_pct = 25;
+    // «arriba-izquierda», «arriba-derecha», «abajo-izquierda», «abajo-derecha».
+    std::string camara_esquina = "abajo-derecha";
+    // Espejo por defecto, y no es un capricho: sin el, quien se graba se ve al
+    // reves de como se ve en un espejo y no se reconoce. Es lo que hace
+    // cualquier aplicacion de videollamada.
+    bool camara_espejo = true;
+
+    // Modo de fotogramas (-fm): «cfr», «vfr» o «content». Vacio deja el default
+    // de GSR, que es vfr. «content» solo codifica cuando la pantalla cambia.
+    std::string modo_fotogramas;
+    // Limite de resolucion de salida (-s), «1920x1080». Vacio = sin limite.
+    // GSR escala para caber dentro, respetando la proporcion.
+    std::string limite_resolucion;
+
+    // --- Replay ---------------------------------------------------------
+    //
+    // El contenedor, SOLO para el modo replay: fuera de el sale de la extension
+    // de `salida`, que es el criterio probado y no se toca.
+    std::string contenedor = "mkv";
+    // Segundos de buffer (-r). 0 = grabacion normal. Con esto puesto, GSR NO
+    // escribe nada hasta que se le pide: guarda en memoria los ultimos N
+    // segundos y los vuelca cuando llega «save-replay».
+    //
+    // Y cambia la forma de la salida: en modo replay «-o» es una CARPETA, no un
+    // fichero, porque GSR pone un nombre por cada volcado. El contenedor pasa a
+    // «-c», que es de donde saldria la extension.
+    int replay_segundos = 0;
 };
+
+// El rango de -r que declara GSR (gpu-screen-recorder.1): 2 a 86400 segundos.
+inline constexpr int kReplayMinimo = 2;
+inline constexpr int kReplayMaximo = 86400;
+
+// Las cuatro esquinas donde puede ir la camara. Identificadores internos, NO
+// texto visible: la interfaz los traduce aparte.
+std::vector<std::string> esquinas_camara();
+
+// Si «-fm content» va a servir de algo con esa fuente y ese servidor grafico.
+//
+// GSR lo acepta SIEMPRE y, cuando no puede aplicarlo, lo dice por stderr y sigue
+// como si nada: «"-fm content" has no effect on Wayland when recording a
+// monitor» (medido el 2026-09-16). Para el usuario eso es pedir una cosa y
+// recibir otra, que es justo lo que este proyecto valida antes de lanzar.
+//
+// Funciona en X11, y en Wayland solo capturando por el portal.
+bool modo_content_efectivo(std::string_view fuente, std::string_view servidor_grafico);
+
+// La cadena que se le pasa a `-w`: la fuente principal y, si hay camara,
+// «|v4l2:RUTA;width=N%;halign=...;valign=...;hflip=...» detras.
+std::string fuente_gsr(const AjustesGrabacion& a);
 
 // La extension de la ruta, sin el punto y en minusculas. Vacia si no hay.
 std::string extension_de(std::string_view ruta);

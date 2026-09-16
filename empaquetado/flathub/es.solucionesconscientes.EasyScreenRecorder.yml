@@ -24,6 +24,22 @@ finish-args:
   # burning CPU, in an app whose whole point is not burning CPU, is absurd.
   - --device=dri
 
+  # The camera preview needs to see the camera from INSIDE the sandbox, and
+  # --device=all is the only value that exposes it: dri, input and usb were all
+  # tested and none of them bring /dev/videoN in.
+  #
+  # Note what this is NOT for. The recording never needs it: the camera is
+  # captured by gpu-screen-recorder, which runs on the host with its own access.
+  # This permission exists only so you can see yourself and frame the shot
+  # BEFORE you start, which is the one moment it matters — once recording
+  # starts, the camera belongs to the recorder and the preview goes dark,
+  # because a V4L2 camera admits a single client.
+  #
+  # The narrower alternative is the camera portal, which hands out a PipeWire
+  # stream instead of the device. Qt's V4L2 camera backend does not consume it,
+  # so it is not an option today. If that changes, this line goes away.
+  - --device=all
+
   # Audio-only mode records through PipeWire/pulse.
   - --socket=pulseaudio
 

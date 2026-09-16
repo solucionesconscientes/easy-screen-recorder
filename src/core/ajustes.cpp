@@ -5,6 +5,7 @@
 #include "esr/ajustes.hpp"
 
 #include <algorithm>
+#include <cstdio>
 #include <cstdlib>
 #include <ctime>
 #include <fstream>
@@ -34,6 +35,35 @@ std::vector<std::string> contenedores_soportados() { return {"mkv", "mp4", "webm
 
 bool pista_mezclada(std::string_view pista) {
     return pista.find('|') != std::string_view::npos;
+}
+
+bool modo_content_efectivo(std::string_view fuente, std::string_view servidor_grafico) {
+    if (fuente == "portal") return true;
+    return servidor_grafico == "x11";
+}
+
+std::vector<std::string> esquinas_camara() {
+    return {"abajo-derecha", "abajo-izquierda", "arriba-derecha", "arriba-izquierda"};
+}
+
+std::string fuente_gsr(const AjustesGrabacion& a) {
+    if (a.camara.empty()) return a.fuente;
+
+    // La fuente principal va tal cual: su identificador es el de GSR y no se
+    // toca. Los prefijos «monitor:»/«v4l2:» son opcionales —GSR deduce el tipo
+    // del nombre (capture_source.c:283-297)— y aqui solo se pone el de la
+    // camara, que es el unico que hace falta para que no se confunda con un
+    // nombre de monitor.
+    std::string w = a.fuente + "|v4l2:" + a.camara;
+    w += ";width=" + std::to_string(a.camara_ancho_pct) + "%";
+    // La altura no se pasa: sin ella GSR mantiene la proporcion de la camara.
+    // Fijar las dos deformaria la imagen.
+    const bool derecha = a.camara_esquina.find("derecha") != std::string::npos;
+    const bool abajo = a.camara_esquina.rfind("abajo", 0) == 0;
+    w += derecha ? ";halign=end" : ";halign=start";
+    w += abajo ? ";valign=end" : ";valign=start";
+    if (a.camara_espejo) w += ";hflip=true";
+    return w;
 }
 
 std::string familia_codec_video(std::string_view nombre) {
@@ -88,6 +118,36 @@ std::vector<std::string> validar(const AjustesGrabacion& a) {
     if (a.fuente == "region" && a.region.empty()) {
         problemas.push_back("la fuente «region» necesita el recorte AnchoxAlto+X+Y");
     }
+    if (!a.camara.empty()) {
+        if (a.camara == a.fuente) {
+            problemas.push_back("la camara no puede ser ademas la fuente principal");
+        }
+        // Por debajo del 5 % no se distingue una cara; al 100 % tapa la
+        // pantalla entera y entonces lo que se quiere es grabar solo la camara.
+        if (a.camara_ancho_pct < 5 || a.camara_ancho_pct > 50) {
+            problemas.push_back("el tamaño de la camara va entre el 5 % y el 50 % del ancho; se pidio " +
+                                std::to_string(a.camara_ancho_pct));
+        }
+        const auto esquinas = esquinas_camara();
+        if (std::find(esquinas.begin(), esquinas.end(), a.camara_esquina) == esquinas.end()) {
+            problemas.push_back("esquina de camara desconocida «" + a.camara_esquina + "»");
+        }
+    }
+    if (!a.modo_fotogramas.empty() &&
+        !contiene({"cfr", "vfr", "content"}, a.modo_fotogramas)) {
+        problemas.push_back("el modo de fotogramas es cfr, vfr o content; se pidio «" +
+                            a.modo_fotogramas + "»");
+    }
+    if (!a.limite_resolucion.empty()) {
+        int ancho = 0;
+        int alto = 0;
+        char sobra = 0;
+        if (std::sscanf(a.limite_resolucion.c_str(), "%dx%d%c", &ancho, &alto, &sobra) != 2 ||
+            ancho <= 0 || alto <= 0) {
+            problemas.push_back("el limite de resolucion se escribe AnchoxAlto, por ejemplo "
+                                "1920x1080; se pidio «" + a.limite_resolucion + "»");
+        }
+    }
     if (a.fps < 1 || a.fps > 1000) {
         // Los limites son los que declara GSR para -f (args_parser.c:538).
         problemas.push_back("fps fuera del rango de GSR (1 a 1000): " + std::to_string(a.fps));
@@ -100,8 +160,24 @@ std::vector<std::string> validar(const AjustesGrabacion& a) {
         problemas.push_back("--sin-audio y pistas de audio a la vez no tiene sentido");
     }
 
-    const std::string ext = extension_de(a.salida);
-    if (a.salida.empty() || ext.empty()) {
+    if (a.replay_segundos != 0 &&
+        (a.replay_segundos < kReplayMinimo || a.replay_segundos > kReplayMaximo)) {
+        problemas.push_back("el buffer de replay va de " + std::to_string(kReplayMinimo) +
+                            " a " + std::to_string(kReplayMaximo) + " segundos; se pidio " +
+                            std::to_string(a.replay_segundos));
+    }
+
+    // En modo replay la salida es una CARPETA y el contenedor va aparte, asi que
+    // la extension no solo no hace falta: sobra. El resto de reglas de codec se
+    // comprueban igual, contra el contenedor pedido.
+    const std::string ext = a.replay_segundos != 0 ? a.contenedor : extension_de(a.salida);
+    if (a.replay_segundos != 0) {
+        if (a.salida.empty()) return problemas;
+        if (!extension_de(a.salida).empty()) {
+            problemas.push_back("en modo replay la salida es una carpeta, no un fichero: GSR "
+                                "pone un nombre a cada volcado");
+        }
+    } else if (a.salida.empty() || ext.empty()) {
         if (!a.salida.empty()) {
             problemas.push_back("la salida no tiene extension y de ella sale el contenedor");
         }
@@ -153,7 +229,7 @@ std::vector<std::string> validar(const AjustesGrabacion& a) {
 
 std::vector<std::string> argumentos_gsr(const AjustesGrabacion& a) {
     std::vector<std::string> args;
-    args.insert(args.end(), {"-w", a.fuente});
+    args.insert(args.end(), {"-w", fuente_gsr(a)});
     if (a.fuente == "region" && !a.region.empty()) {
         args.insert(args.end(), {"-region", a.region});
     }
@@ -174,6 +250,18 @@ std::vector<std::string> argumentos_gsr(const AjustesGrabacion& a) {
     }
     args.insert(args.end(), {"-ac", a.codec_audio});
     args.insert(args.end(), {"-q", a.calidad});
+    if (a.replay_segundos != 0) {
+        args.insert(args.end(), {"-r", std::to_string(a.replay_segundos)});
+        // El contenedor por -c y no por la extension: en replay la salida es
+        // una carpeta y no hay extension de la que sacarlo.
+        args.insert(args.end(), {"-c", a.contenedor});
+    }
+    if (!a.modo_fotogramas.empty()) {
+        args.insert(args.end(), {"-fm", a.modo_fotogramas});
+    }
+    if (!a.limite_resolucion.empty()) {
+        args.insert(args.end(), {"-s", a.limite_resolucion});
+    }
     if (!a.ruta_socket.empty()) {
         args.insert(args.end(), {"-ipc", a.ruta_socket});
     }

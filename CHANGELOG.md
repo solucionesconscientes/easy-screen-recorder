@@ -5,6 +5,76 @@ máquina de desarrollo.
 
 ## Sin publicar
 
+### Nueve funciones, y una premisa que estaba mal (2026-09-16)
+
+El hallazgo que ordena toda la tanda: **GSR ya compone pantalla y cámara en
+vivo, él solo y en un proceso.** `-w` admite varias fuentes unidas por `|`,
+igual que `-a`, y cada una acepta `x`, `y`, `width`, `height`, `halign`,
+`valign`, `hflip` y `vflip` detrás de un `;`. Verificado grabando con el CLI del
+proyecto **sin escribir una línea de código**.
+
+Eso tira abajo la Parte 2 entera del ROADMAP —dos procesos, dos ficheros,
+composición con ffmpeg, estado `componiendo`, 0,21× del tiempo grabado— que se
+había diseñado y medido sobre la premisa contraria. El diseño viejo queda en el
+documento como registro, con la lección escrita: se leyó el código de GSR para
+ver cómo rodearlo y no se leyó entero el manual de la opción que ya se usaba.
+
+Lo implementado:
+
+- **Cámara superpuesta**, con tamaño y esquina elegidos **antes** de grabar. El
+  tamaño va en porcentaje del ancho, no en píxeles: un valor fijo es un cuarto
+  de pantalla en 1366 y un décimo en 4K. La altura no se pasa, para que GSR
+  mantenga la proporción.
+- **Espejo**, activado por defecto. Sin él uno se ve al revés de como se ve en
+  un espejo y no se reconoce.
+- **Vista previa de la cámara** para encuadrarte antes de empezar, con
+  QtMultimedia. Se apaga al arrancar la grabación, y no por capricho: **una
+  cámara V4L2 admite un solo cliente**, medido (`Device or resource busy`) y
+  dicho por el propio manual de GSR. Verte *durante* la grabación no es posible
+  con esta arquitectura.
+- **Codificar solo cuando la pantalla cambie** (`-fm content`), que se ofrece
+  **solo donde funciona**: en Wayland sobre un monitor GSR lo acepta, avisa por
+  stderr y lo ignora. Otro caso de «pides una cosa y recibes otra» atajado
+  antes de lanzar.
+- **Límite de tamaño del vídeo** (`-s`): grabar en la resolución de la pantalla
+  y entregar 1080p o 720p. Verificado: pedir 800x600 sobre 1366x768 da 800x450,
+  escalado con su proporción.
+- **Vúmetro del micrófono** antes de grabar, porque el fallo caro es descubrir
+  al reproducir que estaba mudo. Con escala en decibelios, no lineal: el micro
+  de la máquina de desarrollo da 0,004 de RMS y en escala lineal la barra no se
+  movía.
+- **Cuenta atrás de 3 segundos**, cancelable, antes de empezar.
+- **Audio de una sola aplicación** (`app:nombre` de GSR), con las que están
+  sonando en ese momento añadidas al selector de audio.
+- **Modo repetición** (replay buffer): guarda en memoria los últimos 30 s, 1, 5
+  o 15 minutos y no escribe nada hasta que se lo pides. Orden nueva
+  `easy-screen-recorder-cli guardar`, botón propio y entrada en la bandeja. El
+  atajo global **guarda** en vez de parar, que es lo que uno quiere del «se me
+  ha escapado eso».
+
+Tres cosas que costaron y conviene no repetir:
+
+- **`find_package(Qt6 COMPONENTS Multimedia)` en una llamada aparte pone
+  `Qt6_FOUND` a FALSE** si el componente falta. Con eso, la interfaz entera
+  dejó de compilarse **en silencio** durante varios pasos, con el binario viejo
+  todavía en `build/` y los `grep -i error` saliendo limpios. Va en
+  `OPTIONAL_COMPONENTS`.
+- **La marca de modo repetición en la sesión.** El socket no dice de qué modo es
+  la grabación, así que una ventana abierta a mitad de un replay ofrecía «Parar
+  y guardar», y eso no guarda nada: tirarías el buffer creyendo que lo salvabas.
+- **`--device=all` en el flatpak**, y solo por la vista previa: `dri`, `input` y
+  `usb` se probaron y ninguno expone `/dev/videoN`. La grabación no lo necesita,
+  porque la cámara la captura GSR desde el anfitrión.
+
+Verificación, toda ejecutando: compilación sin un warning, `ctest` **12/12**
+(106 comprobaciones en `prueba_ajustes`), `verify-recording.sh` con **siete**
+casos en verde —pantalla, pistas mezcladas, pistas separadas, cámara
+superpuesta, repetición, webm y audio—, `reuse lint` conforme. El menú de la
+bandeja y el volcado del buffer, probados por DBus contra el flatpak instalado.
+La vista previa y el vúmetro, verificados dentro del flatpak construido con el
+SDK: la aplicación abre `/dev/video0` y aparece como flujo de captura en
+`pactl`, con niveles que coinciden con los que mide ffmpeg por su cuenta.
+
 ### Lo que se rompía al usarla de verdad (2026-09-16)
 
 Cuatro cosas que salieron de instalar el flatpak y usarlo, no de leer el código.

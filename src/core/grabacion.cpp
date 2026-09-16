@@ -73,7 +73,15 @@ SesionGrabacion sesion_por_defecto() {
     s.ruta_log = s.dir + "/gsr.log";
     s.ruta_pid = s.dir + "/gsr.pid";
     s.ruta_inicio = s.dir + "/inicio.txt";
+    s.ruta_replay = s.dir + "/replay.txt";
     return s;
+}
+
+int replay_en_marcha(const std::string& ruta_replay) {
+    std::ifstream f(ruta_replay);
+    int segundos = 0;
+    f >> segundos;
+    return f ? segundos : 0;
 }
 
 std::string diagnostico_de_log(const std::string& ruta_log) {
@@ -184,6 +192,11 @@ ResultadoLanzamiento empezar_grabacion(const AjustesGrabacion& ajustes,
 
     std::ofstream(sesion.ruta_pid) << lanzado.pid << "\n";
     std::ofstream(sesion.ruta_inicio) << std::time(nullptr) << "\n";
+    if (ajustes.replay_segundos != 0) {
+        std::ofstream(sesion.ruta_replay) << ajustes.replay_segundos << "\n";
+    } else {
+        std::filesystem::remove(sesion.ruta_replay, ec);
+    }
 
     // Esperar a que el socket escuche. Si GSR muere antes, el log dice por que.
     for (int esperado = 0; esperado < kEsperaSocketMs; esperado += kPasoEsperaMs) {
@@ -240,6 +253,36 @@ ResultadoParada parar_grabacion(const SesionGrabacion& sesion) {
     std::error_code ec;
     std::filesystem::remove(sesion.ruta_pid, ec);
     std::filesystem::remove(sesion.ruta_inicio, ec);
+    std::filesystem::remove(sesion.ruta_replay, ec);
+    return r;
+}
+
+ResultadoParada guardar_replay(const SesionGrabacion& sesion) {
+    ResultadoParada r;
+
+    std::string motivo;
+    auto conexion = ConexionIpc::conectar(sesion.ruta_socket, &motivo);
+    if (!conexion) {
+        r.motivo = "no hay ninguna grabacion en marcha";
+        return r;
+    }
+
+    // Sin data: los dos campos que admite («seconds» y «restart-replay») son
+    // opcionales y sus defaults son los que queremos —volcar el buffer entero y
+    // respetar lo que diga -restart-replay-on-save—. Sin limite de tiempo: la
+    // respuesta llega con el fichero ya escrito.
+    const auto respuesta = conexion->pedir("save-replay", -1, &motivo);
+    if (!respuesta) {
+        r.motivo = "no se pudo hablar con el grabador: " + motivo;
+        return r;
+    }
+    if (!respuesta->ok) {
+        r.motivo = traducir_error_ipc(respuesta->data);
+        return r;
+    }
+
+    r.parado = true;  // aqui significa «hecho», no «terminado»: el replay sigue
+    r.ruta_fichero = respuesta->tiene_data ? respuesta->data : "";
     return r;
 }
 

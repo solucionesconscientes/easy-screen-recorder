@@ -149,6 +149,10 @@ int main(int argc, char** argv) {
     QMenu menu;
     QAction* accion_mostrar = menu.addAction(QObject::tr("Mostrar la ventana"));
     menu.addSeparator();
+    // En modo repeticion el que hace falta a mano es este: guardar lo que hay en
+    // el buffer sin sacar la ventana, que es justo el momento en que uno no
+    // quiere que aparezca nada en pantalla.
+    QAction* accion_guardar = menu.addAction(QObject::tr("Guardar lo último"));
     QAction* accion_pausa = menu.addAction(QObject::tr("Pausa"));
     QAction* accion_parar = menu.addAction(QObject::tr("Parar y guardar"));
     menu.addSeparator();
@@ -196,25 +200,34 @@ int main(int argc, char** argv) {
             }
         });
         QObject::connect(accion_parar, &QAction::triggered, controlador, &Controlador::parar);
+        QObject::connect(accion_guardar, &QAction::triggered, controlador,
+                         &Controlador::guardarReplay);
 
         QObject::connect(controlador, &Controlador::grabacionGuardada, &bandeja,
                          [&bandeja](const QString& ruta) {
                              bandeja.showMessage(QObject::tr("Grabación guardada"), ruta,
                                                  QSystemTrayIcon::Information, 6000);
                          });
-        const auto refrescar = [&bandeja, controlador, accion_pausa, accion_parar] {
+        const auto refrescar = [&bandeja, controlador, accion_pausa, accion_parar,
+                                accion_guardar] {
             const QString estado = controlador->estado();
             const bool pausado = estado == QStringLiteral("pausado");
             const bool audio = estado == QStringLiteral("grabandoAudio");
-            const bool grabando = estado == QStringLiteral("grabando") || audio || pausado;
+            const bool es_replay = estado == QStringLiteral("replay");
+            const bool grabando =
+                estado == QStringLiteral("grabando") || audio || pausado || es_replay;
+            accion_guardar->setVisible(es_replay);
             bandeja.setIcon(iconoBandeja(grabando));
             bandeja.setToolTip(grabando ? QObject::tr("Easy Screen Recorder: grabando")
                                         : QStringLiteral("Easy Screen Recorder"));
             // GSR no pausa el modo audio-only: la pausa es del IPC de la
             // pantalla. Igual que en la ventana, ahi no se ofrece.
-            accion_pausa->setVisible(grabando && !audio);
+            accion_pausa->setVisible(grabando && !audio && !es_replay);
             accion_pausa->setText(pausado ? QObject::tr("Reanudar") : QObject::tr("Pausa"));
+            // En repeticion, parar no guarda nada: el texto tiene que decirlo.
             accion_parar->setVisible(grabando);
+            accion_parar->setText(es_replay ? QObject::tr("Terminar")
+                                            : QObject::tr("Parar y guardar"));
         };
         QObject::connect(controlador, &Controlador::estadoCambiado, &bandeja, refrescar);
         // Y una vez ya, porque la aplicacion puede arrancar con una grabacion

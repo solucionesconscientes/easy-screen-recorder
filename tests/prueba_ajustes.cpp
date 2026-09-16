@@ -253,6 +253,79 @@ int main() {
         COMPROBAR(con_mezcla.size() == 2 && con_mezcla[0] == "opus");
     }
 
+    // --- La camara superpuesta -------------------------------------------
+    // GSR la compone el mismo, en vivo y en un solo proceso: «-w» admite varias
+    // fuentes unidas por «|» y cada una lleva sus opciones detras con «;».
+    {
+        auto a = base();
+        COMPROBAR(fuente_gsr(a) == "eDP-1");  // sin camara, la fuente tal cual
+        a.camara = "/dev/video0";
+        COMPROBAR_NOTA(fuente_gsr(a) ==
+                           "eDP-1|v4l2:/dev/video0;width=25%;halign=end;valign=end;hflip=true",
+                       fuente_gsr(a));
+        a.camara_esquina = "arriba-izquierda";
+        a.camara_espejo = false;
+        a.camara_ancho_pct = 30;
+        COMPROBAR_NOTA(fuente_gsr(a) ==
+                           "eDP-1|v4l2:/dev/video0;width=30%;halign=start;valign=start",
+                       fuente_gsr(a));
+        // Y llega hasta los argumentos, en -w y no en otro sitio.
+        const auto args = argumentos_gsr(a);
+        const auto w = std::find(args.begin(), args.end(), "-w");
+        COMPROBAR(w != args.end() && *(w + 1) == fuente_gsr(a));
+    }
+    {
+        // La altura NO se pasa: sin ella GSR mantiene la proporcion de la
+        // camara. Fijar las dos la deformaria.
+        auto a = base();
+        a.camara = "/dev/video0";
+        COMPROBAR(fuente_gsr(a).find("height=") == std::string::npos);
+    }
+    {
+        auto a = base();
+        a.camara = "/dev/video0";
+        a.camara_ancho_pct = 80;  // taparia la pantalla
+        COMPROBAR(algun_problema_contiene(validar(a), "entre el 5 % y el 50 %"));
+        a.camara_ancho_pct = 25;
+        a.camara_esquina = "en-el-medio";
+        COMPROBAR(algun_problema_contiene(validar(a), "esquina de camara desconocida"));
+        a.camara_esquina = "abajo-derecha";
+        a.camara = a.fuente;  // la camara no puede ser tambien la pantalla
+        COMPROBAR(algun_problema_contiene(validar(a), "no puede ser ademas la fuente"));
+    }
+
+    // --- Modo de fotogramas y limite de resolucion -------------------------
+    {
+        auto a = base();
+        a.modo_fotogramas = "content";
+        a.limite_resolucion = "1920x1080";
+        COMPROBAR(validar(a).empty());
+        const auto args = argumentos_gsr(a);
+        COMPROBAR(std::find(args.begin(), args.end(), "-fm") != args.end());
+        COMPROBAR(std::find(args.begin(), args.end(), "content") != args.end());
+        COMPROBAR(std::find(args.begin(), args.end(), "-s") != args.end());
+        COMPROBAR(std::find(args.begin(), args.end(), "1920x1080") != args.end());
+        // Sin pedirlos no ensucian la linea de comandos.
+        const auto limpios = argumentos_gsr(base());
+        COMPROBAR(std::find(limpios.begin(), limpios.end(), "-fm") == limpios.end());
+        COMPROBAR(std::find(limpios.begin(), limpios.end(), "-s") == limpios.end());
+    }
+    {
+        auto a = base();
+        a.modo_fotogramas = "rapido";
+        COMPROBAR(algun_problema_contiene(validar(a), "cfr, vfr o content"));
+        a.modo_fotogramas.clear();
+        a.limite_resolucion = "muy grande";
+        COMPROBAR(algun_problema_contiene(validar(a), "AnchoxAlto"));
+    }
+    {
+        // «content» solo hace algo en X11, o en Wayland por el portal. Medido:
+        // en Wayland con un monitor GSR avisa y lo ignora.
+        COMPROBAR(modo_content_efectivo("eDP-1", "x11"));
+        COMPROBAR(!modo_content_efectivo("eDP-1", "wayland"));
+        COMPROBAR(modo_content_efectivo("portal", "wayland"));
+    }
+
     // carpeta_videos lee user-dirs.dirs. Se prueba con un XDG_CONFIG_HOME
     // sintetico para no depender de la maquina.
     {
