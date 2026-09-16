@@ -149,11 +149,24 @@ FIN
 #
 # La fecha de compatibilidad se fija y no se genera: una fecha que se mueve sola
 # cambia el comportamiento del runtime sin que nadie lo haya decidido.
-cat > "$publico/wrangler.jsonc" <<'FIN'
+#
+# Y el dominio propio se declara AQUI y no se pincha en el panel. `routes` con
+# `custom_domain: true` hace que el despliegue cree el dominio y su registro DNS
+# solo. Asi la URL que sirve el repositorio y la URL que llevan dentro el
+# .flatpakref y el bundle salen de la misma variable y no pueden separarse: si
+# alguien cambia URL_BASE, el dominio del Worker le sigue.
+#
+# El nombre del host se saca de URL_BASE en vez de escribirse otra vez, porque
+# dos sitios con el mismo dato es un sitio donde se va a quedar viejo.
+HOST_BASE=${URL_BASE#https://}
+cat > "$publico/wrangler.jsonc" <<FIN
 {
   "name": "flatpak-repo",
   "compatibility_date": "2026-09-16",
-  "assets": { "directory": "." }
+  "assets": { "directory": "." },
+  "routes": [
+    { "pattern": "$HOST_BASE", "custom_domain": true }
+  ]
 }
 FIN
 
