@@ -117,17 +117,17 @@ SPDX-License-Identifier: CC0-1.0
 
   <screenshots>
     <screenshot type="default">
-      <image>https://github.com/solucionesconscientes/easy-screen-recorder/raw/v0.2.0/docs/screenshots/principal.png</image>
+      <image>https://github.com/solucionesconscientes/easy-screen-recorder/raw/v0.3.0/docs/screenshots/principal.png</image>
       <caption>The main window: pick what to record and press record</caption>
       <caption xml:lang="es">La ventana principal: eliges qué grabar y grabas</caption>
     </screenshot>
     <screenshot>
-      <image>https://github.com/solucionesconscientes/easy-screen-recorder/raw/v0.2.0/docs/screenshots/grabando.png</image>
+      <image>https://github.com/solucionesconscientes/easy-screen-recorder/raw/v0.3.0/docs/screenshots/grabando.png</image>
       <caption>Recording, with the elapsed time and pause at hand</caption>
       <caption xml:lang="es">Grabando, con el tiempo y la pausa a mano</caption>
     </screenshot>
     <screenshot>
-      <image>https://github.com/solucionesconscientes/easy-screen-recorder/raw/v0.2.0/docs/screenshots/avanzado.png</image>
+      <image>https://github.com/solucionesconscientes/easy-screen-recorder/raw/v0.3.0/docs/screenshots/avanzado.png</image>
       <caption>The Advanced panel: format, codecs, quality and where recordings go</caption>
       <caption xml:lang="es">El panel Avanzado: formato, códecs, calidad y dónde van las grabaciones</caption>
     </screenshot>
@@ -144,6 +144,31 @@ SPDX-License-Identifier: CC0-1.0
   <content_rating type="oars-1.1"/>
 
   <releases>
+    <release version="0.3.0" date="2026-09-16" type="development">
+      <description>
+        <p>Screen and camera in one recording. The camera is overlaid live by
+        the recorder itself, with the size and corner picked before you start,
+        and mirrored by default so you recognise yourself. A preview lets you
+        frame the shot beforehand; once recording starts the camera belongs to
+        the recorder, because a camera admits a single client. Also new: a
+        microphone level meter so you find out the mic is muted before recording
+        and not after, a three second countdown, recording the audio of a single
+        application, a replay mode that keeps the last minutes in memory and
+        writes only when you ask, a limit on the output video size, and encoding
+        only when the screen actually changes.</p>
+        <p xml:lang="es">Pantalla y cámara en una sola grabación. La cámara la
+        superpone en vivo el propio grabador, con el tamaño y la esquina
+        elegidos antes de empezar, y en espejo por defecto para que te
+        reconozcas. Una vista previa te deja encuadrarte antes; al empezar a
+        grabar la cámara pasa a ser del grabador, porque una cámara admite un
+        solo cliente. Además: un vúmetro del micrófono para enterarte de que
+        está mudo antes de grabar y no después, una cuenta atrás de tres
+        segundos, grabar el audio de una sola aplicación, un modo repetición que
+        guarda en memoria los últimos minutos y escribe solo cuando se lo pides,
+        un límite para el tamaño del vídeo, y codificar solo cuando la pantalla
+        cambia de verdad.</p>
+      </description>
+    </release>
     <release version="0.2.0" date="2026-09-16" type="development">
       <description>
         <p>Fixes found by using the installed flatpak. The window no longer
