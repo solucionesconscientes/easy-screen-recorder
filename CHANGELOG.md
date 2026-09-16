@@ -5,6 +5,39 @@ máquina de desarrollo.
 
 ## Sin publicar
 
+### La cámara se coloca arrastrándola, y «Avanzado» en dos columnas (2026-09-16)
+
+- **Las cuatro esquinas se quedaban cortas.** Sobre una barra de tareas, un
+  panel lateral o una ventana fija en una punta, las cuatro fallan a la vez y no
+  hay una quinta. GSR admite **posición libre** en porcentaje (`x=50%;y=10%`,
+  convertido a píxeles contra el tamaño del vídeo), verificado grabando, así que
+  ahora se arrastra donde sea.
+- **Y se ve dónde va a quedar antes de grabar**: un mapa con la pantalla a su
+  proporción y la cámara dentro, también a la suya, que se mueve con el ratón.
+  Al lado, la vista previa con tu cara. Las dos ayudas contestan preguntas
+  distintas —cómo salgo y dónde salgo— y por eso están las dos.
+- La proporción de la cámara sale de su mejor modo (`1280x720@30hz` → 16:9), no
+  de una suposición: un 4:3 no se coloca igual que un 16:9.
+- **«Avanzado» pasa a dos columnas y la ventana se ensancha al abrirlo.** Era
+  una sola columna y las últimas filas quedaban fuera de la pantalla mientras
+  sobraba la mitad derecha. Tres cambios, los tres medidos con la ventana
+  delante:
+  - Dos columnas en vez de una.
+  - **Etiquetas al lado del control, no encima**: Kirigami elegía «encima», que
+    dobla el alto de cada fila; con once filas eran casi 200 px de más.
+  - Sin igualar el ancho de las etiquetas entre columnas: con «Códec de audio:»
+    mandando, las de la izquierda se salían por el borde y «Imágenes por
+    segundo» se leía «ágenes por segundo».
+  - Resultado medido: de no caber en 768 px a **828×667**, con todo visible
+    hasta «Guardar en».
+- Por el CLI, `--camara-esquina` se cambia por `--camara-x` y `--camara-y`, en
+  porcentaje. La validación rechaza una cámara que se saldría del borde, porque
+  ahí GSR la recortaría sin decir nada.
+
+Verificado: build sin un warning, `ctest` 12/12, `verify-recording.sh` con los
+siete casos en verde, `reuse lint` conforme. Y grabando por el camino de la
+interfaz con la cámara al 5 %, 5 %: aparece exactamente ahí.
+
 ### Nueve funciones, y una premisa que estaba mal (2026-09-16)
 
 El hallazgo que ordena toda la tanda: **GSR ya compone pantalla y cámara en

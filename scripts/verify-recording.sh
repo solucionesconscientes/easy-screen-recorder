@@ -174,7 +174,7 @@ else
   echo
   echo "grabando 3 segundos con la camara superpuesta ($camara)..."
   "$binario" grabar --salida "$destino_cam" --camara "$camara" --camara-tamano 20 \
-    --camara-esquina arriba-derecha \
+    --camara-x 5 --camara-y 5 \
     || fallo "«grabar» con camara superpuesta devolvio error"
   sleep 3
   ruta_cam="$("$binario" parar)" || fallo "«parar» devolvio error con la camara"

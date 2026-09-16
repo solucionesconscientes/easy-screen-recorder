@@ -102,8 +102,6 @@ public:
     // Si «-fm content» va a servir de algo con esa fuente. GSR lo acepta
     // siempre y avisa por stderr cuando lo ignora, asi que se filtra aqui.
     Q_INVOKABLE bool modoContentEfectivo(const QString& fuente) const;
-    // Las cuatro esquinas, ya traducidas: lista de {texto, valor}.
-    Q_INVOKABLE QVariantList esquinasCamara() const;
     Q_INVOKABLE QStringList formatosAudio() const;
     Q_INVOKABLE bool formatoAudioSinPerdida(const QString& formato) const;
     QString carpetaVideos() const;
@@ -118,6 +116,11 @@ public:
     // Enciende o apaga el vumetro. Lo llama el QML: escucha solo cuando el
     // control esta a la vista y no hay grabacion, que es cuando sirve.
     Q_INVOKABLE void escucharMicro(bool si);
+
+    // La proporcion (ancho/alto) de esa camara segun su mejor modo, o 16/9 si
+    // no se sabe. La interfaz la usa para dibujar su recuadro a escala mientras
+    // se coloca: un 4:3 no se situa igual que un 16:9.
+    Q_INVOKABLE qreal proporcionCamara(const QString& id) const;
 
     // opciones: calidad (medium|high|very_high|ultra), fps, audio
     // (sistema|micro|mezclado|ambos|nada), contenedor (mkv|mp4|webm), codecVideo

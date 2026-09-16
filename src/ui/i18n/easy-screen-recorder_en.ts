@@ -2,14 +2,22 @@
 <!DOCTYPE TS>
 <TS version="2.1" language="en_US">
 <context>
+    <name>ColocarCamara</name>
+    <message>
+        <location filename="../qml/ColocarCamara.qml" line="105"/>
+        <source>Arrástrala</source>
+        <translation>Drag it</translation>
+    </message>
+</context>
+<context>
     <name>Controlador</name>
     <message>
-        <location filename="../controlador.cpp" line="223"/>
+        <location filename="../controlador.cpp" line="226"/>
         <source>no se pudo guardar la elección de carpeta</source>
         <translation>could not save the folder you chose</translation>
     </message>
     <message>
-        <location filename="../controlador.cpp" line="255"/>
+        <location filename="../controlador.cpp" line="258"/>
         <source>Elegir una región arrastrando</source>
         <translation>Pick a region by dragging</translation>
     </message>
@@ -44,53 +52,33 @@
         <translation>Screen</translation>
     </message>
     <message>
-        <location filename="../controlador.cpp" line="154"/>
-        <source>Abajo a la derecha</source>
-        <translation>Bottom right</translation>
-    </message>
-    <message>
-        <location filename="../controlador.cpp" line="155"/>
-        <source>Abajo a la izquierda</source>
-        <translation>Bottom left</translation>
-    </message>
-    <message>
-        <location filename="../controlador.cpp" line="156"/>
-        <source>Arriba a la derecha</source>
-        <translation>Top right</translation>
-    </message>
-    <message>
-        <location filename="../controlador.cpp" line="157"/>
-        <source>Arriba a la izquierda</source>
-        <translation>Top left</translation>
-    </message>
-    <message>
-        <location filename="../controlador.cpp" line="262"/>
+        <location filename="../controlador.cpp" line="265"/>
         <source>Elegir ventana o pantalla al empezar</source>
         <translation>Pick a window or a screen when starting</translation>
     </message>
     <message>
-        <location filename="../controlador.cpp" line="265"/>
+        <location filename="../controlador.cpp" line="268"/>
         <source>La ventana activa</source>
         <translation>The active window</translation>
     </message>
     <message>
-        <location filename="../controlador.cpp" line="268"/>
-        <location filename="../controlador.cpp" line="289"/>
+        <location filename="../controlador.cpp" line="271"/>
+        <location filename="../controlador.cpp" line="292"/>
         <source>Cámara</source>
         <translation>Camera</translation>
     </message>
     <message>
-        <location filename="../controlador.cpp" line="306"/>
+        <location filename="../controlador.cpp" line="311"/>
         <source>Solo audio: audio del sistema</source>
         <translation>Audio only: system audio</translation>
     </message>
     <message>
-        <location filename="../controlador.cpp" line="307"/>
+        <location filename="../controlador.cpp" line="312"/>
         <source>Solo audio: micrófono</source>
         <translation>Audio only: microphone</translation>
     </message>
     <message>
-        <location filename="../controlador.cpp" line="311"/>
+        <location filename="../controlador.cpp" line="316"/>
         <source>gpu-screen-recorder no está instalado. Sin él no hay grabación de pantalla.
 Instálalo nativo o como flatpak y vuelve a abrir Easy Screen Recorder.</source>
         <translation>gpu-screen-recorder is not installed. Without it there is no screen recording.
@@ -100,333 +88,313 @@ Install it natively or as a flatpak and open Easy Screen Recorder again.</transl
 <context>
     <name>Main</name>
     <message>
-        <location filename="../qml/Main.qml" line="164"/>
+        <location filename="../qml/Main.qml" line="172"/>
         <source>¿Dónde se guardan las grabaciones?</source>
         <translation>Where do recordings go?</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="199"/>
+        <location filename="../qml/Main.qml" line="207"/>
         <source>Mirando qué sabe hacer esta máquina…</source>
         <translation>Checking what this machine can do…</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="208"/>
+        <location filename="../qml/Main.qml" line="216"/>
         <source>Falta gpu-screen-recorder</source>
         <translation>gpu-screen-recorder is missing</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="219"/>
+        <location filename="../qml/Main.qml" line="227"/>
         <source>Fuente</source>
         <translation>Source</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="240"/>
+        <location filename="../qml/Main.qml" line="248"/>
         <source>Arrancando…</source>
         <translation>Starting…</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="241"/>
+        <location filename="../qml/Main.qml" line="249"/>
         <source>Guardando…</source>
         <translation>Saving…</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="242"/>
+        <location filename="../qml/Main.qml" line="250"/>
         <source>Grabar</source>
         <translation>Record</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="264"/>
+        <location filename="../qml/Main.qml" line="272"/>
         <source>Avanzado</source>
         <translation>Advanced</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="286"/>
-        <source>Cámara:</source>
-        <translation>Camera:</translation>
-    </message>
-    <message>
-        <location filename="../qml/Main.qml" line="288"/>
+        <location filename="../qml/Main.qml" line="303"/>
         <source>Superponer la cámara sobre la pantalla</source>
         <translation>Overlay the camera on the screen</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="293"/>
-        <source>Cuál:</source>
-        <translation>Which one:</translation>
-    </message>
-    <message>
-        <location filename="../qml/Main.qml" line="300"/>
+        <location filename="../qml/Main.qml" line="323"/>
         <source>Tamaño:</source>
         <translation>Size:</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="314"/>
-        <source>Esquina:</source>
-        <translation>Corner:</translation>
-    </message>
-    <message>
-        <location filename="../qml/Main.qml" line="323"/>
-        <source>Espejo (te ves como en un espejo)</source>
-        <translation>Mirror (you see yourself as in a mirror)</translation>
-    </message>
-    <message>
-        <location filename="../qml/Main.qml" line="337"/>
-        <source>Encuadre:</source>
-        <translation>Framing:</translation>
-    </message>
-    <message>
-        <location filename="../qml/Main.qml" line="355"/>
-        <location filename="../qml/Main.qml" line="398"/>
+        <location filename="../qml/Main.qml" line="415"/>
+        <location filename="../qml/Main.qml" line="466"/>
         <source>Formato:</source>
         <translation>Format:</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="369"/>
+        <location filename="../qml/Main.qml" line="477"/>
         <source>Calidad del audio:</source>
         <translation>Audio quality:</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="389"/>
+        <location filename="../qml/Main.qml" line="481"/>
         <source>96 kbps · voz</source>
         <translation>96 kbps · speech</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="390"/>
+        <location filename="../qml/Main.qml" line="482"/>
         <source>128 kbps · general</source>
         <translation>128 kbps · general</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="391"/>
+        <location filename="../qml/Main.qml" line="483"/>
         <source>192 kbps · música (más: flac)</source>
         <translation>192 kbps · music (more: flac)</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="404"/>
+        <location filename="../qml/Main.qml" line="421"/>
         <source>Códec de vídeo:</source>
         <translation>Video codec:</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="422"/>
+        <location filename="../qml/Main.qml" line="519"/>
         <source>Códec de audio:</source>
         <translation>Audio codec:</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="435"/>
+        <location filename="../qml/Main.qml" line="432"/>
         <source>Calidad:</source>
         <translation>Quality:</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="439"/>
+        <location filename="../qml/Main.qml" line="436"/>
         <source>Media</source>
         <translation>Medium</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="440"/>
+        <location filename="../qml/Main.qml" line="437"/>
         <source>Alta</source>
         <translation>High</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="441"/>
+        <location filename="../qml/Main.qml" line="438"/>
         <source>Muy alta</source>
         <translation>Very high</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="442"/>
+        <location filename="../qml/Main.qml" line="439"/>
         <source>Ultra</source>
         <translation>Ultra</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="449"/>
+        <location filename="../qml/Main.qml" line="446"/>
         <source>Imágenes por segundo:</source>
         <translation>Frames per second:</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="456"/>
+        <location filename="../qml/Main.qml" line="453"/>
         <source>Tamaño del vídeo:</source>
         <translation>Video size:</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="462"/>
+        <location filename="../qml/Main.qml" line="457"/>
         <source>El de la pantalla</source>
         <translation>Same as the screen</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="463"/>
+        <location filename="../qml/Main.qml" line="458"/>
         <source>Como mucho 1080p</source>
         <translation>At most 1080p</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="464"/>
+        <location filename="../qml/Main.qml" line="459"/>
         <source>Como mucho 720p</source>
         <translation>At most 720p</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="477"/>
-        <source>Codificar solo cuando la pantalla cambie</source>
-        <translation>Encode only when the screen changes</translation>
-    </message>
-    <message>
-        <location filename="../qml/Main.qml" line="480"/>
+        <location filename="../qml/Main.qml" line="595"/>
         <source>Guardar en:</source>
         <translation>Save to:</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="490"/>
+        <location filename="../qml/Main.qml" line="604"/>
         <source>Cambiar…</source>
         <translation>Change…</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="504"/>
+        <location filename="../qml/Main.qml" line="498"/>
         <source>Audio:</source>
         <translation>Audio:</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="520"/>
+        <location filename="../qml/Main.qml" line="339"/>
+        <source>Espejo</source>
+        <translation>Mirror</translation>
+    </message>
+    <message>
+        <location filename="../qml/Main.qml" line="506"/>
         <source>Audio del sistema</source>
         <translation>System audio</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="521"/>
+        <location filename="../qml/Main.qml" line="507"/>
         <source>Micrófono</source>
         <translation>Microphone</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="522"/>
+        <location filename="../qml/Main.qml" line="508"/>
         <source>Los dos, en una sola pista</source>
         <translation>Both, in a single track</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="523"/>
+        <location filename="../qml/Main.qml" line="509"/>
         <source>Los dos, en pistas separadas (para editar)</source>
         <translation>Both, in separate tracks (for editing)</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="524"/>
+        <location filename="../qml/Main.qml" line="510"/>
         <source>Sin audio</source>
         <translation>No audio</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="526"/>
+        <location filename="../qml/Main.qml" line="512"/>
         <source>Solo %1</source>
         <translation>Only %1</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="539"/>
+        <location filename="../qml/Main.qml" line="532"/>
         <source>Nivel del micro:</source>
         <translation>Mic level:</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="551"/>
+        <location filename="../qml/Main.qml" line="549"/>
         <source>te oigo</source>
         <translation>I can hear you</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="552"/>
+        <location filename="../qml/Main.qml" line="550"/>
         <source>sin señal</source>
         <translation>no signal</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="560"/>
+        <location filename="../qml/Main.qml" line="556"/>
         <source>Al empezar:</source>
         <translation>When starting:</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="563"/>
-        <source>Contar 3 segundos antes de grabar</source>
-        <translation>Count 3 seconds before recording</translation>
+        <location filename="../qml/Main.qml" line="558"/>
+        <source>Contar 3 segundos</source>
+        <translation>Count 3 seconds</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="572"/>
-        <source>Modo repetición: guardar solo cuando yo lo pida</source>
-        <translation>Replay mode: save only when I ask</translation>
+        <location filename="../qml/Main.qml" line="568"/>
+        <source>Codificar solo al cambiar la pantalla</source>
+        <translation>Encode only when the screen changes</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="577"/>
+        <location filename="../qml/Main.qml" line="573"/>
+        <source>Modo repetición</source>
+        <translation>Replay mode</translation>
+    </message>
+    <message>
+        <location filename="../qml/Main.qml" line="578"/>
         <source>Guardar los últimos:</source>
         <translation>Keep the last:</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="581"/>
+        <location filename="../qml/Main.qml" line="582"/>
         <source>30 segundos</source>
         <translation>30 seconds</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="582"/>
+        <location filename="../qml/Main.qml" line="583"/>
         <source>1 minuto</source>
         <translation>1 minute</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="583"/>
+        <location filename="../qml/Main.qml" line="584"/>
         <source>5 minutos</source>
         <translation>5 minutes</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="584"/>
+        <location filename="../qml/Main.qml" line="585"/>
         <source>15 minutos</source>
         <translation>15 minutes</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="596"/>
+        <location filename="../qml/Main.qml" line="622"/>
         <source>Empieza en %1…</source>
         <translation>Starting in %1…</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="598"/>
+        <location filename="../qml/Main.qml" line="624"/>
         <source>Cancelar</source>
         <translation>Cancel</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="612"/>
+        <location filename="../qml/Main.qml" line="638"/>
         <source>Guardado en %1</source>
         <translation>Saved to %1</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="614"/>
+        <location filename="../qml/Main.qml" line="640"/>
         <source>Abrir carpeta</source>
         <translation>Open folder</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="655"/>
+        <location filename="../qml/Main.qml" line="681"/>
         <source>En pausa</source>
         <translation>Paused</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="656"/>
+        <location filename="../qml/Main.qml" line="682"/>
         <source>Grabando audio</source>
         <translation>Recording audio</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="657"/>
+        <location filename="../qml/Main.qml" line="683"/>
         <source>En memoria, sin guardar</source>
         <translation>In memory, not saved</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="658"/>
+        <location filename="../qml/Main.qml" line="684"/>
         <source>Grabando</source>
         <translation>Recording</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="673"/>
+        <location filename="../qml/Main.qml" line="699"/>
         <source>Guardar lo último</source>
         <translation>Save the last bit</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="683"/>
+        <location filename="../qml/Main.qml" line="709"/>
         <source>Reanudar</source>
         <translation>Resume</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="683"/>
+        <location filename="../qml/Main.qml" line="709"/>
         <source>Pausa</source>
         <translation>Pause</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="691"/>
+        <location filename="../qml/Main.qml" line="717"/>
         <source>Terminar</source>
         <translation>Finish</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="692"/>
+        <location filename="../qml/Main.qml" line="718"/>
         <source>Parar y guardar</source>
         <translation>Stop and save</translation>
     </message>

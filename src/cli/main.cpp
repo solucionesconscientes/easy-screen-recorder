@@ -69,8 +69,10 @@ void uso() {
         "                    la MISMA grabacion: lo compone GSR en vivo\n"
         "  --camara-tamano N  ancho de la camara en %% del video, del 5 al 50. Por\n"
         "                    defecto 25\n"
-        "  --camara-esquina E abajo-derecha (por defecto), abajo-izquierda,\n"
-        "                    arriba-derecha o arriba-izquierda\n"
+        "  --camara-x N      posicion horizontal de su esquina superior izquierda,\n"
+        "                    en %% del video. Por defecto 73\n"
+        "  --camara-y N      lo mismo en vertical. Por defecto 73, o sea abajo a la\n"
+        "                    derecha, que es donde menos tapa\n"
         "  --camara-sin-espejo  la camara sale como la ve ella, no como un espejo.\n"
         "                    Por defecto va espejada, que es como te reconoces\n"
         "  --modo-fotogramas M  cfr, vfr o content. «content» solo codifica cuando la\n"
@@ -264,8 +266,10 @@ int grabar(const std::vector<std::string_view>& args) {
             a.camara = std::string(valor());
         } else if (opcion == "--camara-tamano") {
             a.camara_ancho_pct = std::atoi(std::string(valor()).c_str());
-        } else if (opcion == "--camara-esquina") {
-            a.camara_esquina = std::string(valor());
+        } else if (opcion == "--camara-x") {
+            a.camara_x_pct = std::atoi(std::string(valor()).c_str());
+        } else if (opcion == "--camara-y") {
+            a.camara_y_pct = std::atoi(std::string(valor()).c_str());
         } else if (opcion == "--camara-sin-espejo") {
             a.camara_espejo = false;
         } else if (opcion == "--modo-fotogramas") {
