@@ -169,6 +169,88 @@ int main() {
         a.audios = {"default_output", "default_input"};
         const auto args = argumentos_gsr(a);
         COMPROBAR(std::count(args.begin(), args.end(), "-a") == 2);
+        COMPROBAR(!pista_mezclada(a.audios[0]));
+    }
+    {
+        // Las dos fuentes MEZCLADAS: un solo -a con «|» dentro, que es la
+        // sintaxis de GSR (gpu-screen-recorder.1, ejemplo de -a).
+        auto a = base();
+        a.audios = {"default_output|default_input"};
+        COMPROBAR(pista_mezclada(a.audios[0]));
+        const auto args = argumentos_gsr(a);
+        COMPROBAR(std::count(args.begin(), args.end(), "-a") == 1);
+        COMPROBAR(std::find(args.begin(), args.end(), "default_output|default_input") != args.end());
+        COMPROBAR(validar(a).empty());  // con opus, que es el default
+    }
+    {
+        // flac + mezcla: GSR lo cambiaria a opus por detras
+        // (codec_select.c:186-191). Recibir otra cosa de lo pedido es error.
+        auto a = base();
+        a.codec_audio = "flac";
+        a.audios = {"default_output|default_input"};
+        COMPROBAR(algun_problema_contiene(validar(a), "flac no se respeta cuando se mezclan"));
+        // Sin mezclar, flac en mkv sigue siendo valido.
+        a.audios = {"default_output", "default_input"};
+        COMPROBAR(validar(a).empty());
+    }
+    // Contenedor + codec de VIDEO. La tabla sale de meter cada codec en cada
+    // contenedor con ffmpeg, y de grabaciones reales: h264 en webm no deja
+    // fichero, GSR muere al escribir la cabecera.
+    {
+        COMPROBAR(familia_codec_video("hevc_10bit") == "hevc");
+        COMPROBAR(familia_codec_video("hevc_hdr_vulkan") == "hevc");
+        COMPROBAR(familia_codec_video("h265") == "hevc");
+        COMPROBAR(familia_codec_video("av1_vulkan") == "av1");
+        COMPROBAR(familia_codec_video("h264") == "h264");
+        // «auto» no es un codec: es dejar elegir a GSR, y no tiene familia.
+        COMPROBAR(familia_codec_video("auto").empty());
+        COMPROBAR(familia_codec_video("").empty());
+    }
+    {
+        // webm: solo vp8, vp9 y av1.
+        COMPROBAR(!contenedor_admite_video("webm", "h264"));
+        COMPROBAR(!contenedor_admite_video("webm", "hevc"));
+        COMPROBAR(contenedor_admite_video("webm", "vp8"));
+        COMPROBAR(contenedor_admite_video("webm", "av1_10bit"));
+        // mp4: todo menos vp8.
+        COMPROBAR(!contenedor_admite_video("mp4", "vp8"));
+        COMPROBAR(contenedor_admite_video("mp4", "h264"));
+        COMPROBAR(contenedor_admite_video("mp4", "hevc_10bit"));
+        // mkv se lo traga todo, y «auto» vale en cualquiera: GSR mira el
+        // contenedor antes de elegir (medido: auto en .webm da vp8).
+        COMPROBAR(contenedor_admite_video("mkv", "vp8"));
+        COMPROBAR(contenedor_admite_video("webm", "auto"));
+        // Un contenedor sin medir no se bloquea: no se inventa una regla.
+        COMPROBAR(contenedor_admite_video("ts", "h264"));
+    }
+    {
+        // Y el selector de la UI no ofrece lo que no cabe.
+        const std::vector<std::string> maquina = {"h264", "hevc", "vp8"};
+        const auto en_webm = codecs_video_para("webm", maquina);
+        COMPROBAR(en_webm.size() == 1 && en_webm[0] == "vp8");
+        const auto en_mp4 = codecs_video_para("mp4", maquina);
+        COMPROBAR(en_mp4.size() == 2 && en_mp4[0] == "h264" && en_mp4[1] == "hevc");
+        COMPROBAR(codecs_video_para("mkv", maquina).size() == 3);
+    }
+    {
+        // Y la validacion lo para antes de lanzar, tambien desde el CLI.
+        auto a = base();
+        a.salida = "/tmp/x.webm";
+        a.codec_audio = "opus";
+        a.codec_video = "h264";
+        COMPROBAR(algun_problema_contiene(validar(a), "no admite video h264"));
+        a.codec_video = "auto";
+        COMPROBAR(validar(a).empty());
+        a.salida = "/tmp/x.mp4";
+        a.codec_video = "vp8";
+        COMPROBAR(algun_problema_contiene(validar(a), "no admite video vp8"));
+    }
+    {
+        // Y el selector de la UI no puede ni ofrecer flac al mezclar.
+        COMPROBAR(codecs_audio_para("mkv").size() == 3);
+        const auto con_mezcla = codecs_audio_para("mkv", true);
+        COMPROBAR(std::find(con_mezcla.begin(), con_mezcla.end(), "flac") == con_mezcla.end());
+        COMPROBAR(con_mezcla.size() == 2 && con_mezcla[0] == "opus");
     }
 
     // carpeta_videos lee user-dirs.dirs. Se prueba con un XDG_CONFIG_HOME

@@ -116,6 +116,69 @@ echo
 echo "VERIFICADO pantalla: $ruta ($duracion s, video + audio segun ffprobe)"
 rm -f "$ruta"
 
+# --- El reparto de las pistas de audio ---------------------------------------
+# Las dos formas de grabar sistema Y microfono, y son distintas de verdad: «a|b»
+# en un solo -a las MEZCLA en una pista (gpu-screen-recorder.1, ejemplo de -a) y
+# dos -a dejan cada una en la suya. La diferencia se nota al reproducir: con dos
+# pistas, casi todos los reproductores suenan solo la primera.
+#
+# Se cuentan los flujos porque es lo unico que distingue las dos cosas sin
+# escuchar el fichero. Si algun dia GSR dejara de entender el «|», aqui saldrian
+# dos pistas donde se pidio una y esto fallaria.
+pistas_de() {
+  ffprobe -v error -select_streams a -show_entries stream=index -of csv=p=0 "$1" | grep -c .
+}
+
+for reparto in mezcladas separadas; do
+  destino_pistas="$HOME/.cache/easy-screen-recorder/verify/$reparto.mkv"
+  rm -f "$destino_pistas"
+  if [ "$reparto" = mezcladas ]; then
+    esperadas=1
+    args=(--audio "default_output|default_input")
+  else
+    esperadas=2
+    args=(--audio default_output --audio default_input)
+  fi
+
+  echo
+  echo "grabando 3 segundos con el audio en pistas $reparto..."
+  "$binario" grabar --salida "$destino_pistas" "${args[@]}" \
+    || fallo "«grabar» con el audio $reparto devolvio error"
+  sleep 3
+  ruta_pistas="$("$binario" parar)" || fallo "«parar» devolvio error con el audio $reparto"
+  [ -s "$ruta_pistas" ] || fallo "no se guardo nada en $ruta_pistas"
+
+  cuantas="$(pistas_de "$ruta_pistas")"
+  [ "$cuantas" = "$esperadas" ] \
+    || fallo "audio $reparto: se esperaban $esperadas pistas y hay $cuantas en $ruta_pistas"
+  echo "VERIFICADO audio $reparto: $cuantas pista(s) segun ffprobe"
+  rm -f "$ruta_pistas"
+done
+
+# --- El contenedor y el codec de video ---------------------------------------
+# Un «.webm» no admite h264 ni hevc. Pedirlo no da un error visible: el grabador
+# arranca, muere al escribir la cabecera y NO deja fichero, asi que el fallo se
+# descubre cuando ya has grabado. Aqui se comprueba que el camino que la
+# interfaz ofrece de verdad —«auto», que GSR resuelve mirando el contenedor—
+# sigue dando un codec que webm acepta.
+destino_webm="$HOME/.cache/easy-screen-recorder/verify/prueba.webm"
+rm -f "$destino_webm"
+
+echo
+echo "grabando 3 segundos en webm..."
+"$binario" grabar --salida "$destino_webm" || fallo "«grabar» en webm devolvio error"
+sleep 3
+ruta_webm="$("$binario" parar)" || fallo "«parar» devolvio error con el webm"
+[ -s "$ruta_webm" ] || fallo "webm: no se guardo nada en $ruta_webm"
+
+codec_webm="$(ffprobe -v error -select_streams v -show_entries stream=codec_name -of csv=p=0 "$ruta_webm")"
+case "$codec_webm" in
+  vp8|vp9|av1) ;;
+  *) fallo "webm trae video «$codec_webm», y webm solo admite vp8, vp9 o av1" ;;
+esac
+echo "VERIFICADO webm: video $codec_webm, que es de los que webm admite"
+rm -f "$ruta_webm"
+
 # --- Modo audio-only ---------------------------------------------------------
 # Va por ffmpeg, no por GSR (docs/gsr-audio-only.md), asi que se verifica
 # aparte y con sus propias herramientas.

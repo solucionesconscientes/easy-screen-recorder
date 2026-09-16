@@ -1,7 +1,7 @@
 # Volcado de capacidades de Easy Screen Recorder
-# fecha:    2026-09-14T21:51:07Z
+# fecha:    2026-09-16T14:40:59Z
 # host:     pc-latitude5480
-# kernel:   Linux 7.0.0-30-generic
+# kernel:   Linux 7.0.0-31-generic
 # sistema:  Ubuntu 26.04 LTS
 # sesion:   XDG_SESSION_TYPE=wayland WAYLAND_DISPLAY=wayland-0 DISPLAY=:0
 # escritorio: KDE

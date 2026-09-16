@@ -26,6 +26,38 @@ versión.
 | `avanzado.png` | El panel Avanzado abierto: formato, códecs, calidad y carpeta | Tomada, **a rehacer** |
 | `demo.gif` | El GIF del README: abrir, elegir región, grabar, parar. 10–15 s | **Falta** |
 
+## Pendiente desde la 0.2.0
+
+Las tres siguen siendo las de la v0.1.0 y **ya no se parecen a la aplicación**:
+enseñan «eDP-1» en vez de «Laptop screen · 1366×768», la ventana estirada y el
+panel Avanzado cortado por abajo. Además son RGBA y de dos tamaños distintos
+(1000×502 y 1000×515), y Flathub pide PNG sin transparencia y todas iguales.
+
+No se rehicieron en esa tanda por un motivo concreto, y conviene saberlo antes
+de intentarlo: **en Wayland la aplicación no puede ponerse ella sola delante.**
+`requestActivate()` necesita un token de activación que solo concede un clic de
+verdad, así que lanzarla desde una terminal la deja detrás de la ventana que
+tuviera el foco. Hace falta un clic humano en la ventana justo antes de
+disparar la captura.
+
+Se intentó esquivarlo haciendo que la propia ventana se dibujara a un PNG
+(`QQuickWindow::grabWindow`). Funciona y sale limpio, pero **no es fiel**: una
+ventana que nunca se ha mostrado no asienta el layout igual, y el resultado
+salió con los botones alineados a la izquierda donde en pantalla están
+centrados. No sirve para una ficha de tienda.
+
+## Un error de los caros, que pasó de verdad
+
+`spectacle -a` captura **la ventana activa, sea cual sea**. Al lanzar la
+aplicación desde una terminal sin que tome el foco, lo que se guardó fue el
+navegador del usuario con su sesión abierta. Se descartó sin llegar al
+repositorio, pero de ahí sale una regla:
+
+**Comprueba el tamaño de la imagen antes de mirarla y antes de moverla al
+repositorio.** La ventana de esta aplicación mide unos 430-570 px de ancho; si
+la captura sale con el ancho de la pantalla, no es la ventana, es el escritorio
+de alguien.
+
 ## Dos errores que ya se cometieron una vez
 
 La primera tanda salió inservible por dos motivos, y los dos son fáciles de

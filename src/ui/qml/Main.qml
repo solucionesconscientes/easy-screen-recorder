@@ -16,7 +16,7 @@ Kirigami.ApplicationWindow {
     id: raiz
     title: "Easy Screen Recorder"
     width: Kirigami.Units.gridUnit * 24
-    height: Math.max(minimumHeight, Kirigami.Units.gridUnit * 21)
+    height: Math.max(minimumHeight, altoPlegado)
     minimumWidth: Kirigami.Units.gridUnit * 18
 
     readonly property bool grabando: Controlador.estado === "grabando"
@@ -25,27 +25,73 @@ Kirigami.ApplicationWindow {
 
     // Al grabar pantalla, la ventana se aparta: si no, sale en el video.
     // Vuelve sola al guardar. En solo-audio se queda, que no estorba a nadie
-    // y el reloj se agradece. La bandeja la recupera en cualquier momento.
+    // y el reloj se agradece.
+    //
+    // Se MINIMIZA, no se oculta. Ocultarla la sacaba de la barra de tareas y
+    // del conmutador de ventanas, y la unica via de vuelta era el icono de la
+    // bandeja... que en el flatpak no llegaba a existir, porque el manifiesto
+    // no pedia permiso para hablar con org.kde.StatusNotifierWatcher. Resultado
+    // medido: al dar a Grabar la aplicacion se esfumaba y habia que relanzarla
+    // desde el menu de inicio para poder pausar. Minimizada sigue donde
+    // cualquiera la busca, y la bandeja es la segunda via, no la unica.
+    readonly property bool apartada: !raiz.visible
+                                     || raiz.visibility === Window.Minimized
+    function volver() {
+        raiz.show()
+        raiz.raise()
+        raiz.requestActivate()
+    }
     Connections {
         target: Controlador
         function onEstadoCambiado() {
-            if (Controlador.estado === "grabando") raiz.hide()
-            else if (Controlador.estado === "listo" && !raiz.visible) raiz.show()
+            if (Controlador.estado === "grabando") raiz.showMinimized()
+            else if (Controlador.estado === "listo" && raiz.apartada) raiz.volver()
         }
     }
     onClosing: function(cierre) {
-        // Cerrar la ventana con una grabacion en marcha no la corta: se va a
-        // la bandeja. Sin nada en marcha, cerrar es salir, como manda la
-        // sencillez: nada de procesos residentes porque si.
+        // Cerrar la ventana con una grabacion en marcha no la corta: se aparta.
+        // Sin nada en marcha, cerrar es salir, como manda la sencillez: nada de
+        // procesos residentes porque si.
+        //
+        // Aqui tambien se minimiza en vez de ocultar, y por lo mismo: la
+        // bandeja no existe en todos los escritorios, y una ventana oculta sin
+        // bandeja es una grabacion que no se puede parar.
         if (raiz.grabando || ocupado) {
             cierre.accepted = false
-            raiz.hide()
+            raiz.showMinimized()
         } else {
             Qt.quit()
         }
     }
     readonly property bool ocupado: Controlador.estado === "arrancando"
                                     || Controlador.estado === "guardando"
+
+    // La ventana crece con el desplegable de Avanzado.
+    //
+    // Antes crecia a una altura fija de 32 unidades de rejilla, y ese numero no
+    // daba: medido en una pantalla de 1366x768, las tres ultimas filas
+    // —imagenes por segundo, carpeta y audio— quedaban fuera del borde
+    // inferior, sin barra de desplazamiento ni nada que insinuara que seguian
+    // ahi. Quien quisiera cambiar el audio tenia que descubrir por su cuenta
+    // que la ventana se podia estirar.
+    //
+    // Ahora se pide lo que el formulario mide de verdad, y nunca mas de lo que
+    // cabe en la pantalla. Solo crece: si el usuario ya la ha hecho mas grande,
+    // no se le encoge debajo.
+    readonly property int altoPlegado: Kirigami.Units.gridUnit * 21
+    function ajustarAltura() { Qt.callLater(raiz.ajustarAlturaYa) }
+    function ajustarAlturaYa() {
+        // Cuanto le falta al contenido para caber. No hace falta saber cuanto
+        // ocupan el marco y la cabecera: se mide el hueco que queda corto y se
+        // le suma eso a la ventana. Se repite hasta que no falte nada o hasta
+        // que la pantalla no de mas de si, y por eso termina siempre.
+        var falta = columna.implicitHeight - columna.height
+        if (falta <= 0) return
+        var nuevo = Math.min(raiz.height + falta, Screen.desktopAvailableHeight)
+        if (nuevo === raiz.height) return
+        raiz.height = nuevo
+        Qt.callLater(raiz.ajustarAlturaYa)
+    }
 
     function lanzarGrabacion(region) {
         var opciones = {
@@ -95,6 +141,7 @@ Kirigami.ApplicationWindow {
         padding: Kirigami.Units.largeSpacing * 2
 
         ColumnLayout {
+            id: columna
             anchors.fill: parent
             spacing: Kirigami.Units.largeSpacing
 
@@ -171,15 +218,18 @@ Kirigami.ApplicationWindow {
                     checkable: true
                     icon.name: checked ? "collapse" : "expand"
                     text: qsTr("Avanzado")
-                    // La ventana crece con el desplegable: sin esto, las
-                    // ultimas filas quedaban cortadas y ni se veian.
-                    onCheckedChanged: raiz.height = checked
-                        ? Kirigami.Units.gridUnit * 32 : Kirigami.Units.gridUnit * 21
+                    onCheckedChanged: checked ? raiz.ajustarAltura()
+                                              : raiz.height = raiz.altoPlegado
                 }
                 Kirigami.FormLayout {
+                    id: formulario
                     Layout.fillWidth: true
                     visible: avanzado.checked
                     enabled: !ocupado
+                    // El formulario cambia de alto al cambiar de fuente: en
+                    // solo-audio se esconden los controles de video y aparecen
+                    // los de audio. La ventana le sigue.
+                    onImplicitHeightChanged: if (avanzado.checked) raiz.ajustarAltura()
 
                     QQC2.ComboBox {
                         id: formatoAudio
@@ -201,11 +251,26 @@ Kirigami.ApplicationWindow {
                         Kirigami.FormData.label: qsTr("Calidad del audio:")
                         textRole: "texto"
                         valueRole: "valor"
+                        // Todas con cifra. Habia una «Automática (recomendada)»
+                        // que no era un nivel de calidad: era el default del
+                        // codificador, y medido coincide con una opcion que ya
+                        // estaba en la lista —96 kbps en opus, 128 en aac—, asi
+                        // que solo aportaba vaguedad y una entrada repetida.
+                        //
+                        // Se queda 96 preseleccionada porque es exactamente lo
+                        // que entregaba «Automática» en opus, que es el formato
+                        // por defecto: nadie recibe algo distinto de lo de ayer.
+                        //
+                        // Y no hay escalones por encima de 192 a proposito. El
+                        // nucleo llega hasta 512 y el CLI los acepta, pero opus
+                        // es transparente bastante antes: por encima de ~192 los
+                        // bits de mas no se oyen. Quien quiere mas no quiere mas
+                        // kbps, quiere no perder nada, y eso es flac, que esta
+                        // en el selector de Formato, dos filas mas arriba.
                         model: [
-                            { texto: qsTr("Automática (recomendada)"), valor: 0 },
                             { texto: qsTr("96 kbps · voz"), valor: 96 },
                             { texto: qsTr("128 kbps · general"), valor: 128 },
-                            { texto: qsTr("192 kbps · música"), valor: 192 }
+                            { texto: qsTr("192 kbps · música (más: flac)"), valor: 192 }
                         ]
                         currentIndex: 0
                     }
@@ -219,17 +284,31 @@ Kirigami.ApplicationWindow {
                         id: codecVideo
                         visible: !fuente.esAudio
                         Kirigami.FormData.label: qsTr("Códec de vídeo:")
-                        // Lo que la maquina soporta de verdad, detectado; el
-                        // sufijo _software es CPU y GSR lo nombra asi.
-                        model: Controlador.codecsVideo
+                        // Lo que la maquina soporta de verdad Y cabe en el
+                        // formato elegido. Sin el segundo filtro se podia pedir
+                        // h264 en un .webm, y eso no graba NADA: el grabador
+                        // muere al escribir la cabecera y no deja fichero.
+                        // La lista de la maquina se pasa como argumento a
+                        // proposito: asi el binding depende de
+                        // `Controlador.codecsVideo`, que avisa cuando termina la
+                        // deteccion. Sin esa dependencia el selector se quedaba
+                        // VACIO, porque la deteccion acaba despues de pintar la
+                        // ventana y una llamada a funcion no se reevalua sola.
+                        model: Controlador.codecsVideoPara(contenedor.currentText,
+                                                           Controlador.codecsVideo)
+                        onModelChanged: currentIndex = 0
                     }
                     QQC2.ComboBox {
                         id: codecAudio
                         visible: !fuente.esAudio
                         Kirigami.FormData.label: qsTr("Códec de audio:")
-                        // Solo los que GSR respeta en el formato elegido: una
-                        // pareja invalida ni se puede pedir.
-                        model: Controlador.codecsAudioPara(contenedor.currentText)
+                        // Solo los que GSR respeta en el formato elegido Y en el
+                        // reparto de pistas elegido: una pareja invalida ni se
+                        // puede pedir. Mezclando, flac no sale de la lista
+                        // porque GSR lo cambiaria a opus por detras.
+                        model: Controlador.codecsAudioPara(
+                                   contenedor.currentText,
+                                   String(audio.currentValue) === "mezclado")
                         onModelChanged: currentIndex = 0
                     }
                     QQC2.ComboBox {
@@ -281,10 +360,17 @@ Kirigami.ApplicationWindow {
                         Kirigami.FormData.label: qsTr("Audio:")
                         textRole: "texto"
                         valueRole: "valor"
+                        // Mezclado va ANTES que separado a proposito. Con dos
+                        // pistas, casi todos los reproductores suenan solo la
+                        // primera, asi que quien elige «los dos» sin pensarlo
+                        // se encuentra el microfono mudo al reproducir. Las
+                        // pistas separadas siguen ahi para quien va a editar,
+                        // que es cuando compensan.
                         model: [
                             { texto: qsTr("Audio del sistema"), valor: "sistema" },
                             { texto: qsTr("Micrófono"), valor: "micro" },
-                            { texto: qsTr("Los dos, en pistas separadas"), valor: "ambos" },
+                            { texto: qsTr("Los dos, en una sola pista"), valor: "mezclado" },
+                            { texto: qsTr("Los dos, en pistas separadas (para editar)"), valor: "ambos" },
                             { texto: qsTr("Sin audio"), valor: "nada" }
                         ]
                         currentIndex: 0

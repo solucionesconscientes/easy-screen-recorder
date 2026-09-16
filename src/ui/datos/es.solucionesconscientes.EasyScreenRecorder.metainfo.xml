@@ -117,17 +117,17 @@ SPDX-License-Identifier: CC0-1.0
 
   <screenshots>
     <screenshot type="default">
-      <image>https://github.com/solucionesconscientes/easy-screen-recorder/raw/v0.1.0/docs/screenshots/principal.png</image>
+      <image>https://github.com/solucionesconscientes/easy-screen-recorder/raw/v0.2.0/docs/screenshots/principal.png</image>
       <caption>The main window: pick what to record and press record</caption>
       <caption xml:lang="es">La ventana principal: eliges qué grabar y grabas</caption>
     </screenshot>
     <screenshot>
-      <image>https://github.com/solucionesconscientes/easy-screen-recorder/raw/v0.1.0/docs/screenshots/grabando.png</image>
+      <image>https://github.com/solucionesconscientes/easy-screen-recorder/raw/v0.2.0/docs/screenshots/grabando.png</image>
       <caption>Recording, with the elapsed time and pause at hand</caption>
       <caption xml:lang="es">Grabando, con el tiempo y la pausa a mano</caption>
     </screenshot>
     <screenshot>
-      <image>https://github.com/solucionesconscientes/easy-screen-recorder/raw/v0.1.0/docs/screenshots/avanzado.png</image>
+      <image>https://github.com/solucionesconscientes/easy-screen-recorder/raw/v0.2.0/docs/screenshots/avanzado.png</image>
       <caption>The Advanced panel: format, codecs, quality and where recordings go</caption>
       <caption xml:lang="es">El panel Avanzado: formato, códecs, calidad y dónde van las grabaciones</caption>
     </screenshot>
@@ -144,6 +144,28 @@ SPDX-License-Identifier: CC0-1.0
   <content_rating type="oars-1.1"/>
 
   <releases>
+    <release version="0.2.0" date="2026-09-16" type="development">
+      <description>
+        <p>Fixes found by using the installed flatpak. The window no longer
+        vanishes when recording: it minimises instead of hiding, and the tray
+        icon now works and carries a menu to pause and stop without bringing the
+        window back into the video. Sources read as "Laptop screen" and "Camera"
+        instead of connector names and device paths. System audio and microphone
+        can now be recorded into a single track, which is what ordinary players
+        play. Video codecs that could never record were removed from the picker,
+        and codec/format pairs that produced no file at all are now rejected
+        before recording starts.</p>
+        <p xml:lang="es">Arreglos salidos de usar el flatpak instalado. La
+        ventana ya no se esfuma al grabar: se minimiza en vez de ocultarse, y el
+        icono de la bandeja funciona y trae un menú para pausar y parar sin sacar
+        la ventana al vídeo. Las fuentes se leen como «Pantalla del portátil» y
+        «Cámara» en vez de nombres de conector y rutas de dispositivo. El audio
+        del sistema y el micrófono se pueden grabar en una sola pista, que es la
+        que suena en cualquier reproductor. Se quitan del selector los códecs de
+        vídeo que no podían grabar, y las parejas de códec y formato que no
+        dejaban fichero se rechazan antes de empezar.</p>
+      </description>
+    </release>
     <release version="0.1.0" date="2026-09-15" type="development">
       <description>
         <p>First development release. Records screen and audio on Linux, on

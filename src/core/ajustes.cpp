@@ -32,11 +32,49 @@ std::string extension_de(std::string_view ruta) {
 
 std::vector<std::string> contenedores_soportados() { return {"mkv", "mp4", "webm"}; }
 
-std::vector<std::string> codecs_audio_para(std::string_view extension) {
+bool pista_mezclada(std::string_view pista) {
+    return pista.find('|') != std::string_view::npos;
+}
+
+std::string familia_codec_video(std::string_view nombre) {
+    // Por prefijo, porque las variantes son sufijos del nombre base:
+    // hevc_10bit, av1_hdr, h264_vulkan, hevc_hdr_vulkan. h265 es el alias de
+    // hevc en la tabla de -k de GSR (args_parser.c:23).
+    if (nombre.rfind("h265", 0) == 0) return "hevc";
+    for (std::string_view base : {"h264", "hevc", "av1", "vp8", "vp9"}) {
+        if (nombre.rfind(base, 0) == 0) return std::string(base);
+    }
+    return {};
+}
+
+bool contenedor_admite_video(std::string_view extension, std::string_view codec) {
+    const std::string familia = familia_codec_video(codec);
+    // Sin familia reconocida no hay regla que aplicar: «auto» entra por aqui, y
+    // tambien cualquier nombre que GSR añada y este codigo no conozca todavia.
+    if (familia.empty()) return true;
+    if (extension == "webm") return familia == "vp8" || familia == "vp9" || familia == "av1";
+    if (extension == "mp4") return familia != "vp8";
+    if (extension == "mkv") return true;
+    return true;  // contenedor sin medir: no se bloquea por no saber
+}
+
+std::vector<std::string> codecs_video_para(std::string_view extension,
+                                           const std::vector<std::string>& disponibles) {
+    std::vector<std::string> lista;
+    for (const auto& c : disponibles) {
+        if (contenedor_admite_video(extension, c)) lista.push_back(c);
+    }
+    return lista;
+}
+
+std::vector<std::string> codecs_audio_para(std::string_view extension, bool mezcla) {
     // opus: mp4, mkv, webm, ts, whip. flac: mp4, mkv. aac: todos menos webm.
     // El orden importa: el primero es el que la UI preselecciona, y opus
     // delante en todos es el default del proyecto.
-    if (extension == "mkv" || extension == "mp4") return {"opus", "aac", "flac"};
+    if (extension == "mkv" || extension == "mp4") {
+        if (mezcla) return {"opus", "aac"};
+        return {"opus", "aac", "flac"};
+    }
     if (extension == "webm") return {"opus"};
     if (extension == "ts" || extension == "whip") return {"opus", "aac"};
     return {};
@@ -70,6 +108,18 @@ std::vector<std::string> validar(const AjustesGrabacion& a) {
         return problemas;
     }
 
+    // La pareja contenedor + codec de VIDEO. Aqui no hay cambio por detras: el
+    // grabador arranca, muere al escribir la cabecera y no deja fichero. Es el
+    // fallo mas caro de todos, porque se descubre cuando ya has grabado.
+    if (!contenedor_admite_video(ext, a.codec_video)) {
+        std::string admite = "vp8, vp9 o av1";
+        if (ext == "mp4") admite = "h264, hevc, vp9 o av1";
+        problemas.push_back("un «." + ext + "» no admite video " +
+                            familia_codec_video(a.codec_video) + "; solo " + admite +
+                            ". Cambia de formato o de codec, o deja el codec en «auto», que "
+                            "lo elige GSR mirando el contenedor");
+    }
+
     // Las parejas contenedor + codec de audio en las que GSR respeta lo
     // pedido (codec_select.c:158-196). Fuera de ellas GSR cambia el codec
     // por detras, y eso aqui es un error, no un aviso.
@@ -83,6 +133,11 @@ std::vector<std::string> validar(const AjustesGrabacion& a) {
         if (!contiene({"mp4", "mkv"}, ext)) {
             problemas.push_back("flac solo se respeta en mkv y mp4; en «." + ext +
                                 "» GSR lo cambiaria por detras");
+        } else if (std::any_of(a.audios.begin(), a.audios.end(), pista_mezclada)) {
+            problemas.push_back(
+                "flac no se respeta cuando se mezclan varias fuentes en una pista: GSR lo "
+                "cambiaria a opus por detras (codec_select.c:186-191). Pide opus, o deja "
+                "cada fuente en su propia pista");
         }
     } else if (a.codec_audio == "aac") {
         if (ext == "webm") {

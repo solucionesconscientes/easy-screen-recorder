@@ -355,6 +355,111 @@ void errores_de_gsr_no_son_opciones() {
     COMPROBAR(opciones.size() == 1 && opciones[0].id == "eDP-1");
 }
 
+// Los codecs de video que se pueden PEDIR, que no son los que --info imprime.
+void codecs_que_gsr_acepta() {
+    InfoGsr info;
+    info.codecs_video = {"h264", "h264_software", "hevc", "vp8"};
+    const auto ofrecibles = codecs_video_ofrecibles(info);
+    // «h264_software» sale de --info solo porque existe libx264, pero -k no lo
+    // acepta y pedirlo mata al grabador al arrancar. Medido.
+    COMPROBAR(ofrecibles.size() == 3);
+    COMPROBAR(std::find(ofrecibles.begin(), ofrecibles.end(), "h264_software") ==
+              ofrecibles.end());
+    COMPROBAR(ofrecibles[0] == "h264" && ofrecibles[1] == "hevc" && ofrecibles[2] == "vp8");
+    // Una maquina sin nada por hardware se queda sin ninguno, y eso es la
+    // verdad: ahi solo vale «auto», que pone la interfaz por su cuenta.
+    InfoGsr solo_software;
+    solo_software.codecs_video = {"h264_software"};
+    COMPROBAR(codecs_video_ofrecibles(solo_software).empty());
+}
+
+// Las fuentes, agrupadas y ordenadas. Es lo que decide que se lee en el
+// desplegable, asi que se prueba aqui y no mirando una captura de pantalla.
+void fuentes_agrupadas() {
+    // El volcado real de esta maquina: GSR saca la camara ENTRE «region» y
+    // «portal», y la saca ocho veces, una por modo.
+    std::vector<Opcion> crudas = {
+        {"eDP-1", {"1366x768"}},
+        {"region", {}},
+        {"/dev/video0", {"1280x720@30hz", "mjpeg"}},
+        {"/dev/video0", {"640x480@30hz", "yuyv"}},
+        {"portal", {}},
+    };
+    const auto ordenadas = fuentes_amables(crudas);
+    COMPROBAR_NOTA(ordenadas.size() == 4, std::to_string(ordenadas.size()));
+    // Monitores, luego lo que hay que decidir al empezar, luego camaras.
+    COMPROBAR(ordenadas[0].id == "eDP-1" && ordenadas[0].tipo == TipoFuente::Monitor);
+    COMPROBAR(ordenadas[1].id == "region" && ordenadas[1].tipo == TipoFuente::Region);
+    COMPROBAR(ordenadas[2].id == "portal" && ordenadas[2].tipo == TipoFuente::Portal);
+    COMPROBAR(ordenadas[3].id == "/dev/video0" && ordenadas[3].tipo == TipoFuente::Camara);
+    // eDP es el panel del portatil, y la resolucion viaja para poder enseñarla.
+    COMPROBAR(ordenadas[0].familia == FamiliaMonitor::Interna);
+    COMPROBAR(ordenadas[0].resolucion == "1366x768");
+    // Con una sola de cada clase no hay nada que desempatar: el identificador
+    // no tiene por que aparecer.
+    for (const auto& f : ordenadas) COMPROBAR(!f.desempatar);
+}
+
+void familias_de_monitor() {
+    std::vector<Opcion> crudas = {
+        {"HDMI-A-1", {"1920x1080"}}, {"DP-1", {}}, {"DP-2", {}},
+        {"VGA-1", {}},               {"DVI-D-1", {}}, {"LVDS-1", {}},
+        {"raro-9", {}},
+    };
+    const auto v = fuentes_amables(crudas);
+    COMPROBAR(v.size() == 7);
+    COMPROBAR(v[0].familia == FamiliaMonitor::Hdmi && v[0].resolucion == "1920x1080");
+    // eDP/LVDS/DSI son panel interno; DP a secas es un cable. Que «eDP» acabe
+    // en «DP» es justo el desempate que hay que probar.
+    COMPROBAR(v[1].familia == FamiliaMonitor::DisplayPort);
+    COMPROBAR(v[3].familia == FamiliaMonitor::Vga);
+    COMPROBAR(v[4].familia == FamiliaMonitor::Dvi);
+    COMPROBAR(v[5].familia == FamiliaMonitor::Interna);
+    COMPROBAR(v[6].familia == FamiliaMonitor::Otra);
+    // Dos DisplayPort: las dos se llamarian igual, asi que las dos tienen que
+    // enseñar su identificador. Las demas no.
+    COMPROBAR(v[1].desempatar && v[2].desempatar);
+    COMPROBAR(!v[0].desempatar && !v[3].desempatar);
+
+    // eDP-1 con eDP-2 al lado tambien desempata.
+    const auto dos_internas = fuentes_amables({{"eDP-1", {}}, {"eDP-2", {}}});
+    COMPROBAR(dos_internas[0].desempatar && dos_internas[1].desempatar);
+}
+
+void resolucion_solo_si_se_entiende() {
+    // Lo que no tiene forma de resolucion no se enseña como tal. El parser
+    // avisa o calla; lo que no hace es adornar lo que no entendio.
+    const auto v = fuentes_amables({{"eDP-1", {"1366x768"}},
+                                    {"HDMI-A-1", {"no-es-una-resolucion"}},
+                                    {"DP-1", {"1920x"}},
+                                    {"VGA-1", {}}});
+    COMPROBAR(v[0].resolucion == "1366x768");
+    COMPROBAR(v[1].resolucion.empty());
+    COMPROBAR(v[2].resolucion.empty());
+    COMPROBAR(v[3].resolucion.empty());
+}
+
+// El nombre de una camara, limpiado. Lo que llega de /sys no se puede enseñar
+// tal cual: el kernel lo trunca y el driver le pega detras lo que quiere.
+void nombre_de_camara() {
+    // El caso de esta maquina, medido: cat /sys/class/video4linux/video0/name.
+    COMPROBAR(limpiar_nombre_camara("Integrated_Webcam_HD: Integrate") ==
+              "Integrated Webcam HD");
+    // Sin dos puntos ni guiones bajos no hay nada que limpiar.
+    COMPROBAR(limpiar_nombre_camara("HD Pro Webcam C920") == "HD Pro Webcam C920");
+    COMPROBAR(limpiar_nombre_camara("  con espacios  ") == "con espacios");
+    // Vacio es «no se sabe», y quien llame tiene que enseñar otra cosa.
+    COMPROBAR(limpiar_nombre_camara("") == "");
+    COMPROBAR(limpiar_nombre_camara(": solo cola") == "");
+
+    // Y lo que no es un nodo de /dev no se va a buscar a /sys.
+    COMPROBAR(nombre_camara("eDP-1") == "");
+    COMPROBAR(nombre_camara("/dev/") == "");
+    COMPROBAR(nombre_camara("/dev/../etc/passwd") == "");
+    // Un nodo que no existe tampoco inventa nada.
+    COMPROBAR(nombre_camara("/dev/video99999") == "");
+}
+
 }  // namespace
 
 int main() {
@@ -373,5 +478,10 @@ int main() {
     bloque_vacio_pero_correcto();
     bloque_sin_codigo();
     errores_de_gsr_no_son_opciones();
+    nombre_de_camara();
+    codecs_que_gsr_acepta();
+    fuentes_agrupadas();
+    familias_de_monitor();
+    resolucion_solo_si_se_entiende();
     return prueba::resumen("prueba_capacidades");
 }
