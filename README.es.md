@@ -54,9 +54,26 @@ no funciona por consola, no llega a la interfaz.
 
 | | |
 |---|---|
-| **Flathub** | Pronto |
-| **`.deb`** | Pronto |
+| **Flatpak, del repositorio propio** | `flatpak install --user https://solucionesconscientes.github.io/flatpak-repo/es.solucionesconscientes.EasyScreenRecorder.flatpakref` |
+| **`.deb`** | En la [página de releases](https://github.com/solucionesconscientes/easy-screen-recorder/releases) |
 | **Desde el código** | Abajo |
+| **Flathub** | Todavía no enviado — ver abajo |
+
+Las actualizaciones del repositorio Flatpak llegan con `flatpak update`, como en
+cualquier otro remoto. El runtime de KDE sigue viniendo de Flathub; aquí solo se
+aloja la aplicación.
+
+### Por qué no está en Flathub
+
+Flathub obliga a **declarar el material generado por IA**, y el revisor puede
+rechazar un envío según *«the extent or role of generated material»*. Esta
+aplicación se construyó en buena parte con asistencia de IA, así que esa
+extensión es grande y declararlo con honestidad es la única opción. Además pide
+un historial de desarrollo real, que un proyecto tan joven no tiene.
+
+Así que: distribución propia por ahora, y envío más adelante con la declaración
+completa escrita a mano. Nada de esto está escondido — el historial de commits
+dice `Co-Authored-By: Claude` de principio a fin.
 
 ### Desde el código
 
