@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Dalmau Romaní (Soluciones Conscientes)
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 # Este paquete no se sube al archivo de Debian: se distribuye por su cuenta
 # desde el repositorio del proyecto. El aviso pide que el changelog cierre un
 # bug de ITP (Intent To Package), que es el tramite de entrar en Debian y que

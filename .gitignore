@@ -27,6 +27,10 @@ debian/*.substvars
 debian/*.debhelper.log
 debian/debhelper-build-stamp
 debian/tmp/
+# El arbol de construccion que crea `dh`, con el nombre del triplete. Se me
+# escapo al escribir estas lineas: el .deb que hice a mano con dpkg-deb no lo
+# creaba, y dpkg-buildpackage si.
+obj-*-linux-gnu/
 
 compile_commands.json
 .cache/
