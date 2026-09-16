@@ -88,8 +88,15 @@ Kirigami.ApplicationWindow {
     // Sin esto, las dos columnas se apretarian y el problema de las filas que no
     // se ven volveria por otro lado.
     readonly property int anchoAbierto: Kirigami.Units.gridUnit * 46
+    // Maximizada o a pantalla completa, el tamaño lo manda el gestor de
+    // ventanas y no nosotros. Sin esta comprobacion, abrir «Avanzado» en una
+    // ventana maximizada le daba un ancho y un alto propios y la dejaba en un
+    // estado raro: ni maximizada ni del tamaño que pedia.
+    readonly property bool mandaElGestor: raiz.visibility === Window.Maximized
+                                          || raiz.visibility === Window.FullScreen
     function ajustarAltura() { Qt.callLater(raiz.ajustarAlturaYa) }
     function ajustarAlturaYa() {
+        if (raiz.mandaElGestor) return
         // Cuanto le falta al contenido para caber. No hace falta saber cuanto
         // ocupan el marco y la cabecera: se mide el hueco que queda corto y se
         // le suma eso a la ventana. Se repite hasta que no falte nada o hasta
@@ -271,6 +278,7 @@ Kirigami.ApplicationWindow {
                     icon.name: checked ? "collapse" : "expand"
                     text: qsTr("Avanzado")
                     onCheckedChanged: {
+                        if (raiz.mandaElGestor) return
                         if (checked) {
                             raiz.width = Math.min(raiz.anchoAbierto,
                                                   Screen.desktopAvailableWidth)
@@ -301,6 +309,14 @@ Kirigami.ApplicationWindow {
                         id: usarCamara
                         visible: raiz.puedeCamara
                         text: qsTr("Superponer la cámara sobre la pantalla")
+                        QQC2.ToolTip.text: qsTr(
+                            "Pantalla y cámara en la misma grabación y el mismo " +
+                            "fichero, sin nada que montar después.\n\nLa vista " +
+                            "previa se apaga al empezar a grabar: una cámara solo " +
+                            "admite un programa a la vez, y a partir de ahí es " +
+                            "del grabador. Por eso el encuadre se elige antes.")
+                        QQC2.ToolTip.visible: hovered
+                        QQC2.ToolTip.delay: 400
                     }
                     // Los ajustes de la camara en UNA fila: el alto de esta
                     // ventana es lo escaso, no el ancho. Antes iban en columna
@@ -439,6 +455,21 @@ Kirigami.ApplicationWindow {
                                     { texto: qsTr("Ultra"), valor: "ultra" }
                                 ]
                                 currentIndex: 2  // very_high, el default de GSR
+                                // La pregunta que hace todo el mundo aqui es
+                                // «¿cuantos kbps son?». Ninguno: GSR usa calidad
+                                // CONSTANTE (QP 35/30/25/22, video_codec.c:9-17),
+                                // asi que el tamaño lo decide lo que pase en
+                                // pantalla. Las cifras son de una medicion real
+                                // en esta maquina, con el escritorio poco movido.
+                                QQC2.ToolTip.text: qsTr(
+                                    "No es un bitrate fijo: es calidad constante, " +
+                                    "así que el tamaño depende de lo que se mueva " +
+                                    "en pantalla.\n\nCon una pantalla poco movida, " +
+                                    "medido: Media 1,5 MB/min · Alta 2,4 · Muy alta " +
+                                    "3,0 · Ultra 4,6. Con vídeo o desplazamiento " +
+                                    "sube bastante.")
+                                QQC2.ToolTip.visible: hovered
+                                QQC2.ToolTip.delay: 400
                             }
                             QQC2.ComboBox {
                                 id: fps
@@ -512,6 +543,15 @@ Kirigami.ApplicationWindow {
                                     return { texto: qsTr("Solo %1").arg(a.texto), valor: a.valor }
                                 }))
                                 currentIndex: 0
+                                QQC2.ToolTip.text: qsTr(
+                                    "«En una sola pista» mezcla los dos y se oye " +
+                                    "todo en cualquier reproductor.\n\n«En pistas " +
+                                    "separadas» deja cada uno por su lado para " +
+                                    "poder equilibrarlos al editar, pero casi " +
+                                    "todos los reproductores suenan solo la " +
+                                    "primera: el micrófono parecerá mudo.")
+                                QQC2.ToolTip.visible: hovered
+                                QQC2.ToolTip.delay: 400
                             }
                             QQC2.ComboBox {
                                 id: codecAudio
@@ -566,11 +606,29 @@ Kirigami.ApplicationWindow {
                                          && Controlador.modoContentEfectivo(
                                                 String(fuente.currentValue))
                                 text: qsTr("Codificar solo al cambiar la pantalla")
+                                QQC2.ToolTip.text: qsTr(
+                                    "Mientras la pantalla esté quieta no gasta " +
+                                    "GPU ni ocupa sitio. Va bien en un tutorial " +
+                                    "con pausas.\n\nSolo aparece donde funciona " +
+                                    "de verdad; en Wayland grabando un monitor no " +
+                                    "hace nada, así que ahí no se ofrece.")
+                                QQC2.ToolTip.visible: hovered
+                                QQC2.ToolTip.delay: 400
                             }
                             QQC2.CheckBox {
                                 id: replay
                                 visible: !fuente.esAudio
                                 text: qsTr("Modo repetición")
+                                QQC2.ToolTip.text: qsTr(
+                                    "Graba sin escribir nada: va guardando en " +
+                                    "memoria los últimos minutos y solo los " +
+                                    "vuelca a un fichero cuando pulsas «Guardar " +
+                                    "lo último».\n\nSirve para lo que YA ha " +
+                                    "pasado: te das cuenta de que querías " +
+                                    "grabarlo cuando ya ha ocurrido, y todavía " +
+                                    "estás a tiempo.")
+                                QQC2.ToolTip.visible: hovered
+                                QQC2.ToolTip.delay: 400
                             }
                             QQC2.ComboBox {
                                 id: segundosReplay
@@ -590,11 +648,16 @@ Kirigami.ApplicationWindow {
                     }
 
                     // La carpeta, a lo ancho: una ruta larga no cabe en media.
+                    //
+                    // El hueco sobrante va DESPUES del boton, no entre la ruta y
+                    // el boton. Con la ruta estirandose, «Cambiar…» acababa
+                    // pegado al borde derecho, a media ventana de la ruta que
+                    // cambia: parecian dos cosas distintas.
                     RowLayout {
                         Layout.fillWidth: true
                         QQC2.Label { text: qsTr("Guardar en:") }
                         QQC2.Label {
-                            Layout.fillWidth: true
+                            Layout.maximumWidth: Kirigami.Units.gridUnit * 22
                             text: fuente.esAudio ? Controlador.carpetaAudio
                                                  : Controlador.carpetaVideos
                             elide: Text.ElideMiddle
@@ -610,6 +673,7 @@ Kirigami.ApplicationWindow {
                                 dialogoCarpeta.open()
                             }
                         }
+                        Item { Layout.fillWidth: true }
                     }
                 }
 

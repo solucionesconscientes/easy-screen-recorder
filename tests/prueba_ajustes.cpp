@@ -129,7 +129,7 @@ int main() {
         const auto args = argumentos_gsr(a);
         const std::vector<std::string> esperado = {
             "-w", "eDP-1", "-f", "60", "-a", "default_output",
-            "-ac", "opus", "-q", "very_high",
+            "-ac", "opus", "-q", "very_high", "-ffmpeg-opts", "flush_packets=1",
             "-ipc", "/home/u/.cache/easy-screen-recorder/ipc.sock", "-o", "/tmp/x.mkv"};
         COMPROBAR(args == esperado);
     }
@@ -251,6 +251,16 @@ int main() {
         const auto con_mezcla = codecs_audio_para("mkv", true);
         COMPROBAR(std::find(con_mezcla.begin(), con_mezcla.end(), "flac") == con_mezcla.end());
         COMPROBAR(con_mezcla.size() == 2 && con_mezcla[0] == "opus");
+    }
+
+    {
+        // El volcado forzado va SIEMPRE: es lo que decide si una grabacion
+        // sobrevive a un apagon. Medido: sin el se recuperan 0 s de 10; con el,
+        // 8,1. Si alguien lo quita, esta comprobacion se entera.
+        const auto args = argumentos_gsr(base());
+        const auto opts = std::find(args.begin(), args.end(), "-ffmpeg-opts");
+        COMPROBAR(opts != args.end());
+        COMPROBAR(opts + 1 != args.end() && *(opts + 1) == "flush_packets=1");
     }
 
     // --- La camara superpuesta -------------------------------------------

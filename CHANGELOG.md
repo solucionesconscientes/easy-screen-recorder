@@ -5,6 +5,37 @@ máquina de desarrollo.
 
 ## Sin publicar
 
+### Lo grabado sobrevive a un apagón, y la interfaz explica lo que hace (2026-09-16)
+
+- **Un corte de luz se llevaba TODA la grabación.** Medido con un A/B limpio —10
+  segundos grabados y un SIGKILL al grabador, que es lo más parecido a un apagón
+  que se puede provocar a mano—: sin nada se recuperan **0 segundos**; con
+  `flush_packets=1` se recuperan **8,1 de los 10**. Se pierde la cola sin cerrar,
+  no la grabación entera. Ahora va siempre, y no cuesta nada: la misma grabación
+  parada bien da la misma duración y el mismo tamaño con y sin la opción.
+- **«Calidad» no son bitrates, y ahora lo dice.** Son valores de QP —calidad
+  constante— de 35, 30, 25 y 22 (`video_codec.c:9-17` de GSR), así que el tamaño
+  lo decide lo que pase en pantalla. Medido en esta máquina con el escritorio
+  poco movido: **1,5 / 2,4 / 3,0 / 4,6 MB por minuto**. Va en una ayuda
+  emergente, con la advertencia de que sube con el movimiento.
+- **Ayudas emergentes** donde hacía falta explicar algo y no cabía: qué es el
+  modo repetición, qué diferencia hay entre una pista y dos, qué hace superponer
+  la cámara y por qué la vista previa se apaga al grabar, y qué significa
+  codificar solo al cambiar la pantalla.
+- **El botón «Cambiar…» estaba lejos de la ruta.** El hueco sobrante se estiraba
+  entre los dos y el botón acababa pegado al borde derecho, a media ventana de lo
+  que cambia. Ahora el hueco va después del botón.
+- **Descoordinación al maximizar.** Abrir «Avanzado» con la ventana maximizada le
+  daba un ancho y un alto propios y la dejaba ni maximizada ni del tamaño pedido.
+  Ahora, si manda el gestor de ventanas, no se le toca el tamaño. Verificado:
+  maximizada a 1366×686, abrir «Avanzado» la deja igual.
+- `docs/interno/PROMPT-COMPARATIVA.md`: un prompt para comparar la aplicación con
+  lo que ya existe en Windows, escrito para que el modelo busque contraejemplos y
+  no para que dé la razón.
+
+Verificado: build sin un warning, `ctest` 12/12 (109 comprobaciones en ajustes),
+`verify-recording.sh` con los siete casos en verde, `reuse lint` conforme.
+
 ### La cámara se coloca arrastrándola, y «Avanzado» en dos columnas (2026-09-16)
 
 - **Las cuatro esquinas se quedaban cortas.** Sobre una barra de tareas, un
