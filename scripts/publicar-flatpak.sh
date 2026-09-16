@@ -115,8 +115,11 @@ CLAVE_B64=$(base64 -w0 "$salida/clave-publica.gpg")
 publico="$salida/publico"
 rm -rf "$publico"; mkdir -p "$publico"
 cp -r "$salida/repo" "$publico/repo"
-# Sin esto, GitHub Pages pasa el repositorio por Jekyll y se come los ficheros
-# y directorios que empiezan por guion bajo. Un repo ostree tiene varios.
+# Cloudflare Pages no necesita esto: es GitHub Pages quien pasa el sitio por
+# Jekyll y se come los ficheros que empiezan por guion bajo. Se deja porque no
+# cuesta nada y el dia que haya que mover el alojamiento evita el fallo mas
+# desconcertante de todos: un repositorio que se sirve entero menos tres
+# ficheros, y un `flatpak install` que falla sin decir por que.
 touch "$publico/.nojekyll"
 
 cat > "$publico/$REMOTO_NOMBRE.flatpakrepo" <<EOF
