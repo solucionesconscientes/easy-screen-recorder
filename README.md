@@ -15,7 +15,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 <p align="center">
   <img src="https://img.shields.io/badge/license-GPL--3.0--or--later-blue" alt="GPL-3.0-or-later">
-  <img src="https://img.shields.io/badge/platform-KDE%20Plasma%20%C2%B7%20Wayland-1d99f3" alt="KDE Plasma / Wayland">
+  <img src="https://img.shields.io/badge/platform-Linux%20%C2%B7%20Wayland%20%26%20X11-1d99f3" alt="Linux · Wayland and X11">
   <img src="https://img.shields.io/badge/C%2B%2B-20-da4453" alt="C++20">
 </p>
 
@@ -82,6 +82,24 @@ On Debian and Ubuntu:
 sudo apt install cmake ninja-build g++ qt6-base-dev qt6-declarative-dev \
   ffmpeg
 ```
+
+## Where it runs
+
+**Any Linux desktop, on Wayland and on X11.** The interface is Qt6/QML with
+Kirigami, and the capture is done by gpu-screen-recorder, which supports both
+display servers.
+
+Two things are specific to KDE Plasma, and both degrade quietly elsewhere:
+
+| | |
+|---|---|
+| **Global shortcut** | Registered through KGlobalAccel, so it is configured in *System Settings → Shortcuts* like any other. Outside KDE it simply is not registered — everything else works |
+| **Tray icon** | Uses StatusNotifierItem, which is native on Plasma. Most desktops support it; GNOME needs an extension |
+
+Built and verified on KDE Plasma over Wayland, and verified running as an X11
+client through XWayland. **A pure X11 session has not been tested here** — this
+machine runs Wayland — but the capture is gpu-screen-recorder's, which supports
+X11 upstream.
 
 ## Requirements
 

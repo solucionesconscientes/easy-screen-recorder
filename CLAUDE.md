@@ -17,9 +17,15 @@ B1 quedó cerrado. Esperar salió más barato que inventar.
 
 ## Qué es esto
 
-Un grabador de pantalla puntero para Linux/Wayland (KDE Plasma). En Linux no
-hay equivalente a Screen Studio ni a AutoZoom: OBS es potente pero crudo,
-Spectacle y Kooha son mínimos.
+Un grabador de pantalla puntero para **Linux**, sobre Wayland y sobre X11, y en
+cualquier escritorio. En Linux no hay equivalente a Screen Studio ni a AutoZoom:
+OBS es potente pero crudo, Spectacle y Kooha son mínimos.
+
+Se desarrolla y se verifica en KDE Plasma, y solo dos cosas están atadas a él:
+el atajo global (KGlobalAccel) y el icono de bandeja (StatusNotifierItem). Las
+dos se degradan sin ruido fuera. **No escribas «para KDE Plasma» en un texto de
+usuario:** deja fuera a quien podría usarlo, y la captura la hace GSR, que
+soporta los dos servidores gráficos.
 
 **No reimplementamos la captura.** gpu-screen-recorder (GSR), de dec05eba, ya
 resuelve lo difícil: codificación 100 % en GPU, HEVC/AV1, X11 y Wayland, replay

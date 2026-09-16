@@ -5,6 +5,14 @@ máquina de desarrollo.
 
 ## Sin publicar
 
+### Empaquetado y alcance corregidos (2026-09-16)
+- **El `.deb` declara los 14 módulos QML** que necesita en tiempo de ejecución,
+  Kirigami incluido. `dpkg-shlibdeps` no los ve: un `import` de QML no es
+  enlazado ELF. Sin ellos el paquete se instalaba y la interfaz no arrancaba.
+- **Deja de decirse «para KDE Plasma»**: funciona en cualquier escritorio y
+  sobre Wayland y X11. Lo único atado a KDE es el atajo global y el icono de
+  bandeja, y los dos se degradan sin ruido.
+
 ### Páginas de manual (2026-09-16)
 - `easy-screen-recorder(1)` y `easy-screen-recorder-cli(1)`, instaladas por el
   CMake en `share/man/man1`. Van con el proyecto y no con el empaquetado:

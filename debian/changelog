@@ -1,8 +1,10 @@
 easy-screen-recorder (0.1.0-1) unstable; urgency=medium
 
   * Primera version empaquetada.
-  * Graba pantalla y audio en KDE Plasma sobre Wayland, con seleccion de
+  * Graba pantalla y audio en Linux, sobre Wayland y X11, con seleccion de
     region, modo de solo audio, pausa, atajo global y comprobacion del entorno.
+  * Los modulos QML van en Depends escritos a mano: dpkg-shlibdeps no los ve,
+    porque un import de QML no es enlazado ELF.
   * gpu-screen-recorder va en Recommends y no en Depends: no esta en los
     repositorios de Debian ni de Ubuntu, asi que un Depends dejaria el paquete
     sin instalar. Ver empaquetado/debian/NOTAS.md.

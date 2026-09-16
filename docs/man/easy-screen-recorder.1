@@ -7,8 +7,12 @@ easy\-screen\-recorder \- graba la pantalla en dos clics, con la codificación e
 .SH SINOPSIS
 .B easy\-screen\-recorder
 .SH DESCRIPCIÓN
-Interfaz gráfica para grabar la pantalla en KDE Plasma sobre Wayland. La captura
-se queda en la GPU, así que no calienta la CPU.
+Interfaz gráfica para grabar la pantalla en Linux, sobre Wayland y sobre X11. La
+captura se queda en la GPU, así que no calienta la CPU.
+.PP
+Funciona en cualquier escritorio. Dos cosas son nativas de KDE Plasma y se
+degradan sin ruido fuera de él: el atajo global, que se registra en KGlobalAccel,
+y el icono de bandeja, que usa StatusNotifierItem.
 .PP
 No tiene opciones de línea de comandos: todo se elige en la ventana. Para
 guionizar una grabación está

@@ -18,10 +18,11 @@ SPDX-License-Identifier: CC0-1.0
 
   <description>
     <p>
-      Recording your screen on Wayland usually means one of two things: a tool
+      Recording your screen on Linux usually means one of two things: a tool
       that re-encodes on the CPU and turns your laptop into a heater, or a
       command line with fifteen flags. Easy Screen Recorder is the missing
       layer: capture stays on the GPU and you start recording in two clicks.
+      Works on Wayland and on X11, on any desktop.
     </p>
     <p>What it does today:</p>
     <ul>
@@ -37,15 +38,20 @@ SPDX-License-Identifier: CC0-1.0
       failing halfway through.</li>
     </ul>
     <p>
+      The global shortcut and the tray icon are native on KDE Plasma; on other
+      desktops the rest works the same.
+    </p>
+    <p>
       Independent frontend for gpu-screen-recorder; not affiliated with it.
       Requires gpu-screen-recorder installed.
     </p>
 
     <p xml:lang="es">
-      Grabar la pantalla en Wayland suele ser una de dos cosas: una herramienta
+      Grabar la pantalla en Linux suele ser una de dos cosas: una herramienta
       que recodifica en la CPU y convierte el portátil en una estufa, o una
       línea de comandos con quince opciones. Easy Screen Recorder es la capa que
       falta: la captura se queda en la GPU y empiezas a grabar en dos clics.
+      Funciona sobre Wayland y sobre X11, en cualquier escritorio.
     </p>
     <p xml:lang="es">Lo que hace hoy:</p>
     <ul>
@@ -62,6 +68,10 @@ SPDX-License-Identifier: CC0-1.0
       <li xml:lang="es">Te dice qué falta antes de darle a grabar, en vez de
       fallar a mitad.</li>
     </ul>
+    <p xml:lang="es">
+      El atajo global y el icono de bandeja son nativos en KDE Plasma; en otros
+      escritorios el resto funciona igual.
+    </p>
     <p xml:lang="es">
       Interfaz independiente para gpu-screen-recorder; sin relación con el
       proyecto. Requiere gpu-screen-recorder instalado.
@@ -131,11 +141,11 @@ SPDX-License-Identifier: CC0-1.0
   <releases>
     <release version="0.1.0" date="2026-09-15" type="development">
       <description>
-        <p>First development release. Records screen and audio on KDE Plasma
-        Wayland, with region selection, audio-only mode, pause and resume, a
-        global shortcut and an environment check.</p>
+        <p>First development release. Records screen and audio on Linux, on
+        Wayland and X11, with region selection, audio-only mode, pause and
+        resume, a global shortcut and an environment check.</p>
         <p xml:lang="es">Primera versión de desarrollo. Graba pantalla y audio
-        en KDE Plasma sobre Wayland, con selector de región, modo de solo
+        en Linux, sobre Wayland y X11, con selector de región, modo de solo
         audio, pausa y reanudación, atajo global y comprobación del
         entorno.</p>
       </description>

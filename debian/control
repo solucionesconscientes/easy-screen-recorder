@@ -19,6 +19,33 @@ Architecture: any
 Depends:
  ${shlibs:Depends},
  ${misc:Depends},
+# Los modulos QML NO los detecta dpkg-shlibdeps y hay que escribirlos a mano.
+#
+# Su trabajo es leer el enlazado ELF, y un `import org.kde.kirigami` no es
+# enlazado: es un directorio que Qt carga en tiempo de ejecucion. Sin estas
+# lineas el paquete se instala perfectamente y la interfaz no arranca, que es
+# el peor fallo posible de un empaquetado: parece correcto hasta que un usuario
+# le da al icono.
+#
+# La lista sale de `qmlimportscanner` sobre src/ui/qml, la misma herramienta
+# que usa Qt para decidir que desplegar, y de mapear cada modulo a su paquete
+# con dpkg -S. Al anadir un import nuevo al QML hay que rehacerla:
+#
+#   /usr/lib/qt6/libexec/qmlimportscanner -rootPath src/ui/qml #     -importPath /usr/lib/x86_64-linux-gnu/qt6/qml
+ qml6-module-org-kde-kirigami,
+ qml6-module-qml,
+ qml6-module-qt-labs-folderlistmodel,
+ qml6-module-qt-labs-qmlmodels,
+ qml6-module-qtqml,
+ qml6-module-qtqml-models,
+ qml6-module-qtqml-workerscript,
+ qml6-module-qtquick,
+ qml6-module-qtquick-controls,
+ qml6-module-qtquick-dialogs,
+ qml6-module-qtquick-layouts,
+ qml6-module-qtquick-shapes,
+ qml6-module-qtquick-templates,
+ qml6-module-qtquick-window,
 Recommends:
  gpu-screen-recorder,
  ffmpeg,
