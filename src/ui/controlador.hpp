@@ -71,6 +71,14 @@ class Controlador : public QObject {
     // Si esta compilacion trae vista previa de camara y vumetro. Sale de si
     // habia Qt6Multimedia al compilar; el QML esconde los controles cuando no.
     Q_PROPERTY(bool hayMultimedia READ hayMultimedia CONSTANT)
+    // Si los atajos globales estan registrados de verdad. Fuera de KDE no hay
+    // servicio que los atienda, y anunciar unos atajos que no funcionan es peor
+    // que no anunciar ninguno.
+    Q_PROPERTY(bool hayAtajos READ hayAtajos NOTIFY hayAtajosCambiado)
+    // El texto de cada atajo tal como lo tiene KDE ahora mismo, no el que
+    // pedimos: el usuario puede haberlos cambiado.
+    Q_PROPERTY(QString atajoGrabar READ atajoGrabar NOTIFY hayAtajosCambiado)
+    Q_PROPERTY(QString atajoPausa READ atajoPausa NOTIFY hayAtajosCambiado)
     // 0 a 1. Solo se mueve mientras se esta escuchando, o sea antes de grabar.
     Q_PROPERTY(qreal nivelMicro READ nivelMicro NOTIFY nivelMicroCambiado)
 
@@ -122,6 +130,10 @@ public:
     // Y dejarla como esta, que tambien es una respuesta valida.
     Q_INVOKABLE void olvidarGrabacionAMedias();
     bool hayMultimedia() const;
+    bool hayAtajos() const { return hay_atajos_; }
+    QString atajoGrabar() const { return atajo_grabar_; }
+    QString atajoPausa() const { return atajo_pausa_; }
+    void ponerAtajos(bool hay, const QString& grabar, const QString& pausa);
     qreal nivelMicro() const;
     // Enciende o apaga el vumetro. Lo llama el QML: escucha solo cuando el
     // control esta a la vista y no hay grabacion, que es cuando sirve.
@@ -145,6 +157,10 @@ public:
     // Vuelca el buffer de replay a un fichero y sigue grabando. La respuesta
     // trae la ruta y tarda lo que tarde en escribirse, asi que va en hilo
     // aparte igual que parar().
+    // Pausa si esta grabando, reanuda si esta en pausa, y no hace nada en el
+    // resto de estados. Lo dispara el atajo global, que es la unica via de
+    // pausar sin que la ventana aparezca en el video que se esta grabando.
+    Q_INVOKABLE void alternarPausa();
     Q_INVOKABLE void guardarReplay();
     Q_INVOKABLE void parar();
     Q_INVOKABLE void pausar();
@@ -159,6 +175,7 @@ signals:
     void segundosCambiados();
     void nivelMicroCambiado();
     void grabacionAMediasCambiada();
+    void hayAtajosCambiado();
     void grabacionGuardada(const QString& ruta);
 
 private:
@@ -181,5 +198,8 @@ private:
     int segundos_ = 0;
     QTimer reloj_;
     bool audio_en_curso_ = false;
+    bool hay_atajos_ = false;
+    QString atajo_grabar_;
+    QString atajo_pausa_;
     Medidor medidor_;
 };

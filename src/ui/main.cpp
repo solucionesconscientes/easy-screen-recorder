@@ -242,6 +242,10 @@ int main(int argc, char** argv) {
     // El atajo global (Meta+Shift+R por defecto, cambiable en Preferencias
     // del sistema). Fuera de KDE no se registra y no pasa nada.
     AtajosGlobales atajos(controlador);
+    // La interfaz solo anuncia los atajos si se han registrado de verdad.
+    if (controlador != nullptr) {
+        controlador->ponerAtajos(atajos.registrado(), atajos.atajoGrabar(), atajos.atajoPausa());
+    }
 
     return app.exec();
 }

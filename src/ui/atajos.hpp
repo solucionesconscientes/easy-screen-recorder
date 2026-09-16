@@ -5,6 +5,7 @@
 #pragma once
 
 #include <QObject>
+#include <QString>
 
 class Controlador;
 
@@ -21,7 +22,15 @@ class AtajosGlobales : public QObject {
 public:
     explicit AtajosGlobales(Controlador* controlador, QObject* padre = nullptr);
 
+    // Si se pueden recibir pulsaciones: hay servicio y la señal esta conectada.
     bool registrado() const { return registrado_; }
+
+    // El atajo que KDE tiene puesto AHORA para cada accion, ya en texto
+    // («Meta+Shift+R»). Se pregunta en vez de dar por hecho el que pedimos: el
+    // usuario puede haberlo cambiado en Preferencias del sistema, y anunciar el
+    // nuestro cuando el suyo es otro es peor que no anunciar nada.
+    QString atajoGrabar() const { return atajo_grabar_; }
+    QString atajoPausa() const { return atajo_pausa_; }
 
 private slots:
     void alPulsar(const QString& componente, const QString& accion, qlonglong instante);
@@ -29,4 +38,6 @@ private slots:
 private:
     Controlador* controlador_;
     bool registrado_ = false;
+    QString atajo_grabar_;
+    QString atajo_pausa_;
 };
