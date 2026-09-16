@@ -548,6 +548,13 @@ Kirigami.ApplicationWindow {
                                              valor: a.valor }
                                 }))
                                 currentIndex: 0
+                                // Al desplegarlo se vuelve a preguntar que esta
+                                // sonando. La lista calculada al arrancar casi
+                                // nunca sirve: entre abrir esto y darle a grabar,
+                                // el usuario abre justo lo que queria grabar.
+                                onPressedChanged: if (pressed) {
+                                    Controlador.refrescarAplicacionesSonando()
+                                }
                                 QQC2.ToolTip.text: qsTr(
                                     "«En una sola pista» mezcla los dos y se oye " +
                                     "todo en cualquier reproductor.\n\n«En pistas " +

@@ -5,6 +5,22 @@ máquina de desarrollo.
 
 ## Sin publicar
 
+### La lista de aplicaciones sonando se calculaba una sola vez (2026-09-16)
+
+De una pregunta del titular: «¿por qué smplayer? podría ser cualquier app». Y
+sí, es cualquiera — la lista sale de preguntarle a GSR qué está sonando. Pero al
+mirarlo apareció que **se calculaba solo al arrancar**, y esa lista casi nunca
+es la buena: entre abrir el grabador y darle a grabar, el usuario abre justo la
+aplicación que quería grabar, y ahí ya no aparecía. Había que reiniciar.
+
+Ahora se vuelve a preguntar **al desplegar el selector de audio**, que es el
+único momento en que importa. Es una sonda suelta, no la detección entera: cuesta
+lo que tarde GSR en contestar, no los 0,7-0,9 s del arranque, y va en hilo aparte
+para no congelar el menú.
+
+Verificado en caliente: con la aplicación abierta y nada sonando, la lista traía
+`["Brave"]`; al empezar a sonar algo pasó a `["Brave","paplay"]` sin reiniciar.
+
 ### El atajo global llevaba tandas sin funcionar (2026-09-16)
 
 Salió de una pregunta del titular —«¿hay atajos de teclado?»— que ya era la
