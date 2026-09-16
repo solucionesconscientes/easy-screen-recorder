@@ -41,7 +41,7 @@ QIcon iconoBandeja(bool grabando) {
 
 int main(int argc, char** argv) {
     // El contrato de CLAUDE.md es arranque < 1 s, y eso se mide, no se
-    // siente. Con EASY SCREEN RECORDER_MEDIR_ARRANQUE=1 se imprime el tiempo hasta el
+    // siente. Con ESR_MEDIR_ARRANQUE=1 se imprime el tiempo hasta el
     // primer frame pintado y se sale: scripts/medir-arranque.sh lo usa.
     QElapsedTimer cronometro;
     cronometro.start();
@@ -80,7 +80,7 @@ int main(int argc, char** argv) {
     auto* ventana = qobject_cast<QQuickWindow*>(motor.rootObjects().first());
     auto* controlador = motor.singletonInstance<Controlador*>("es.solucionesconscientes.esr", "Controlador");
 
-    if (ventana != nullptr && qEnvironmentVariableIsSet("EASY SCREEN RECORDER_MEDIR_ARRANQUE")) {
+    if (ventana != nullptr && qEnvironmentVariableIsSet("ESR_MEDIR_ARRANQUE")) {
         QObject::connect(ventana, &QQuickWindow::frameSwapped, &app,
                          [&cronometro] {
                              std::printf("primer frame: %lld ms\n",

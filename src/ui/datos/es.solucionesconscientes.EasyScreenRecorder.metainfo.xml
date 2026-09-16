@@ -36,6 +36,8 @@ SPDX-License-Identifier: CC0-1.0
       several tracks at once — and remembers where your recordings go.</li>
       <li>Tells you what is missing before you press record, instead of
       failing halfway through.</li>
+      <li>Light enough for modest hardware: the encoding is on the GPU, so the
+      CPU stays free. Developed on a 2015 laptop with integrated graphics.</li>
     </ul>
     <p>
       The global shortcut and the tray icon are native on KDE Plasma; on other
@@ -67,6 +69,9 @@ SPDX-License-Identifier: CC0-1.0
       grabaciones.</li>
       <li xml:lang="es">Te dice qué falta antes de darle a grabar, en vez de
       fallar a mitad.</li>
+      <li xml:lang="es">Ligero para hardware modesto: la codificación la hace
+      la GPU, así que la CPU se queda libre. Desarrollado en un portátil de
+      2015 con gráficos integrados.</li>
     </ul>
     <p xml:lang="es">
       El atajo global y el icono de bandeja son nativos en KDE Plasma; en otros

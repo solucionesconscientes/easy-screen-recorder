@@ -101,6 +101,26 @@ cliente X11 a través de XWayland. **Una sesión X11 pura no se ha probado aquí
 —esta máquina corre Wayland— pero la captura es de gpu-screen-recorder, que
 soporta X11 upstream.
 
+### El hardware modesto es el caso, no la excepción
+
+La codificación la hace la GPU, así que la CPU se queda libre. Eso importa justo
+donde más duele un grabador que recodifica en CPU: un portátil fino sin margen
+térmico.
+
+Medido en la máquina de desarrollo —un **Intel i5-6200U de 2015 con gráficos
+integrados HD Graphics 520**, que codifica H.264 y HEVC en hardware—:
+
+| | |
+|---|---|
+| CLI, coste mínimo del proceso | **0,00 s · 4 MB** de RAM de pico |
+| CLI, detección completa del entorno | **0,6–1,2 s · 49 MB** |
+| Interfaz, hasta el primer frame pintado | **1,0–1,6 s · 94 MB** |
+
+**Lo único que hay que comprobar antes:** que tu GPU tenga codificador por
+hardware. Si no lo tiene, gpu-screen-recorder cae a codificar en CPU
+(`h264_software`) y toda la ventaja desaparece. `easy-screen-recorder-cli
+--check` dice en qué caso estás: mira la línea `por defecto (hardware)`.
+
 ## Requisitos
 
 **Hace falta [gpu-screen-recorder][gsr] instalado.** Es quien hace la captura de

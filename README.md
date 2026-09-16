@@ -101,6 +101,26 @@ client through XWayland. **A pure X11 session has not been tested here** — thi
 machine runs Wayland — but the capture is gpu-screen-recorder's, which supports
 X11 upstream.
 
+### Modest hardware is the point
+
+The encoding happens on the GPU, so the CPU stays free. That matters most
+exactly where a CPU-encoding recorder hurts most: a thin laptop with no thermal
+headroom.
+
+Measured on the development machine — an **Intel i5-6200U from 2015 with
+integrated HD Graphics 520**, which encodes H.264 and HEVC in hardware:
+
+| | |
+|---|---|
+| CLI, minimum process cost | **0,00 s · 4 MB** of peak RAM |
+| CLI, full environment detection | **0,6–1,2 s · 49 MB** |
+| GUI, to the first painted frame | **1,0–1,6 s · 94 MB** |
+
+**The one thing to check first:** your GPU needs a hardware encoder. Without
+one, gpu-screen-recorder falls back to CPU encoding (`h264_software`) and the
+whole advantage disappears. `easy-screen-recorder-cli --check` prints which case
+you are in — look for the `por defecto (hardware)` line.
+
 ## Requirements
 
 **[gpu-screen-recorder][gsr] has to be installed.** It does the actual capture.

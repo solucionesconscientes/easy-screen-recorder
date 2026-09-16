@@ -5,6 +5,18 @@ máquina de desarrollo.
 
 ## Sin publicar
 
+### Alcance y recursos, medidos (2026-09-16)
+- Los README dicen dónde funciona de verdad —cualquier escritorio, Wayland y
+  X11— y qué es lo único nativo de KDE.
+- **Cifras de consumo medidas**, no adjetivos: CLI 0,00 s y 4 MB; detección
+  completa 0,6–1,2 s y 49 MB; interfaz 1,0–1,6 s y 94 MB. En un i5-6200U de
+  2015 con gráficos integrados.
+- Y el aviso que va con eso: si la GPU no tiene codificador por hardware, GSR
+  cae a CPU y la ventaja desaparece. `--check` dice en qué caso estás.
+- `ESR_MEDIR_ARRANQUE`: el renombrado había dejado esa variable con espacios
+  dentro del nombre, y `medir-arranque.sh` no la ponía, así que medir la
+  interfaz se colgaba para siempre.
+
 ### Empaquetado y alcance corregidos (2026-09-16)
 - **El `.deb` declara los 14 módulos QML** que necesita en tiempo de ejecución,
   Kirigami incluido. `dpkg-shlibdeps` no los ve: un `import` de QML no es
