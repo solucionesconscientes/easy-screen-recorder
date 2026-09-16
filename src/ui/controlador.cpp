@@ -144,22 +144,6 @@ bool Controlador::modoContentEfectivo(const QString& fuente) const {
     return esr::modo_content_efectivo(fuente.toStdString(), servidor_grafico_.toStdString());
 }
 
-QVariantList Controlador::esquinasCamara() const {
-    // El orden es el de uso: abajo a la derecha es donde la pone todo el mundo,
-    // porque es donde menos tapa.
-    QVariantList lista;
-    for (const auto& e : esr::esquinas_camara()) {
-        const QString valor = QString::fromStdString(e);
-        QString texto = valor;
-        if (valor == QStringLiteral("abajo-derecha")) texto = tr("Abajo a la derecha");
-        else if (valor == QStringLiteral("abajo-izquierda")) texto = tr("Abajo a la izquierda");
-        else if (valor == QStringLiteral("arriba-derecha")) texto = tr("Arriba a la derecha");
-        else if (valor == QStringLiteral("arriba-izquierda")) texto = tr("Arriba a la izquierda");
-        lista << fuente(valor, texto);
-    }
-    return lista;
-}
-
 bool Controlador::hayMultimedia() const { return Medidor::disponible(); }
 
 qreal Controlador::nivelMicro() const { return medidor_.nivel(); }
@@ -168,6 +152,25 @@ void Controlador::escucharMicro(bool si) {
     // Nunca mientras se graba: medir ahi no sirve para decidir nada y ademas
     // abre un flujo de audio de mas.
     medidor_.escuchar(si && estado_ == QStringLiteral("listo"));
+}
+
+qreal Controlador::proporcionCamara(const QString& id) const {
+    for (const auto& f : camaras_) {
+        if (f.toMap().value(QStringLiteral("valor")).toString() != id) continue;
+        const QString res = f.toMap().value(QStringLiteral("proporcion")).toString();
+        const auto partes = res.split(QLatin1Char('x'));
+        if (partes.size() == 2) {
+            bool bien_a = false;
+            bool bien_b = false;
+            const int ancho = partes[0].toInt(&bien_a);
+            const int alto = partes[1].toInt(&bien_b);
+            if (bien_a && bien_b && alto > 0) return static_cast<qreal>(ancho) / alto;
+        }
+    }
+    // Sin dato, 16:9: es lo que trae casi cualquier camara de portatil, y una
+    // proporcion inventada solo afecta a como se DIBUJA el recuadro, nunca a lo
+    // que se graba, que lo decide GSR con la imagen real delante.
+    return 16.0 / 9.0;
 }
 
 QStringList Controlador::formatosAudio() const {
@@ -289,7 +292,9 @@ void Controlador::aplicarEntorno(const esr::Entorno& e) {
         QString texto = tr("Cámara");
         if (!f.nombre.empty()) texto += QStringLiteral(" · ") + QString::fromStdString(f.nombre);
         if (f.desempatar) texto += QStringLiteral(" (%1)").arg(QString::fromStdString(f.id));
-        camaras_ << fuente(QString::fromStdString(f.id), texto);
+        QVariantMap entrada = fuente(QString::fromStdString(f.id), texto);
+        entrada[QStringLiteral("proporcion")] = QString::fromStdString(f.resolucion);
+        camaras_ << entrada;
     }
 
     // Las aplicaciones que suenan AHORA. La lista cambia entre una grabacion y
@@ -389,8 +394,8 @@ void Controlador::grabar(const QString& fuente, const QVariantMap& opciones) {
     a.region = opciones.value(QStringLiteral("region")).toString().toStdString();
     a.camara = opciones.value(QStringLiteral("camara")).toString().toStdString();
     a.camara_ancho_pct = opciones.value(QStringLiteral("camaraTamano"), 25).toInt();
-    a.camara_esquina = opciones.value(QStringLiteral("camaraEsquina"),
-                                      QStringLiteral("abajo-derecha")).toString().toStdString();
+    a.camara_x_pct = opciones.value(QStringLiteral("camaraX"), 73).toInt();
+    a.camara_y_pct = opciones.value(QStringLiteral("camaraY"), 73).toInt();
     a.camara_espejo = opciones.value(QStringLiteral("camaraEspejo"), true).toBool();
     a.modo_fotogramas =
         opciones.value(QStringLiteral("modoFotogramas")).toString().toStdString();

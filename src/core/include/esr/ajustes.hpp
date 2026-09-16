@@ -54,8 +54,18 @@ struct AjustesGrabacion {
     // El ancho en PORCENTAJE del video, no en pixeles: un 384 fijo es un cuarto
     // de pantalla en 1366 y un decimo en 4K.
     int camara_ancho_pct = 25;
-    // «arriba-izquierda», «arriba-derecha», «abajo-izquierda», «abajo-derecha».
-    std::string camara_esquina = "abajo-derecha";
+    // La esquina superior izquierda de la camara, en PORCENTAJE del video.
+    //
+    // Empezo siendo una de cuatro esquinas y se quedo corto: sobre una barra de
+    // tareas, un panel lateral o un video vertical, las cuatro esquinas fallan
+    // todas. GSR admite posicion libre —«x=50%;y=10%», convertida a pixeles
+    // contra el tamaño del video (capture_setup.c:526-534)— y esta verificado
+    // grabando, asi que la interfaz deja colocarla donde sea.
+    //
+    // El default deja la camara abajo a la derecha con un margen, que es donde
+    // menos tapa y donde la pone todo el mundo.
+    int camara_x_pct = 73;
+    int camara_y_pct = 73;
     // Espejo por defecto, y no es un capricho: sin el, quien se graba se ve al
     // reves de como se ve en un espejo y no se reconoce. Es lo que hace
     // cualquier aplicacion de videollamada.
@@ -86,10 +96,6 @@ struct AjustesGrabacion {
 // El rango de -r que declara GSR (gpu-screen-recorder.1): 2 a 86400 segundos.
 inline constexpr int kReplayMinimo = 2;
 inline constexpr int kReplayMaximo = 86400;
-
-// Las cuatro esquinas donde puede ir la camara. Identificadores internos, NO
-// texto visible: la interfaz los traduce aparte.
-std::vector<std::string> esquinas_camara();
 
 // Si «-fm content» va a servir de algo con esa fuente y ese servidor grafico.
 //

@@ -175,6 +175,10 @@ FamiliaMonitor familia_de(std::string_view id) {
 // que no ha entendido, que es la misma regla que en el resto del fichero.
 std::string resolucion_de(std::string_view campo) {
     if (campo.empty()) return {};
+    // Una camara se anuncia como «1280x720@30hz»: la parte de la frecuencia
+    // sobra aqui. Un monitor viene como «1366x768» y no tiene nada que quitar.
+    const auto arroba = campo.find('@');
+    if (arroba != std::string_view::npos) campo = campo.substr(0, arroba);
     const auto equis = campo.find('x');
     if (equis == std::string_view::npos || equis == 0 || equis + 1 == campo.size()) return {};
     const auto solo_digitos = [](std::string_view s) {
@@ -218,6 +222,10 @@ std::vector<FuenteAmable> fuentes_amables(const std::vector<Opcion>& fuentes_cap
         } else if (es_camara(o.id)) {
             f.tipo = TipoFuente::Camara;
             f.nombre = nombre_camara(o.id);
+            // La resolucion del primer modo, que es el mejor que lista GSR.
+            // Se usa para dibujar el recuadro de la camara a su proporcion
+            // cuando el usuario la coloca: un 16:9 y un 4:3 no se sitúan igual.
+            f.resolucion = o.campos.empty() ? std::string() : resolucion_de(o.campos.front());
             camaras.push_back(f);
         } else {
             f.tipo = TipoFuente::Monitor;

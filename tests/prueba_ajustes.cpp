@@ -261,13 +261,17 @@ int main() {
         COMPROBAR(fuente_gsr(a) == "eDP-1");  // sin camara, la fuente tal cual
         a.camara = "/dev/video0";
         COMPROBAR_NOTA(fuente_gsr(a) ==
-                           "eDP-1|v4l2:/dev/video0;width=25%;halign=end;valign=end;hflip=true",
+                           "eDP-1|v4l2:/dev/video0;width=25%;x=73%;y=73%;"
+                           "halign=start;valign=start;hflip=true",
                        fuente_gsr(a));
-        a.camara_esquina = "arriba-izquierda";
+        // Colocada libremente: GSR convierte el porcentaje a pixeles contra el
+        // tamaño del video. Verificado grabando con x=50%,y=10%.
+        a.camara_x_pct = 50;
+        a.camara_y_pct = 10;
         a.camara_espejo = false;
         a.camara_ancho_pct = 30;
         COMPROBAR_NOTA(fuente_gsr(a) ==
-                           "eDP-1|v4l2:/dev/video0;width=30%;halign=start;valign=start",
+                           "eDP-1|v4l2:/dev/video0;width=30%;x=50%;y=10%;halign=start;valign=start",
                        fuente_gsr(a));
         // Y llega hasta los argumentos, en -w y no en otro sitio.
         const auto args = argumentos_gsr(a);
@@ -287,9 +291,13 @@ int main() {
         a.camara_ancho_pct = 80;  // taparia la pantalla
         COMPROBAR(algun_problema_contiene(validar(a), "entre el 5 % y el 50 %"));
         a.camara_ancho_pct = 25;
-        a.camara_esquina = "en-el-medio";
-        COMPROBAR(algun_problema_contiene(validar(a), "esquina de camara desconocida"));
-        a.camara_esquina = "abajo-derecha";
+        // Colocada mas alla del borde, GSR la recortaria sin avisar.
+        a.camara_x_pct = 85;
+        COMPROBAR(algun_problema_contiene(validar(a), "se sale por el lado"));
+        a.camara_x_pct = 73;
+        a.camara_y_pct = 140;
+        COMPROBAR(algun_problema_contiene(validar(a), "de 0 a 100"));
+        a.camara_y_pct = 73;
         a.camara = a.fuente;  // la camara no puede ser tambien la pantalla
         COMPROBAR(algun_problema_contiene(validar(a), "no puede ser ademas la fuente"));
     }

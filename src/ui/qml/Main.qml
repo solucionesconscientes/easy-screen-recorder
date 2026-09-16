@@ -15,7 +15,7 @@ import es.solucionesconscientes.esr
 Kirigami.ApplicationWindow {
     id: raiz
     title: "Easy Screen Recorder"
-    width: Kirigami.Units.gridUnit * 24
+    width: anchoPlegado
     height: Math.max(minimumHeight, altoPlegado)
     minimumWidth: Kirigami.Units.gridUnit * 18
 
@@ -81,6 +81,13 @@ Kirigami.ApplicationWindow {
     // cabe en la pantalla. Solo crece: si el usuario ya la ha hecho mas grande,
     // no se le encoge debajo.
     readonly property int altoPlegado: Kirigami.Units.gridUnit * 21
+    readonly property int anchoPlegado: Kirigami.Units.gridUnit * 24
+    // Al abrir «Avanzado» la ventana tambien se ENSANCHA. Plegada es una columna
+    // estrecha, que es lo que pide «grabar en dos clics»; abierta son dos
+    // columnas y el mapa de la camara, y en 24 unidades de rejilla no caben.
+    // Sin esto, las dos columnas se apretarian y el problema de las filas que no
+    // se ven volveria por otro lado.
+    readonly property int anchoAbierto: Kirigami.Units.gridUnit * 46
     function ajustarAltura() { Qt.callLater(raiz.ajustarAlturaYa) }
     function ajustarAlturaYa() {
         // Cuanto le falta al contenido para caber. No hace falta saber cuanto
@@ -107,7 +114,8 @@ Kirigami.ApplicationWindow {
             bitrateAudio: bitrateAudio.currentValue,
             camara: camaraActiva ? String(camara.currentValue) : "",
             camaraTamano: tamanoCamara.value,
-            camaraEsquina: esquinaCamara.currentValue,
+            camaraX: colocacion.xPct,
+            camaraY: colocacion.yPct,
             camaraEspejo: espejoCamara.checked,
             modoFotogramas: soloAlCambiar.visible && soloAlCambiar.checked ? "content" : "",
             limiteResolucion: limiteResolucion.currentValue,
@@ -262,223 +270,329 @@ Kirigami.ApplicationWindow {
                     checkable: true
                     icon.name: checked ? "collapse" : "expand"
                     text: qsTr("Avanzado")
-                    onCheckedChanged: checked ? raiz.ajustarAltura()
-                                              : raiz.height = raiz.altoPlegado
+                    onCheckedChanged: {
+                        if (checked) {
+                            raiz.width = Math.min(raiz.anchoAbierto,
+                                                  Screen.desktopAvailableWidth)
+                            raiz.ajustarAltura()
+                        } else {
+                            raiz.width = raiz.anchoPlegado
+                            raiz.height = raiz.altoPlegado
+                        }
+                    }
                 }
-                Kirigami.FormLayout {
+                // «Avanzado», en DOS COLUMNAS.
+                //
+                // Era una sola y no cabia: con nueve funciones nuevas las
+                // ultimas filas quedaban fuera de la ventana y, a la vez,
+                // sobraba la mitad derecha, porque un formulario de Kirigami
+                // pone la etiqueta a la izquierda y el control en medio. Dos
+                // columnas usan el hueco que ya estaba ahi.
+                ColumnLayout {
                     id: formulario
                     Layout.fillWidth: true
                     visible: avanzado.checked
                     enabled: !ocupado
-                    // El formulario cambia de alto al cambiar de fuente: en
-                    // solo-audio se esconden los controles de video y aparecen
-                    // los de audio. La ventana le sigue.
+                    spacing: Kirigami.Units.largeSpacing
                     onImplicitHeightChanged: if (avanzado.checked) raiz.ajustarAltura()
 
-                    // --- Cámara superpuesta ------------------------------
-                    //
-                    // GSR la compone EL MISMO, en vivo y en la misma grabacion.
-                    // Aqui solo se eligen tamaño y esquina, y se eligen ANTES de
-                    // grabar porque despues ya no hay nada que recomponer.
+                    // --- Camara, a lo ancho: el mapa necesita sitio ---------
                     QQC2.CheckBox {
                         id: usarCamara
                         visible: raiz.puedeCamara
-                        Kirigami.FormData.label: qsTr("Cámara:")
-                        Kirigami.FormData.isSection: true
                         text: qsTr("Superponer la cámara sobre la pantalla")
                     }
-                    QQC2.ComboBox {
-                        id: camara
-                        visible: raiz.camaraActiva
-                        Kirigami.FormData.label: qsTr("Cuál:")
-                        model: Controlador.camaras
-                        textRole: "texto"
-                        valueRole: "valor"
-                    }
+                    // Los ajustes de la camara en UNA fila: el alto de esta
+                    // ventana es lo escaso, no el ancho. Antes iban en columna
+                    // y, con la vista previa y el mapa debajo, el bloque no
+                    // cabia en una pantalla de 768 px y se comia el final del
+                    // formulario.
                     RowLayout {
                         visible: raiz.camaraActiva
-                        Kirigami.FormData.label: qsTr("Tamaño:")
+                        Layout.fillWidth: true
+                        spacing: Kirigami.Units.largeSpacing
+
+                        QQC2.ComboBox {
+                            id: camara
+                            Layout.fillWidth: true
+                            Layout.maximumWidth: Kirigami.Units.gridUnit * 14
+                            model: Controlador.camaras
+                            textRole: "texto"
+                            valueRole: "valor"
+                        }
+                        QQC2.Label { text: qsTr("Tamaño:") }
                         QQC2.Slider {
                             id: tamanoCamara
                             // En PORCENTAJE del ancho, no en pixeles: un tamaño
                             // fijo es un cuarto de pantalla en 1366 y un decimo
-                            // en 4K. El rango es el que valida el nucleo.
+                            // en 4K.
                             from: 5; to: 50; stepSize: 1; value: 25
-                            Layout.preferredWidth: Kirigami.Units.gridUnit * 8
+                            Layout.preferredWidth: Kirigami.Units.gridUnit * 7
                         }
-                        QQC2.Label { text: tamanoCamara.value + " %" }
+                        QQC2.Label {
+                            text: tamanoCamara.value + " %"
+                            Layout.preferredWidth: Kirigami.Units.gridUnit * 2
+                        }
+                        QQC2.CheckBox {
+                            id: espejoCamara
+                            checked: true
+                            text: qsTr("Espejo")
+                        }
+                        Item { Layout.fillWidth: true }
                     }
-                    QQC2.ComboBox {
-                        id: esquinaCamara
+
+                    // Y debajo, las dos ayudas a la vez: a la izquierda tu cara,
+                    // a la derecha donde va a quedar. Las dos hacen falta y
+                    // responden a preguntas distintas.
+                    RowLayout {
                         visible: raiz.camaraActiva
-                        Kirigami.FormData.label: qsTr("Esquina:")
-                        model: Controlador.esquinasCamara()
-                        textRole: "texto"
-                        valueRole: "valor"
-                    }
-                    QQC2.CheckBox {
-                        id: espejoCamara
-                        visible: raiz.camaraActiva
-                        checked: true
-                        text: qsTr("Espejo (te ves como en un espejo)")
-                    }
-                    // La vista previa, para encuadrarte antes de empezar.
-                    //
-                    // Va en un Loader porque el fichero solo existe si se
-                    // compilo con Qt6Multimedia; sin el, `active` es false y no
-                    // se pide nada, asi que no hay import que falle.
-                    //
-                    // Y se apaga al arrancar la grabacion: la camara admite un
-                    // solo cliente, y a partir de ahi es de GSR. Verificado en
-                    // esta maquina: un segundo cliente recibe «Device or
-                    // resource busy».
-                    Loader {
                         Layout.fillWidth: true
-                        Kirigami.FormData.label: qsTr("Encuadre:")
-                        visible: raiz.camaraActiva && Controlador.hayMultimedia
-                        active: visible
-                        source: "VistaPreviaCamara.qml"
-                        onLoaded: {
-                            item.dispositivo = Qt.binding(function() {
-                                return String(camara.currentValue)
-                            })
-                            item.espejo = Qt.binding(function() { return espejoCamara.checked })
-                            item.activa = Qt.binding(function() {
-                                return Controlador.estado === "listo"
-                            })
+                        spacing: Kirigami.Units.largeSpacing
+
+                        // Verte la cara. Va en un Loader porque el fichero solo
+                        // existe si se compilo con Qt6Multimedia. Se apaga al
+                        // grabar: la camara admite un solo cliente y a partir de
+                        // ahi es de GSR.
+                        Loader {
+                            Layout.fillWidth: true
+                            Layout.preferredWidth: 1
+                            Layout.preferredHeight: Kirigami.Units.gridUnit * 6
+                            visible: Controlador.hayMultimedia
+                            active: visible
+                            source: "VistaPreviaCamara.qml"
+                            onLoaded: {
+                                item.dispositivo = Qt.binding(function() {
+                                    return String(camara.currentValue)
+                                })
+                                item.espejo = Qt.binding(function() {
+                                    return espejoCamara.checked
+                                })
+                                item.activa = Qt.binding(function() {
+                                    return Controlador.estado === "listo"
+                                })
+                            }
+                        }
+
+                        // El mapa: donde va a quedar dentro del video.
+                        ColocarCamara {
+                            id: colocacion
+                            Layout.fillWidth: true
+                            Layout.preferredWidth: 1
+                            Layout.preferredHeight: Kirigami.Units.gridUnit * 6
+                            anchoPct: tamanoCamara.value
+                            proporcionPantalla: Screen.width / Screen.height
+                            proporcionCamara: Controlador.proporcionCamara(
+                                                  String(camara.currentValue))
                         }
                     }
 
-                    QQC2.ComboBox {
-                        id: formatoAudio
-                        visible: fuente.esAudio
-                        Kirigami.FormData.label: qsTr("Formato:")
-                        // La lista viene del nucleo y no escrita aqui: tenerla
-                        // en dos sitios es como se queda una desactualizada.
-                        // El orden es el de conveniencia, con opus primero.
-                        model: Controlador.formatosAudio()
-                    }
-                    QQC2.ComboBox {
-                        id: bitrateAudio
-                        // Se ESCONDE en flac y wav, no se deshabilita: un
-                        // control en gris invita a preguntarse por que, y ahi
-                        // la respuesta es que ese ajuste no existe porque no
-                        // pierden informacion.
-                        visible: fuente.esAudio
-                                 && !Controlador.formatoAudioSinPerdida(formatoAudio.currentText)
-                        Kirigami.FormData.label: qsTr("Calidad del audio:")
-                        textRole: "texto"
-                        valueRole: "valor"
-                        // Todas con cifra. Habia una «Automática (recomendada)»
-                        // que no era un nivel de calidad: era el default del
-                        // codificador, y medido coincide con una opcion que ya
-                        // estaba en la lista —96 kbps en opus, 128 en aac—, asi
-                        // que solo aportaba vaguedad y una entrada repetida.
-                        //
-                        // Se queda 96 preseleccionada porque es exactamente lo
-                        // que entregaba «Automática» en opus, que es el formato
-                        // por defecto: nadie recibe algo distinto de lo de ayer.
-                        //
-                        // Y no hay escalones por encima de 192 a proposito. El
-                        // nucleo llega hasta 512 y el CLI los acepta, pero opus
-                        // es transparente bastante antes: por encima de ~192 los
-                        // bits de mas no se oyen. Quien quiere mas no quiere mas
-                        // kbps, quiere no perder nada, y eso es flac, que esta
-                        // en el selector de Formato, dos filas mas arriba.
-                        model: [
-                            { texto: qsTr("96 kbps · voz"), valor: 96 },
-                            { texto: qsTr("128 kbps · general"), valor: 128 },
-                            { texto: qsTr("192 kbps · música (más: flac)"), valor: 192 }
-                        ]
-                        currentIndex: 0
-                    }
-                    QQC2.ComboBox {
-                        id: contenedor
-                        visible: !fuente.esAudio
-                        Kirigami.FormData.label: qsTr("Formato:")
-                        model: Controlador.contenedores
-                    }
-                    QQC2.ComboBox {
-                        id: codecVideo
-                        visible: !fuente.esAudio
-                        Kirigami.FormData.label: qsTr("Códec de vídeo:")
-                        // Lo que la maquina soporta de verdad Y cabe en el
-                        // formato elegido. Sin el segundo filtro se podia pedir
-                        // h264 en un .webm, y eso no graba NADA: el grabador
-                        // muere al escribir la cabecera y no deja fichero.
-                        // La lista de la maquina se pasa como argumento a
-                        // proposito: asi el binding depende de
-                        // `Controlador.codecsVideo`, que avisa cuando termina la
-                        // deteccion. Sin esa dependencia el selector se quedaba
-                        // VACIO, porque la deteccion acaba despues de pintar la
-                        // ventana y una llamada a funcion no se reevalua sola.
-                        model: Controlador.codecsVideoPara(contenedor.currentText,
-                                                           Controlador.codecsVideo)
-                        onModelChanged: currentIndex = 0
-                    }
-                    QQC2.ComboBox {
-                        id: codecAudio
-                        visible: !fuente.esAudio
-                        Kirigami.FormData.label: qsTr("Códec de audio:")
-                        // Solo los que GSR respeta en el formato elegido Y en el
-                        // reparto de pistas elegido: una pareja invalida ni se
-                        // puede pedir. Mezclando, flac no sale de la lista
-                        // porque GSR lo cambiaria a opus por detras.
-                        model: Controlador.codecsAudioPara(
-                                   contenedor.currentText,
-                                   String(audio.currentValue) === "mezclado")
-                        onModelChanged: currentIndex = 0
-                    }
-                    QQC2.ComboBox {
-                        id: calidad
-                        visible: !fuente.esAudio
-                        Kirigami.FormData.label: qsTr("Calidad:")
-                        textRole: "texto"
-                        valueRole: "valor"
-                        model: [
-                            { texto: qsTr("Media"), valor: "medium" },
-                            { texto: qsTr("Alta"), valor: "high" },
-                            { texto: qsTr("Muy alta"), valor: "very_high" },
-                            { texto: qsTr("Ultra"), valor: "ultra" }
-                        ]
-                        currentIndex: 2  // very_high, el default de GSR
-                    }
-                    QQC2.ComboBox {
-                        id: fps
-                        visible: !fuente.esAudio
-                        Kirigami.FormData.label: qsTr("Imágenes por segundo:")
-                        model: ["30", "60"]
-                        currentIndex: 1
-                    }
-                    QQC2.ComboBox {
-                        id: limiteResolucion
-                        visible: !fuente.esAudio
-                        Kirigami.FormData.label: qsTr("Tamaño del vídeo:")
-                        textRole: "texto"
-                        valueRole: "valor"
-                        // GSR escala para caber dentro, respetando la
-                        // proporcion: de ahi que sea un limite y no una medida.
-                        model: [
-                            { texto: qsTr("El de la pantalla"), valor: "" },
-                            { texto: qsTr("Como mucho 1080p"), valor: "1920x1080" },
-                            { texto: qsTr("Como mucho 720p"), valor: "1280x720" }
-                        ]
-                        currentIndex: 0
-                    }
-                    QQC2.CheckBox {
-                        id: soloAlCambiar
-                        // Solo se enseña donde de verdad hace algo. GSR acepta
-                        // «-fm content» siempre y, cuando no puede aplicarlo, lo
-                        // dice por stderr y sigue igual: en Wayland sobre un
-                        // monitor no hace nada. Ofrecerlo ahi seria prometer un
-                        // ahorro que no llega.
-                        visible: !fuente.esAudio
-                                 && Controlador.modoContentEfectivo(String(fuente.currentValue))
-                        text: qsTr("Codificar solo cuando la pantalla cambie")
-                    }
+                    // --- Y el resto, en dos columnas -----------------------
                     RowLayout {
-                        Kirigami.FormData.label: qsTr("Guardar en:")
                         Layout.fillWidth: true
+                        spacing: Kirigami.Units.gridUnit * 2
+
+                        Kirigami.FormLayout {
+                            Layout.alignment: Qt.AlignTop
+                            Layout.fillWidth: true
+                            // NO se usa `twinFormLayouts` para igualar el ancho
+                            // de las etiquetas entre las dos columnas: con
+                            // «Códec de audio:» mandando, las de la izquierda se
+                            // salian por el borde y «Imágenes por segundo» se
+                            // leia «ágenes por segundo». Son dos columnas
+                            // independientes; cada una se mide sola.
+                            //
+                            // Etiqueta AL LADO del control, no encima. Kirigami
+                            // decide solo segun el ancho que le toque y aqui
+                            // elegia «encima», que dobla el alto de cada fila:
+                            // con once filas eso son casi 200 px de mas y el
+                            // final del formulario quedaba fuera de la pantalla.
+                            // Lo que sobra es ancho, asi que se usa el ancho.
+                            wideMode: true
+
+                            QQC2.ComboBox {
+                                id: contenedor
+                                visible: !fuente.esAudio
+                                Kirigami.FormData.label: qsTr("Formato:")
+                                model: Controlador.contenedores
+                            }
+                            QQC2.ComboBox {
+                                id: codecVideo
+                                visible: !fuente.esAudio
+                                Kirigami.FormData.label: qsTr("Códec de vídeo:")
+                                // Lo que la maquina soporta Y cabe en el
+                                // formato: sin el segundo filtro se podia pedir
+                                // h264 en un .webm, y eso no graba nada.
+                                model: Controlador.codecsVideoPara(contenedor.currentText,
+                                                                   Controlador.codecsVideo)
+                                onModelChanged: currentIndex = 0
+                            }
+                            QQC2.ComboBox {
+                                id: calidad
+                                visible: !fuente.esAudio
+                                Kirigami.FormData.label: qsTr("Calidad:")
+                                textRole: "texto"
+                                valueRole: "valor"
+                                model: [
+                                    { texto: qsTr("Media"), valor: "medium" },
+                                    { texto: qsTr("Alta"), valor: "high" },
+                                    { texto: qsTr("Muy alta"), valor: "very_high" },
+                                    { texto: qsTr("Ultra"), valor: "ultra" }
+                                ]
+                                currentIndex: 2  // very_high, el default de GSR
+                            }
+                            QQC2.ComboBox {
+                                id: fps
+                                visible: !fuente.esAudio
+                                Kirigami.FormData.label: qsTr("Imágenes por segundo:")
+                                model: ["30", "60"]
+                                currentIndex: 1
+                            }
+                            QQC2.ComboBox {
+                                id: limiteResolucion
+                                visible: !fuente.esAudio
+                                Kirigami.FormData.label: qsTr("Tamaño del vídeo:")
+                                textRole: "texto"
+                                valueRole: "valor"
+                                model: [
+                                    { texto: qsTr("El de la pantalla"), valor: "" },
+                                    { texto: qsTr("Como mucho 1080p"), valor: "1920x1080" },
+                                    { texto: qsTr("Como mucho 720p"), valor: "1280x720" }
+                                ]
+                                currentIndex: 0
+                            }
+                            QQC2.ComboBox {
+                                id: formatoAudio
+                                visible: fuente.esAudio
+                                Kirigami.FormData.label: qsTr("Formato:")
+                                model: Controlador.formatosAudio()
+                            }
+                            QQC2.ComboBox {
+                                id: bitrateAudio
+                                // Se ESCONDE en flac y wav, no se deshabilita:
+                                // ahi ese ajuste no existe porque no pierden
+                                // informacion.
+                                visible: fuente.esAudio
+                                         && !Controlador.formatoAudioSinPerdida(
+                                                formatoAudio.currentText)
+                                Kirigami.FormData.label: qsTr("Calidad del audio:")
+                                textRole: "texto"
+                                valueRole: "valor"
+                                model: [
+                                    { texto: qsTr("96 kbps · voz"), valor: 96 },
+                                    { texto: qsTr("128 kbps · general"), valor: 128 },
+                                    { texto: qsTr("192 kbps · música (más: flac)"), valor: 192 }
+                                ]
+                                currentIndex: 0
+                            }
+                        }
+
+                        Kirigami.FormLayout {
+                            id: columnaDerecha
+                            Layout.alignment: Qt.AlignTop
+                            Layout.fillWidth: true
+                            wideMode: true
+
+                            QQC2.ComboBox {
+                                id: audio
+                                visible: !fuente.esAudio
+                                Kirigami.FormData.label: qsTr("Audio:")
+                                textRole: "texto"
+                                valueRole: "valor"
+                                // Mezclado va ANTES que separado: con dos pistas
+                                // casi todos los reproductores suenan solo la
+                                // primera y el microfono parece mudo. Detras,
+                                // las aplicaciones que suenan AHORA.
+                                model: [
+                                    { texto: qsTr("Audio del sistema"), valor: "sistema" },
+                                    { texto: qsTr("Micrófono"), valor: "micro" },
+                                    { texto: qsTr("Los dos, en una sola pista"), valor: "mezclado" },
+                                    { texto: qsTr("Los dos, en pistas separadas (para editar)"), valor: "ambos" },
+                                    { texto: qsTr("Sin audio"), valor: "nada" }
+                                ].concat(Controlador.audiosAplicacion.map(function(a) {
+                                    return { texto: qsTr("Solo %1").arg(a.texto), valor: a.valor }
+                                }))
+                                currentIndex: 0
+                            }
+                            QQC2.ComboBox {
+                                id: codecAudio
+                                visible: !fuente.esAudio
+                                Kirigami.FormData.label: qsTr("Códec de audio:")
+                                // Solo los que GSR respeta en ese formato y en
+                                // ese reparto de pistas.
+                                model: Controlador.codecsAudioPara(
+                                           contenedor.currentText,
+                                           String(audio.currentValue) === "mezclado")
+                                onModelChanged: currentIndex = 0
+                            }
+                            RowLayout {
+                                id: filaVumetro
+                                visible: Controlador.hayMultimedia && !fuente.esAudio
+                                         && ["micro", "mezclado", "ambos"].indexOf(
+                                                String(audio.currentValue)) !== -1
+                                Kirigami.FormData.label: qsTr("Nivel del micro:")
+                                onVisibleChanged: Controlador.escucharMicro(visible)
+                                Component.onCompleted: Controlador.escucharMicro(visible)
+                                QQC2.ProgressBar {
+                                    Layout.preferredWidth: Kirigami.Units.gridUnit * 6
+                                    from: 0; to: 1
+                                    // Escala en DECIBELIOS, de -60 dB a 0. Con
+                                    // la lineal la barra no se movia: una voz
+                                    // normal en este microfono da 0,004 de RMS.
+                                    value: {
+                                        var n = Controlador.nivelMicro
+                                        if (n <= 0.0001) return 0
+                                        var db = 20 * Math.log(n) / Math.LN10
+                                        return Math.max(0, Math.min(1, (db + 60) / 60))
+                                    }
+                                }
+                                QQC2.Label {
+                                    text: Controlador.nivelMicro > 0.002 ? qsTr("te oigo")
+                                                                         : qsTr("sin señal")
+                                    opacity: 0.7
+                                }
+                            }
+                            QQC2.CheckBox {
+                                id: cuentaAtrasActiva
+                                Kirigami.FormData.label: qsTr("Al empezar:")
+                                checked: true
+                                text: qsTr("Contar 3 segundos")
+                            }
+                            QQC2.CheckBox {
+                                id: soloAlCambiar
+                                // Solo donde de verdad hace algo: en Wayland
+                                // sobre un monitor GSR lo acepta, avisa por
+                                // stderr y lo ignora.
+                                visible: !fuente.esAudio
+                                         && Controlador.modoContentEfectivo(
+                                                String(fuente.currentValue))
+                                text: qsTr("Codificar solo al cambiar la pantalla")
+                            }
+                            QQC2.CheckBox {
+                                id: replay
+                                visible: !fuente.esAudio
+                                text: qsTr("Modo repetición")
+                            }
+                            QQC2.ComboBox {
+                                id: segundosReplay
+                                visible: !fuente.esAudio && replay.checked
+                                Kirigami.FormData.label: qsTr("Guardar los últimos:")
+                                textRole: "texto"
+                                valueRole: "valor"
+                                model: [
+                                    { texto: qsTr("30 segundos"), valor: 30 },
+                                    { texto: qsTr("1 minuto"), valor: 60 },
+                                    { texto: qsTr("5 minutos"), valor: 300 },
+                                    { texto: qsTr("15 minutos"), valor: 900 }
+                                ]
+                                currentIndex: 1
+                            }
+                        }
+                    }
+
+                    // La carpeta, a lo ancho: una ruta larga no cabe en media.
+                    RowLayout {
+                        Layout.fillWidth: true
+                        QQC2.Label { text: qsTr("Guardar en:") }
                         QQC2.Label {
                             Layout.fillWidth: true
                             text: fuente.esAudio ? Controlador.carpetaAudio
@@ -496,104 +610,6 @@ Kirigami.ApplicationWindow {
                                 dialogoCarpeta.open()
                             }
                         }
-                    }
-
-                    QQC2.ComboBox {
-                        id: audio
-                        visible: !fuente.esAudio
-                        Kirigami.FormData.label: qsTr("Audio:")
-                        textRole: "texto"
-                        valueRole: "valor"
-                        // Mezclado va ANTES que separado a proposito. Con dos
-                        // pistas, casi todos los reproductores suenan solo la
-                        // primera, asi que quien elige «los dos» sin pensarlo
-                        // se encuentra el microfono mudo al reproducir. Las
-                        // pistas separadas siguen ahi para quien va a editar,
-                        // que es cuando compensan.
-                        // Las aplicaciones que suenan AHORA se añaden al
-                        // final: son las que GSR ve en este momento, asi que la
-                        // lista cambia de una grabacion a otra. Grabar solo el
-                        // sonido de una aplicacion deja fuera notificaciones y
-                        // todo lo demas, que es justo lo que se quiere en un
-                        // tutorial.
-                        model: [
-                            { texto: qsTr("Audio del sistema"), valor: "sistema" },
-                            { texto: qsTr("Micrófono"), valor: "micro" },
-                            { texto: qsTr("Los dos, en una sola pista"), valor: "mezclado" },
-                            { texto: qsTr("Los dos, en pistas separadas (para editar)"), valor: "ambos" },
-                            { texto: qsTr("Sin audio"), valor: "nada" }
-                        ].concat(Controlador.audiosAplicacion.map(function(a) {
-                            return { texto: qsTr("Solo %1").arg(a.texto), valor: a.valor }
-                        }))
-                        currentIndex: 0
-                    }
-
-                    // El vumetro del microfono. Se enseña solo cuando se va a
-                    // grabar el micro, que es cuando importa: el fallo caro es
-                    // descubrir al reproducir que estaba mudo.
-                    RowLayout {
-                        id: filaVumetro
-                        visible: Controlador.hayMultimedia && !fuente.esAudio
-                                 && ["micro", "mezclado", "ambos"].indexOf(
-                                        String(audio.currentValue)) !== -1
-                        Kirigami.FormData.label: qsTr("Nivel del micro:")
-                        onVisibleChanged: Controlador.escucharMicro(visible)
-                        Component.onCompleted: Controlador.escucharMicro(visible)
-                        QQC2.ProgressBar {
-                            Layout.preferredWidth: Kirigami.Units.gridUnit * 8
-                            from: 0; to: 1
-                            // Escala en DECIBELIOS, de -60 dB a 0, que es como
-                            // mide un vumetro. Con la escala lineal la barra no
-                            // se movia: una voz normal en este microfono da
-                            // 0,004-0,05 de RMS, o sea el 0,4 % del recorrido.
-                            // En dB ese mismo margen ocupa del 20 % al 57 %.
-                            value: {
-                                var n = Controlador.nivelMicro
-                                if (n <= 0.0001) return 0
-                                var db = 20 * Math.log(n) / Math.LN10
-                                return Math.max(0, Math.min(1, (db + 60) / 60))
-                            }
-                        }
-                        QQC2.Label {
-                            // El umbral distingue «entra algo» de «mudo», no
-                            // «se oye bien»: con el microfono al 27 % una voz
-                            // normal ya se queda por debajo de 0,01.
-                            text: Controlador.nivelMicro > 0.002 ? qsTr("te oigo")
-                                                                 : qsTr("sin señal")
-                            opacity: 0.7
-                        }
-                    }
-
-                    // --- Cómo se graba ----------------------------------
-                    QQC2.CheckBox {
-                        id: cuentaAtrasActiva
-                        Kirigami.FormData.label: qsTr("Al empezar:")
-                        Kirigami.FormData.isSection: true
-                        checked: true
-                        text: qsTr("Contar 3 segundos antes de grabar")
-                    }
-                    QQC2.CheckBox {
-                        id: replay
-                        visible: !fuente.esAudio
-                        // El replay no escribe nada hasta que se lo pides: va
-                        // guardando en memoria los ultimos N segundos. Sirve
-                        // para lo que ya ha pasado, que es cuando uno se
-                        // acuerda de que queria grabarlo.
-                        text: qsTr("Modo repetición: guardar solo cuando yo lo pida")
-                    }
-                    QQC2.ComboBox {
-                        id: segundosReplay
-                        visible: !fuente.esAudio && replay.checked
-                        Kirigami.FormData.label: qsTr("Guardar los últimos:")
-                        textRole: "texto"
-                        valueRole: "valor"
-                        model: [
-                            { texto: qsTr("30 segundos"), valor: 30 },
-                            { texto: qsTr("1 minuto"), valor: 60 },
-                            { texto: qsTr("5 minutos"), valor: 300 },
-                            { texto: qsTr("15 minutos"), valor: 900 }
-                        ]
-                        currentIndex: 1
                     }
                 }
 

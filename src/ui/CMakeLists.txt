@@ -54,6 +54,7 @@ qt_add_qml_module(esr_ui
   QML_FILES
     qml/Main.qml
     qml/SelectorRegion.qml
+    qml/ColocarCamara.qml
 )
 
 # La vista previa entra en el modulo SOLO si hay Multimedia. Asi, sin el

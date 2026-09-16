@@ -42,10 +42,6 @@ bool modo_content_efectivo(std::string_view fuente, std::string_view servidor_gr
     return servidor_grafico == "x11";
 }
 
-std::vector<std::string> esquinas_camara() {
-    return {"abajo-derecha", "abajo-izquierda", "arriba-derecha", "arriba-izquierda"};
-}
-
 std::string fuente_gsr(const AjustesGrabacion& a) {
     if (a.camara.empty()) return a.fuente;
 
@@ -58,10 +54,11 @@ std::string fuente_gsr(const AjustesGrabacion& a) {
     w += ";width=" + std::to_string(a.camara_ancho_pct) + "%";
     // La altura no se pasa: sin ella GSR mantiene la proporcion de la camara.
     // Fijar las dos deformaria la imagen.
-    const bool derecha = a.camara_esquina.find("derecha") != std::string::npos;
-    const bool abajo = a.camara_esquina.rfind("abajo", 0) == 0;
-    w += derecha ? ";halign=end" : ";halign=start";
-    w += abajo ? ";valign=end" : ";valign=start";
+    w += ";x=" + std::to_string(a.camara_x_pct) + "%";
+    w += ";y=" + std::to_string(a.camara_y_pct) + "%";
+    // Con varias fuentes GSR ya pone las dos alineaciones a «start», pero se
+    // escriben igual: asi la cadena dice lo que hace sin depender de un default.
+    w += ";halign=start;valign=start";
     if (a.camara_espejo) w += ";hflip=true";
     return w;
 }
@@ -128,9 +125,17 @@ std::vector<std::string> validar(const AjustesGrabacion& a) {
             problemas.push_back("el tamaño de la camara va entre el 5 % y el 50 % del ancho; se pidio " +
                                 std::to_string(a.camara_ancho_pct));
         }
-        const auto esquinas = esquinas_camara();
-        if (std::find(esquinas.begin(), esquinas.end(), a.camara_esquina) == esquinas.end()) {
-            problemas.push_back("esquina de camara desconocida «" + a.camara_esquina + "»");
+        // La esquina superior izquierda tiene que caber dentro del video. El
+        // limite superior no es 100 sino 100 menos el ancho: colocada mas alla,
+        // la camara se saldria y GSR la recortaria sin avisar.
+        if (a.camara_x_pct < 0 || a.camara_x_pct + a.camara_ancho_pct > 100) {
+            problemas.push_back("la camara se sale por el lado: x = " +
+                                std::to_string(a.camara_x_pct) + " % con un ancho del " +
+                                std::to_string(a.camara_ancho_pct) + " %");
+        }
+        if (a.camara_y_pct < 0 || a.camara_y_pct > 100) {
+            problemas.push_back("la posicion vertical de la camara va de 0 a 100 %; se pidio " +
+                                std::to_string(a.camara_y_pct));
         }
     }
     if (!a.modo_fotogramas.empty() &&

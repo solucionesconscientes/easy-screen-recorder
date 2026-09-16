@@ -392,6 +392,9 @@ void fuentes_agrupadas() {
     COMPROBAR(ordenadas[1].id == "region" && ordenadas[1].tipo == TipoFuente::Region);
     COMPROBAR(ordenadas[2].id == "portal" && ordenadas[2].tipo == TipoFuente::Portal);
     COMPROBAR(ordenadas[3].id == "/dev/video0" && ordenadas[3].tipo == TipoFuente::Camara);
+    // La resolucion de la camara viene sin la frecuencia: hace falta para
+    // dibujar su recuadro a escala al colocarla.
+    COMPROBAR_NOTA(ordenadas[3].resolucion == "1280x720", ordenadas[3].resolucion);
     // eDP es el panel del portatil, y la resolucion viaja para poder enseñarla.
     COMPROBAR(ordenadas[0].familia == FamiliaMonitor::Interna);
     COMPROBAR(ordenadas[0].resolucion == "1366x768");
