@@ -21,10 +21,34 @@ versión.
 
 | Fichero | Qué tiene que enseñar | Estado |
 |---|---|---|
-| `principal.png` | La ventana principal en reposo: el selector de fuente, el de audio y el botón de grabar. Es la `type="default"` | **Falta** |
-| `grabando.png` | La aplicación grabando: el tiempo transcurrido, el botón de pausa y el indicador de la bandeja | **Falta** |
-| `ajustes.png` | El panel de Avanzado abierto: formato, códec de vídeo, códec de audio y calidad | **Falta** |
+| `principal.png` | La ventana principal en reposo: fuente y botón de grabar. Es la `type="default"` | Tomada, **a rehacer** |
+| `grabando.png` | Grabando: el tiempo y los botones de pausa y parada | Tomada, **a rehacer** |
+| `avanzado.png` | El panel Avanzado abierto: formato, códecs, calidad y carpeta | Tomada, **a rehacer** |
 | `demo.gif` | El GIF del README: abrir, elegir región, grabar, parar. 10–15 s | **Falta** |
+
+## Dos errores que ya se cometieron una vez
+
+La primera tanda salió inservible por dos motivos, y los dos son fáciles de
+repetir:
+
+**1. En castellano.** La ficha de Flathub la lee todo el mundo, así que las
+capturas van en inglés. Hay que arrancar la aplicación con el idioma forzado:
+
+```bash
+LANG=C.UTF-8 ./build/src/ui/easy-screen-recorder
+```
+
+Si se arranca sin eso, sale en el idioma del sistema. Se ve enseguida: el botón
+dice «Grabar» en vez de «Record».
+
+**2. Con la ventana maximizada.** Salieron a 1366×702 con el contenido ocupando
+la cuarta parte de arriba y el resto gris. En una ficha de tienda eso parece una
+aplicación a medio hacer.
+
+La ventana declara su tamaño natural en `Main.qml` —24×21 unidades de rejilla,
+unos 432×378 px— y **a ese tamaño hay que capturarla**. No maximizar, no
+redimensionar: abrirla y capturar. Si el gestor de ventanas la abre maximizada,
+devolverla a su tamaño antes de disparar.
 
 ## Cómo tomarlas
 
