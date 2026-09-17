@@ -80,6 +80,24 @@ struct AjustesGrabacion {
 
     // --- Replay ---------------------------------------------------------
     //
+    // --- Emision en directo ---------------------------------------------
+    //
+    // No hay un campo «emitir»: la salida ES la URL. GSR ya reconoce «rtmp://»
+    // y «rtmps://» en -o (args_parser.c:234) y su manual trae el ejemplo de
+    // Twitch, asi que esto no añade una funcion nueva, expone una que ya
+    // estaba.
+    //
+    // Lo que si cambia es el resto de los ajustes, y por eso hay reglas propias:
+    // el contenedor tiene que ser flv, el modo de bitrate CONSTANTE, y la
+    // calidad deja de ser un preset para pasar a ser kbps.
+    //
+    // Modo de bitrate (-bm): «qp», «vbr» o «cbr». Vacio deja el default de GSR,
+    // que es qp (calidad constante).
+    std::string modo_bitrate;
+    // Kbps, solo con modo_bitrate == «cbr». En ese modo GSR lee -q como un
+    // numero de kbps y no como «very_high» (gpu-screen-recorder.1, -q).
+    int bitrate_kbps = 0;
+
     // El contenedor, SOLO para el modo replay: fuera de el sale de la extension
     // de `salida`, que es el criterio probado y no se toca.
     std::string contenedor = "mkv";
@@ -121,6 +139,29 @@ std::vector<std::string> contenedores_soportados();
 
 // Si esa pista junta varias fuentes con «|», o sea si GSR va a mezclarlas.
 bool pista_mezclada(std::string_view pista);
+
+// Si esa salida es una emision en directo y no un fichero.
+//
+// Se decide por el esquema de la URL, igual que lo decide GSR
+// (args_parser.c:234). Importa en varios sitios: una URL no tiene extension de
+// la que sacar el contenedor, no tiene carpeta que comprobar, no se puede
+// reparar si se corta y no admite pausa.
+bool es_emision(std::string_view salida);
+
+// Une el servidor de ingesta y la clave, que es lo que espera un RTMP:
+// «rtmp://servidor/app» + «clave» -> «rtmp://servidor/app/clave».
+//
+// Van separados a proposito hasta el ultimo momento: la URL del servidor es
+// publica y se puede recordar entre sesiones; la clave NO se guarda en ningun
+// sitio. Juntarlas antes obligaria a tratar toda la cadena como un secreto.
+std::string url_de_emision(std::string_view servidor, std::string_view clave);
+
+// El rango de bitrate que se ofrece para emitir, en kbps. Los extremos son
+// nuestros y no de GSR: por debajo de 500 no se ve nada a 1080p, y 51000 deja
+// sitio de sobra por encima del maximo que recomienda YouTube, que son 35 Mbps
+// para 4K a 60 imagenes por segundo (docs/emision.md).
+inline constexpr int kBitrateEmisionMinimo = 500;
+inline constexpr int kBitrateEmisionMaximo = 51000;
 
 // La familia de un nombre de codec de video de GSR: «hevc_10bit» y
 // «hevc_hdr_vulkan» son hevc, «av1_vulkan» es av1, «h265» es hevc. Vacia si no

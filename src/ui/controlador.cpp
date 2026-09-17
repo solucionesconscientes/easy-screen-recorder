@@ -86,7 +86,11 @@ Controlador::Controlador(QObject* padre) : QObject(padre), medidor_(this) {
         // De replay o normal: el socket no lo dice, lo dice la marca que dejo
         // quien la arranco. Confundirlos hace que «Parar y guardar» tire el
         // buffer sin guardarlo.
-        ponerEstado(esr::replay_en_marcha(sesion.ruta_replay) != 0
+        // De que modo es lo dice la marca que dejo quien la arranco: el socket
+        // no lo sabe. Confundirlos ofrece botones que ahi no valen.
+        ponerEstado(!esr::emision_en_marcha(sesion.ruta_emision).empty()
+                        ? QStringLiteral("emitiendo")
+                    : esr::replay_en_marcha(sesion.ruta_replay) != 0
                         ? QStringLiteral("replay")
                         : QStringLiteral("grabando"));
         reloj_.start();
@@ -115,7 +119,11 @@ void Controlador::autoprueba(const QString& fuente) {
         QCoreApplication::exit(1);
     });
     connect(this, &Controlador::estadoCambiado, this, [this] {
-        if (estado_ == QStringLiteral("grabando") || estado_ == QStringLiteral("grabandoAudio")) {
+        // Todos los estados en los que hay algo en marcha, no solo los dos
+        // primeros: al añadir «replay» y «emitiendo» el arnes se quedaba
+        // esperando para siempre porque no los reconocia.
+        if (estado_ == QStringLiteral("grabando") || estado_ == QStringLiteral("grabandoAudio") ||
+            estado_ == QStringLiteral("replay") || estado_ == QStringLiteral("emitiendo")) {
             QTimer::singleShot(3000, this, [this] { parar(); });
         }
     });
@@ -401,6 +409,21 @@ void Controlador::grabar(const QString& fuente, const QVariantMap& opciones) {
         opciones.value(QStringLiteral("limiteResolucion")).toString().toStdString();
     a.replay_segundos = opciones.value(QStringLiteral("replaySegundos"), 0).toInt();
     a.contenedor = contenedor.toStdString();
+
+    // Emitiendo, la salida es la URL y manda sobre todo lo demas: flv, bitrate
+    // constante y aac, porque es lo unico que respeta ese contenedor.
+    const QString servidor = opciones.value(QStringLiteral("emitirServidor")).toString();
+    const QString clave = opciones.value(QStringLiteral("emitirClave")).toString();
+    if (!servidor.isEmpty()) {
+        a.salida = esr::url_de_emision(servidor.toStdString(), clave.toStdString());
+        a.contenedor = "flv";
+        a.modo_bitrate = "cbr";
+        a.bitrate_kbps = opciones.value(QStringLiteral("emitirBitrate"), 4500).toInt();
+        a.codec_audio = "aac";
+        a.replay_segundos = 0;
+        // El servidor se recuerda; la clave jamas.
+        esr::recordar_url_emision(servidor.toStdString());
+    }
     // En modo replay la salida es la CARPETA: el nombre de cada volcado lo pone
     // GSR, y darle un nombre de fichero le haria escribir dentro de el como si
     // fuera un directorio.
@@ -431,10 +454,11 @@ void Controlador::grabar(const QString& fuente, const QVariantMap& opciones) {
     // empezar_grabacion espera al socket del grabador (hasta 15 s si el
     // flatpak arranca frio), asi que fuera del hilo de la ventana.
     const bool es_replay = a.replay_segundos != 0;
+    const bool es_emision = esr::es_emision(a.salida);
     ponerEstado(QStringLiteral("arrancando"));
     auto* vigilante = new QFutureWatcher<esr::ResultadoLanzamiento>(this);
     connect(vigilante, &QFutureWatcher<esr::ResultadoLanzamiento>::finished, this,
-            [this, vigilante, es_replay] {
+            [this, vigilante, es_replay, es_emision] {
                 const auto r = vigilante->result();
                 vigilante->deleteLater();
                 if (!r.en_marcha) {
@@ -446,7 +470,9 @@ void Controlador::grabar(const QString& fuente, const QVariantMap& opciones) {
                 segundos_ = 0;
                 emit segundosCambiados();
                 reloj_.start();
-                ponerEstado(es_replay ? QStringLiteral("replay") : QStringLiteral("grabando"));
+                ponerEstado(es_emision  ? QStringLiteral("emitiendo")
+                            : es_replay ? QStringLiteral("replay")
+                                        : QStringLiteral("grabando"));
             });
     vigilante->setFuture(QtConcurrent::run(
         [a] { return esr::empezar_grabacion(a, esr::sesion_por_defecto()); }));
@@ -460,7 +486,7 @@ void Controlador::alternarGrabacion() {
         return;
     }
     if (estado_ == QStringLiteral("grabando") || estado_ == QStringLiteral("pausado") ||
-        estado_ == QStringLiteral("grabandoAudio")) {
+        estado_ == QStringLiteral("grabandoAudio") || estado_ == QStringLiteral("emitiendo")) {
         parar();
         return;
     }
@@ -513,7 +539,26 @@ void Controlador::refrescarAplicacionesSonando() {
     vigilante->setFuture(QtConcurrent::run([] { return esr::aplicaciones_sonando(); }));
 }
 
+QString Controlador::urlEmision() const {
+    return QString::fromStdString(esr::url_emision_recordada());
+}
+
+void Controlador::emitir(const QString& fuente, const QString& servidor, const QString& clave,
+                         int bitrateKbps, const QVariantMap& opciones) {
+    // Se apoya en grabar() y no duplica nada: emitir ES grabar con la salida
+    // puesta en una URL. Las opciones de emision viajan en el mismo mapa.
+    QVariantMap con_emision = opciones;
+    con_emision[QStringLiteral("emitirServidor")] = servidor;
+    con_emision[QStringLiteral("emitirClave")] = clave;
+    con_emision[QStringLiteral("emitirBitrate")] = bitrateKbps;
+    grabar(fuente, con_emision);
+}
+
 void Controlador::alternarPausa() {
+    // Emitiendo no se pausa desde aqui. GSR lo acepta —probado, responde
+    // «Paused»— pero deja de mandar imagen y la plataforma da la emision por
+    // caida. Un atajo que rompe la emision sin avisar no se ofrece.
+    if (estado_ == QStringLiteral("emitiendo")) return;
     if (estado_ == QStringLiteral("grabando")) {
         pausar();
     } else if (estado_ == QStringLiteral("pausado")) {

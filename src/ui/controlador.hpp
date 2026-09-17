@@ -24,7 +24,7 @@ class Controlador : public QObject {
     QML_SINGLETON
 
     // "detectando" | "listo" | "grabando" | "pausado" | "grabandoAudio" |
-    // "replay" | "sinGsr"
+    // "replay" | "emitiendo" | "sinGsr"
     //
     // «replay» es grabar sin escribir: GSR guarda en memoria los ultimos N
     // segundos y no vuelca nada hasta que se le pide. Es un estado aparte y no
@@ -61,6 +61,10 @@ class Controlador : public QObject {
     // «wayland» o «x11», segun lo que diga GSR. La UI lo necesita para no
     // ofrecer el modo «content», que en Wayland sobre un monitor no hace nada.
     Q_PROPERTY(QString servidorGrafico READ servidorGrafico NOTIFY fuentesCambiadas)
+    // El servidor de ingesta recordado, para no escribirlo cada vez. La clave
+    // NO se recuerda nunca y no tiene propiedad: vive en el campo de texto y se
+    // va con la ventana.
+    Q_PROPERTY(QString urlEmision READ urlEmision CONSTANT)
     Q_PROPERTY(QString diagnostico READ diagnostico NOTIFY estadoCambiado)
     Q_PROPERTY(QString rutaGuardada READ rutaGuardada NOTIFY rutaGuardadaCambiada)
     Q_PROPERTY(QString error READ error NOTIFY errorCambiado)
@@ -112,6 +116,7 @@ public:
     QVariantList camaras() const { return camaras_; }
     QVariantList audiosAplicacion() const { return audios_aplicacion_; }
     QString servidorGrafico() const { return servidor_grafico_; }
+    QString urlEmision() const;
     // Si «-fm content» va a servir de algo con esa fuente. GSR lo acepta
     // siempre y avisa por stderr cuando lo ignora, asi que se filtra aqui.
     Q_INVOKABLE bool modoContentEfectivo(const QString& fuente) const;
@@ -144,6 +149,12 @@ public:
     // no se sabe. La interfaz la usa para dibujar su recuadro a escala mientras
     // se coloca: un 4:3 no se situa igual que un 16:9.
     Q_INVOKABLE qreal proporcionCamara(const QString& id) const;
+
+    // Emite la pantalla en directo. La clave llega como argumento y NO se
+    // guarda: ni en la configuracion ni en una propiedad ni en el log.
+    Q_INVOKABLE void emitir(const QString& fuente, const QString& servidor,
+                            const QString& clave, int bitrateKbps,
+                            const QVariantMap& opciones);
 
     // opciones: calidad (medium|high|very_high|ultra), fps, audio
     // (sistema|micro|mezclado|ambos|nada), contenedor (mkv|mp4|webm), codecVideo

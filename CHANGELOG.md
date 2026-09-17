@@ -5,6 +5,39 @@ máquina de desarrollo.
 
 ## Sin publicar
 
+### Emitir en directo por RTMP (2026-09-17)
+
+**GSR ya emitía y no lo sabíamos.** Reconoce `rtmp://` y `rtmps://` en `-o`
+(`args_parser.c:234`) y su manual trae el ejemplo de Twitch. Esto no añade una
+función nueva: expone una que ya estaba, con las reglas correctas.
+
+- **Verificado emitiendo de verdad** contra un `ffmpeg -listen 1` en
+  `127.0.0.1`, nunca contra una cuenta real: llegaron h264 1366×768 y aac,
+  21,1 s a **2,16 Mbps de los 2500 pedidos**. Y por el camino de la interfaz,
+  24,8 s.
+- Lo que hacía falta: el contenedor **flv** (que solo respeta **aac**, no opus),
+  el **bitrate constante** (`-bm cbr`), y dejar que la salida sea una URL —había
+  tres sitios que daban por hecho un fichero—. Ojo con `-q`: en modo cbr son
+  kbps y no `very_high`.
+- **La clave no se guarda en ningún sitio**, y se dice al lado del campo donde
+  se pega. Lo que sí se recuerda es el servidor de ingesta, que es una URL
+  pública. `recordar_url_emision()` se niega a guardar una cadena que parezca
+  llevar la clave pegada detrás, y la clave no se imprime ni va al log.
+- **Emitiendo no hay pausa.** El manual de GSR sugiere que no se puede, pero
+  probado **sí la acepta** y responde `Paused`; lo que pasa es que deja de
+  mandar imagen y la plataforma da la emisión por caída. La interfaz no la
+  ofrece; la línea de comandos avisa y deja hacer.
+- Y el modo repetición se excluye: emitiendo no hay buffer que guardar.
+- El arnés pasa a **nueve casos**, con la emisión dentro.
+
+**Un error que cometí y queda escrito**: las primeras cifras de bitrate que puse
+(4500 kbps para 1080p) las saqué de memoria y estaban mal. YouTube pide 10 Mbps
+para 1080p30 y 12 para 1080p60. Ahora el selector lleva sus cifras, con la fuente
+en `docs/emision.md`, y el bitrate se preselecciona según la pantalla y las
+imágenes por segundo. De leer la fuente oficial salieron dos cosas más: YouTube
+pide keyframes cada 2 s y GSR ya usa 2,0 por defecto, así que cumplimos sin
+tocar nada; y recomienda **RTMPS**, que es lo que pone el texto de ejemplo.
+
 ### La lista de aplicaciones sonando se calculaba una sola vez (2026-09-16)
 
 De una pregunta del titular: «¿por qué smplayer? podría ser cualquier app». Y

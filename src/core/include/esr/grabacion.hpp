@@ -30,7 +30,16 @@ struct SesionGrabacion {
     // La ruta del fichero que se esta escribiendo. Existe para poder repararlo
     // si el equipo se apaga: sin esto no se sabria ni que fichero mirar.
     std::string ruta_salida;  // dir/salida.txt
+    // El servidor de la emision en marcha, SIN la clave. Existe por lo mismo
+    // que ruta_replay: el socket no dice de que modo es la grabacion, y una
+    // ventana abierta a mitad ofreceria cosas que ahi no valen.
+    std::string ruta_emision;  // dir/emision.txt
 };
+
+// El servidor de la emision en marcha, o vacio si esta grabacion no emite.
+//
+// Nunca trae la clave: lo que se guarda es la URL de ingesta, que es publica.
+std::string emision_en_marcha(const std::string& ruta_emision);
 
 // Los segundos de buffer de la grabacion en marcha, o 0 si no es de replay.
 int replay_en_marcha(const std::string& ruta_replay);

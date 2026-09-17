@@ -38,6 +38,7 @@ void uso() {
         "  easy-screen-recorder-cli grabar [opciones]  empieza a grabar la pantalla y vuelve al instante\n"
         "  easy-screen-recorder-cli audio [opciones]   graba solo audio, sin video (via ffmpeg)\n"
         "  easy-screen-recorder-cli parar              para, guarda e imprime la ruta del fichero\n"
+        "  easy-screen-recorder-cli emitir [opciones]  emite la pantalla en directo por RTMP\n"
         "  easy-screen-recorder-cli guardar            vuelca el buffer de replay a un fichero\n"
         "  easy-screen-recorder-cli reparar            arregla la grabacion que quedo a medias\n"
         "                              si el equipo se apago mientras grababa\n"
@@ -87,6 +88,17 @@ void uso() {
         "                    86400. Ojo: aqui --salida es una CARPETA, no un fichero\n"
         "  --contenedor C    mkv, mp4 o webm. Solo en modo replay; fuera de el sale de\n"
         "                    la extension de --salida\n"
+        "\n"
+        "Opciones de emitir (acepta tambien las de grabar, menos --salida):\n"
+        "  --url U           el servidor de ingesta, por ejemplo\n"
+        "                    rtmp://a.rtmp.youtube.com/live2. NO la clave\n"
+        "  --clave C         la clave de emision. NO se guarda en ningun sitio;\n"
+        "                    hay que darla cada vez\n"
+        "  --bitrate N       kbps constantes. Por defecto 4500, que es lo que\n"
+        "                    recomienda YouTube para 1080p30\n"
+        "\n"
+        "  Emitiendo, «pausar» funciona pero deja de mandar imagen, y una\n"
+        "  plataforma trata eso como emision caida. Se avisa y se deja hacer.\n"
         "\n"
         "Opciones de audio:\n"
         "  --dispositivo D   default_output (audio del sistema), default_input (el micro)\n"
@@ -238,10 +250,15 @@ std::string primer_monitor(const esr::Capacidades& c) {
     return {};
 }
 
-int grabar(const std::vector<std::string_view>& args) {
+// `grabar` y `emitir` comparten TODO el parseo: emitir es grabar con la salida
+// puesta en una URL y el bitrate constante. Duplicar las quince banderas de
+// grabar habria sido garantizar que una de las dos listas se queda vieja.
+int grabar(const std::vector<std::string_view>& args, bool emitiendo = false) {
     esr::AjustesGrabacion a;
     a.fuente.clear();
     bool audio_explicito = false;
+    std::string url_servidor;
+    std::string clave;
 
     for (std::size_t i = 1; i < args.size(); ++i) {
         const std::string_view opcion = args[i];
@@ -282,6 +299,12 @@ int grabar(const std::vector<std::string_view>& args) {
             a.replay_segundos = std::atoi(std::string(valor()).c_str());
         } else if (opcion == "--contenedor") {
             a.contenedor = std::string(valor());
+        } else if (opcion == "--url") {
+            url_servidor = std::string(valor());
+        } else if (opcion == "--clave") {
+            clave = std::string(valor());
+        } else if (opcion == "--bitrate") {
+            a.bitrate_kbps = std::atoi(std::string(valor()).c_str());
         } else {
             std::fprintf(stderr, "easy-screen-recorder-cli: no entiendo «%.*s»\n\n",
                          static_cast<int>(opcion.size()), opcion.data());
@@ -303,6 +326,36 @@ int grabar(const std::vector<std::string_view>& args) {
             return kFallo;
         }
     }
+    if (emitiendo) {
+        if (url_servidor.empty()) {
+            url_servidor = esr::url_emision_recordada();
+        }
+        if (url_servidor.empty()) {
+            std::fprintf(stderr,
+                         "easy-screen-recorder-cli: falta --url con el servidor de ingesta.\n"
+                         "Para YouTube es rtmp://a.rtmp.youtube.com/live2; la clave va aparte\n"
+                         "en --clave y no se guarda\n");
+            return kMalUso;
+        }
+        if (clave.empty()) {
+            std::fprintf(stderr, "easy-screen-recorder-cli: falta --clave\n");
+            return kMalUso;
+        }
+        a.salida = esr::url_de_emision(url_servidor, clave);
+        a.contenedor = "flv";
+        a.modo_bitrate = "cbr";
+        // aac y no opus: flv solo respeta aac, y pedir opus acaba en aac sin
+        // avisar. Se pone aqui, no se deja al default de AjustesGrabacion, que
+        // es opus porque es el bueno para un fichero.
+        if (a.codec_audio == "opus") a.codec_audio = "aac";
+        // 4500 kbps es lo que YouTube recomienda para 1080p a 30 imagenes por
+        // segundo. Se pone aqui y no en AjustesGrabacion porque fuera de una
+        // emision este numero no significa nada.
+        if (a.bitrate_kbps == 0) a.bitrate_kbps = 4500;
+        // La URL del SERVIDOR se recuerda; la clave jamas. Asi la proxima vez
+        // solo hay que pegar la clave.
+        esr::recordar_url_emision(url_servidor);
+    }
     if (a.salida.empty()) {
         const std::string carpeta = esr::carpeta_videos_elegida();
         std::error_code ec;
@@ -319,6 +372,14 @@ int grabar(const std::vector<std::string_view>& args) {
         return kFallo;
     }
 
+    if (emitiendo) {
+        // La clave NO se imprime: esta salida acaba en logs y en capturas de
+        // pantalla, y con la clave cualquiera emite en tu canal.
+        std::printf("emitiendo %s -> %s/… a %d kbps\n", esr::fuente_gsr(a).c_str(),
+                    url_servidor.c_str(), a.bitrate_kbps);
+        std::printf("termina con: easy-screen-recorder-cli parar\n");
+        return kBien;
+    }
     std::printf("grabando %s -> %s\n", esr::fuente_gsr(a).c_str(), a.salida.c_str());
     if (a.replay_segundos != 0) {
         std::printf("modo replay: no se escribe nada hasta que pidas\n"
@@ -439,6 +500,14 @@ int parar() {
 }
 
 int pausar(bool pausada) {
+    // Emitiendo, GSR acepta la pausa —comprobado: responde «Paused»— pero deja
+    // de mandar imagen, y YouTube o Twitch tratan eso como emision caida. Se
+    // avisa y se deja hacer: quien lo pide por linea de comandos sabra por que.
+    if (pausada && !esr::emision_en_marcha(esr::sesion_por_defecto().ruta_emision).empty()) {
+        std::fprintf(stderr,
+                     "easy-screen-recorder-cli: ojo, estas emitiendo. Pausar corta la imagen que\n"
+                     "sale y la plataforma puede dar la emision por caida\n");
+    }
     std::string motivo;
     if (!esr::poner_pausa(esr::sesion_por_defecto(), pausada, motivo)) {
         std::fprintf(stderr, "easy-screen-recorder-cli: %s\n", motivo.c_str());
@@ -536,6 +605,7 @@ int main(int argc, char** argv) {
     }
     if (orden == "--check") return comprobar(args);
     if (orden == "grabar") return grabar(args);
+    if (orden == "emitir") return grabar(args, true);
     if (orden == "audio") return audio(args);
     if (orden == "parar") return parar();
     if (orden == "guardar") return guardar();

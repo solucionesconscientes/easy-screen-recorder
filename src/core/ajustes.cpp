@@ -33,6 +33,17 @@ std::string extension_de(std::string_view ruta) {
 
 std::vector<std::string> contenedores_soportados() { return {"mkv", "mp4", "webm"}; }
 
+bool es_emision(std::string_view salida) {
+    return salida.rfind("rtmp://", 0) == 0 || salida.rfind("rtmps://", 0) == 0;
+}
+
+std::string url_de_emision(std::string_view servidor, std::string_view clave) {
+    std::string url(servidor);
+    while (!url.empty() && url.back() == '/') url.pop_back();
+    if (clave.empty()) return url;
+    return url + "/" + std::string(clave);
+}
+
 bool pista_mezclada(std::string_view pista) {
     return pista.find('|') != std::string_view::npos;
 }
@@ -104,6 +115,10 @@ std::vector<std::string> codecs_audio_para(std::string_view extension, bool mezc
     }
     if (extension == "webm") return {"opus"};
     if (extension == "ts" || extension == "whip") return {"opus", "aac"};
+    // flv es el contenedor de RTMP y solo respeta aac: opus se quedaria en aac
+    // por detras (codec_select.c:158-196) y flac ni existe ahi. Es una lista de
+    // uno, y es correcta.
+    if (extension == "flv") return {"aac"};
     return {};
 }
 
@@ -165,6 +180,51 @@ std::vector<std::string> validar(const AjustesGrabacion& a) {
         problemas.push_back("--sin-audio y pistas de audio a la vez no tiene sentido");
     }
 
+    // Emitir tiene sus propias reglas, y unas cuantas. Se comprueban antes que
+    // las de fichero porque la mitad de esas no aplican: una URL no tiene
+    // extension, ni carpeta, ni se puede reparar.
+    if (es_emision(a.salida)) {
+        if (a.replay_segundos != 0) {
+            problemas.push_back("el modo repeticion no tiene sentido emitiendo: no hay buffer "
+                                "que guardar, lo que sale ya se ha ido");
+        }
+        // flv es el contenedor de RTMP y es el del ejemplo de Twitch del manual
+        // de GSR. Con mkv o mp4 no hay emision, hay un fichero mal escrito.
+        if (a.contenedor != "flv") {
+            problemas.push_back("emitiendo, el contenedor tiene que ser flv; se pidio «" +
+                                a.contenedor + "»");
+        }
+        // CBR y no calidad constante: YouTube y Twitch reparten un ancho de
+        // banda fijo, y una calidad constante les manda picos que no admiten.
+        if (a.modo_bitrate != "cbr") {
+            problemas.push_back("emitiendo hace falta bitrate constante (cbr): con calidad "
+                                "constante el caudal sube en cuanto se mueve la pantalla y la "
+                                "emision se corta");
+        }
+        if (a.bitrate_kbps < kBitrateEmisionMinimo || a.bitrate_kbps > kBitrateEmisionMaximo) {
+            problemas.push_back("el bitrate de emision va de " +
+                                std::to_string(kBitrateEmisionMinimo) + " a " +
+                                std::to_string(kBitrateEmisionMaximo) + " kbps; se pidio " +
+                                std::to_string(a.bitrate_kbps));
+        }
+        // Una URL de ingesta tiene DOS tramos detras del servidor: la
+        // aplicacion y la clave («…/live2/abc-def»). Con uno solo, lo que se ha
+        // pegado es el servidor a secas y falta la clave; ahi el servidor
+        // rechaza la conexion y el usuario solo ve que «no emite».
+        //
+        // Contar barras no basta: «rtmp://host/live» las tiene, y no es valida.
+        const auto tras_esquema = a.salida.find("://");
+        const auto tras_host = tras_esquema == std::string::npos
+                                   ? std::string::npos
+                                   : a.salida.find('/', tras_esquema + 3);
+        const auto siguiente = tras_host == std::string::npos
+                                   ? std::string::npos
+                                   : a.salida.find('/', tras_host + 1);
+        if (siguiente == std::string::npos || siguiente + 1 >= a.salida.size()) {
+            problemas.push_back("a la URL de emision le falta la clave. Se pega el servidor y la "
+                                "clave por separado: «rtmp://servidor/app» y la clave aparte");
+        }
+    }
     if (a.replay_segundos != 0 &&
         (a.replay_segundos < kReplayMinimo || a.replay_segundos > kReplayMaximo)) {
         problemas.push_back("el buffer de replay va de " + std::to_string(kReplayMinimo) +
@@ -175,8 +235,15 @@ std::vector<std::string> validar(const AjustesGrabacion& a) {
     // En modo replay la salida es una CARPETA y el contenedor va aparte, asi que
     // la extension no solo no hace falta: sobra. El resto de reglas de codec se
     // comprueban igual, contra el contenedor pedido.
-    const std::string ext = a.replay_segundos != 0 ? a.contenedor : extension_de(a.salida);
-    if (a.replay_segundos != 0) {
+    // De donde sale el contenedor: del campo cuando no hay extension que mirar
+    // —emitiendo y en replay— y de la extension de la salida en lo demas, que
+    // es el criterio probado y no se toca.
+    const std::string ext = (a.replay_segundos != 0 || es_emision(a.salida))
+                                ? a.contenedor
+                                : extension_de(a.salida);
+    if (es_emision(a.salida)) {
+        // Nada mas que comprobar de la salida: ya se ha hecho arriba.
+    } else if (a.replay_segundos != 0) {
         if (a.salida.empty()) return problemas;
         if (!extension_de(a.salida).empty()) {
             problemas.push_back("en modo replay la salida es una carpeta, no un fichero: GSR "
@@ -254,11 +321,23 @@ std::vector<std::string> argumentos_gsr(const AjustesGrabacion& a) {
         args.insert(args.end(), {"-k", a.codec_video});
     }
     args.insert(args.end(), {"-ac", a.codec_audio});
-    args.insert(args.end(), {"-q", a.calidad});
+    // Emitiendo, «-q» deja de ser un preset y pasa a ser kbps. Es la misma
+    // opcion con dos significados segun «-bm», y la trampa esta en el manual de
+    // GSR: «Quality preset (...) for QP/VBR mode, or bitrate (kbps) for CBR».
+    if (a.modo_bitrate == "cbr") {
+        args.insert(args.end(), {"-bm", "cbr"});
+        args.insert(args.end(), {"-q", std::to_string(a.bitrate_kbps)});
+    } else {
+        if (!a.modo_bitrate.empty()) args.insert(args.end(), {"-bm", a.modo_bitrate});
+        args.insert(args.end(), {"-q", a.calidad});
+    }
     if (a.replay_segundos != 0) {
         args.insert(args.end(), {"-r", std::to_string(a.replay_segundos)});
         // El contenedor por -c y no por la extension: en replay la salida es
         // una carpeta y no hay extension de la que sacarlo.
+        args.insert(args.end(), {"-c", a.contenedor});
+    } else if (es_emision(a.salida)) {
+        // Y emitiendo tampoco: una URL no tiene extension.
         args.insert(args.end(), {"-c", a.contenedor});
     }
     if (!a.modo_fotogramas.empty()) {
