@@ -162,10 +162,16 @@ SPDX-License-Identifier: CC0-1.0
         ya estaba capturando. Ahora se empieza desde la bandeja, o con el atajo
         global, con la ventana ya apartada: no hay nada que minimizar, así que
         no hay nada que grabar.</p>
+        <p>The three-second countdown is now off by default. Pressing Record
+        should record; a wait nobody asked for just leaves you guessing when it
+        actually starts. Turn it on if you want it.</p>
         <p xml:lang="es">Y al dar a Grabar en la ventana, ahora se aparta ANTES
         de que arranque el grabador, no después. El orden anterior grababa la
         animación de minimizado, y en frío podía grabar la ventana durante
         segundos.</p>
+        <p xml:lang="es">La cuenta atrás de tres segundos viene desactivada. Lo
+        que se espera al dar a Grabar es que grabe, y una espera que nadie pidió
+        deja dudando cuándo empieza de verdad. Quien la quiera, la enciende.</p>
       </description>
     </release>
     <release version="0.5.1" date="2026-09-17" type="development">

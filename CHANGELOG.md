@@ -38,6 +38,10 @@ por eso, así que el margen está dimensionado por arriba.
 El atajo global también se cubre: `alternarGrabacion()` llamaba a `grabar()`
 directamente desde C++ y se saltaba todo esto.
 
+La cuenta atrás de tres segundos pasa a venir **desactivada**. Lo que se
+espera al dar a Grabar es que grabe, y una espera que nadie pidió deja dudando
+cuándo empieza de verdad. Quien la quiera sigue teniéndola en Avanzado.
+
 Se probó y se descartó minimizar al llegar a «1» de la cuenta atrás para que ese
 segundo tapara la animación: dejaba el último segundo a ciegas y no se sabía
 cuándo empezaba de verdad, que es peor defecto que el que venía a arreglar. La

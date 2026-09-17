@@ -795,7 +795,13 @@ Kirigami.ApplicationWindow {
                             QQC2.CheckBox {
                                 id: cuentaAtrasActiva
                                 Kirigami.FormData.label: qsTr("Al empezar:")
-                                checked: true
+                                // Desactivada por defecto: lo que se espera al
+                                // dar a Grabar es que grabe, y una espera de
+                                // tres segundos que nadie pidio deja dudando
+                                // cuando empieza de verdad. Quien la quiera
+                                // —para quitar el raton o colocarse delante de
+                                // la camara— la enciende, y ahi si cuenta.
+                                checked: false
                                 text: qsTr("Contar 3 segundos")
                             }
                             QQC2.CheckBox {
