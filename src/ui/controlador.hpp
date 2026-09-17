@@ -194,6 +194,10 @@ signals:
     void hayAtajosCambiado();
     void audiosAplicacionCambiados();
     void grabacionGuardada(const QString& ruta);
+    // El atajo global no puede llamar a grabar() y quedarse tan ancho: la
+    // ventana tiene que apartarse ANTES de que el grabador capture el primer
+    // fotograma, y de ventanas sabe la capa QML, no esta. Asi que pide y espera.
+    void pideGrabarPantalla(const QString& fuente);
 
 private:
     void autoprueba(const QString& fuente);

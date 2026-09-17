@@ -46,9 +46,19 @@ Kirigami.ApplicationWindow {
     Connections {
         target: Controlador
         function onEstadoCambiado() {
+            // Esto es la RED, no el mecanismo. Apartarse ocurre antes de
+            // arrancar (ver apartarseYArrancar), porque minimizarse al llegar
+            // el estado «grabando» era minimizarse cuando GSR ya estaba
+            // capturando: se grababa la animacion de minimizado y, en frio,
+            // hasta los 15 s que el grabador puede tardar en abrir su socket
+            // (grabacion.cpp, kEsperaSocketMs). Se deja porque es idempotente
+            // y cubre cualquier camino que no pase por ahi.
             if (Controlador.estado === "grabando" || Controlador.estado === "replay"
                     || Controlador.estado === "emitiendo") raiz.showMinimized()
             else if (Controlador.estado === "listo" && raiz.apartada) raiz.volver()
+        }
+        function onPideGrabarPantalla(fuente) {
+            raiz.apartarseYArrancar(function() { Controlador.grabar(fuente, {}) })
         }
     }
     onClosing: function(cierre) {
@@ -163,19 +173,62 @@ Kirigami.ApplicationWindow {
         repeat: true
         onTriggered: {
             raiz.cuentaAtras -= 1
+            // Se aparta al llegar a 1 y se arranca en 0. Ese ultimo segundo es
+            // lo que tapa la animacion del gestor de ventanas, y por eso el
+            // camino con cuenta atras no necesita medir cuanto dura: sobra
+            // tiempo. El aviso se ve durante «3» y «2», que es cuando sirve.
+            if (raiz.cuentaAtras === 1) raiz.showMinimized()
             if (raiz.cuentaAtras <= 0) {
                 stop()
                 raiz.lanzarGrabacion(raiz.regionPendiente)
             }
         }
     }
+
+    // Apartarse sin cuenta atras.
+    //
+    // Aqui no hay segundo de sobra, asi que se espera la señal de que la
+    // ventana se fue y ADEMAS un margen: en Wayland `visibility` dice que el
+    // compositor acepto el cambio de estado, no que haya terminado de dibujar
+    // su animacion. El margen esta dimensionado por arriba a proposito, porque
+    // lo unico que cuesta es empezar un tercio de segundo mas tarde; la
+    // duracion real de la animacion de KWin quedo SIN MEDIR.
+    //
+    // El tope existe porque la señal puede no llegar nunca en un escritorio que
+    // no minimice. Sin el, el boton se quedaria muerto para siempre.
+    property var arranquePendiente: null
+    Timer { id: margenApartarse; interval: 350; onTriggered: raiz.arrancarYa() }
+    Timer { id: topeApartarse; interval: 900; onTriggered: raiz.arrancarYa() }
+    function arrancarYa() {
+        if (!raiz.arranquePendiente) return
+        margenApartarse.stop()
+        topeApartarse.stop()
+        var accion = raiz.arranquePendiente
+        raiz.arranquePendiente = null
+        accion()
+    }
+    function apartarseYArrancar(accion) {
+        // Gana la primera peticion. Durante la espera el estado sigue siendo
+        // «listo», asi que el boton no se deshabilita solo, y dos arranques
+        // pedidos a la vez —volver de la barra de tareas y pulsar otra vez—
+        // lanzarian dos grabaciones.
+        if (raiz.arranquePendiente) return
+        if (raiz.apartada) { accion(); return }
+        raiz.arranquePendiente = accion
+        topeApartarse.start()
+        raiz.showMinimized()
+    }
+    onVisibilityChanged: {
+        if (raiz.arranquePendiente && raiz.apartada) margenApartarse.start()
+    }
+
     function empezarCon(region) {
         raiz.regionPendiente = region
         if (cuentaAtrasActiva.checked) {
             raiz.cuentaAtras = 3
             relojCuentaAtras.start()
         } else {
-            raiz.lanzarGrabacion(region)
+            raiz.apartarseYArrancar(function() { raiz.lanzarGrabacion(region) })
         }
     }
 
@@ -840,6 +893,13 @@ Kirigami.ApplicationWindow {
                         onTriggered: {
                             relojCuentaAtras.stop()
                             raiz.cuentaAtras = 0
+                            // Si ya se habia apartado —se aparta al llegar a 1,
+                            // y desde la barra de tareas se puede volver y
+                            // cancelar en ese ultimo segundo— hay que devolverla
+                            // a mano: el estado nunca cambio, asi que la red de
+                            // onEstadoCambiado no va a saltar y la ventana se
+                            // quedaria minimizada sin nada en marcha.
+                            if (raiz.apartada) raiz.volver()
                         }
                     }
                 }

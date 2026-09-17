@@ -505,7 +505,9 @@ void Controlador::alternarGrabacion() {
             f == QStringLiteral("focused") || f.startsWith(QStringLiteral("/dev/"))) {
             continue;
         }
-        grabar(f, {});
+        // Sin opciones, igual que antes: el atajo graba el primer monitor
+        // con los defaults, no con lo que este puesto en la ventana.
+        emit pideGrabarPantalla(f);
         return;
     }
 }
