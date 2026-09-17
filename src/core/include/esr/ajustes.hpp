@@ -157,8 +157,9 @@ bool es_emision(std::string_view salida);
 std::string url_de_emision(std::string_view servidor, std::string_view clave);
 
 // El rango de bitrate que se ofrece para emitir, en kbps. Los extremos son
-// nuestros y no de GSR: por debajo de 500 no se ve nada a 1080p y por encima de
-// 51000 YouTube rechaza la emision.
+// nuestros y no de GSR: por debajo de 500 no se ve nada a 1080p, y 51000 deja
+// sitio de sobra por encima del maximo que recomienda YouTube, que son 35 Mbps
+// para 4K a 60 imagenes por segundo (docs/emision.md).
 inline constexpr int kBitrateEmisionMinimo = 500;
 inline constexpr int kBitrateEmisionMaximo = 51000;
 

@@ -348,22 +348,46 @@ Kirigami.ApplicationWindow {
                             // Se recuerda entre sesiones: es una URL publica, la
                             // misma que YouTube pone en su propia pagina.
                             text: Controlador.urlEmision
-                            placeholderText: "rtmp://a.rtmp.youtube.com/live2"
+                            // RTMPS y no RTMP: es el que YouTube recomienda, y
+                            // una clave de emision por un canal sin cifrar es
+                            // una credencial viajando en claro.
+                            placeholderText: "rtmps://a.rtmps.youtube.com/live2"
                         }
                         QQC2.Label { text: qsTr("Bitrate:") }
                         QQC2.ComboBox {
                             id: bitrateEmision
                             textRole: "texto"
                             valueRole: "valor"
-                            // Los tres que recomienda YouTube para 30 imagenes
-                            // por segundo. Emitiendo no hay «calidad»: hay un
-                            // caudal, y lo fija la plataforma, no nosotros.
+                            // Los valores que recomienda YouTube, tal cual, con
+                            // su fuente en docs/emision.md. Emitiendo no hay
+                            // «calidad»: hay un caudal, y lo fija la plataforma.
+                            //
+                            // Mis primeras cifras (4500 para 1080p) estaban MAL,
+                            // sacadas de memoria. YouTube pide 10 Mbps para
+                            // 1080p30 y 12 para 1080p60.
                             model: [
-                                { texto: qsTr("1080p · 4500 kbps"), valor: 4500 },
-                                { texto: qsTr("720p · 2500 kbps"), valor: 2500 },
-                                { texto: qsTr("1440p · 9000 kbps"), valor: 9000 }
+                                { texto: qsTr("Hasta 720p, 30 fps · 4 Mbps"), valor: 4000 },
+                                { texto: qsTr("1080p, 30 fps · 10 Mbps"), valor: 10000 },
+                                { texto: qsTr("1080p, 60 fps · 12 Mbps"), valor: 12000 },
+                                { texto: qsTr("1440p, 30 fps · 15 Mbps"), valor: 15000 }
                             ]
-                            currentIndex: 0
+                            // Se preselecciona segun la pantalla y las imagenes
+                            // por segundo que haya puestas: ofrecer 10 Mbps a
+                            // quien graba una pantalla de 768 px es gastarle la
+                            // subida para nada.
+                            currentIndex: {
+                                var alto = Screen.height
+                                var sesenta = fps.currentText === "60"
+                                if (alto > 1080) return 3
+                                if (alto > 720) return sesenta ? 2 : 1
+                                return 0
+                            }
+                            QQC2.ToolTip.text: qsTr(
+                                "Son los valores que recomienda YouTube. Necesitas subida " +
+                                "por encima de la cifra: si tu conexión no da, la emisión se " +
+                                "corta a trozos.")
+                            QQC2.ToolTip.visible: hovered
+                            QQC2.ToolTip.delay: 400
                         }
                     }
                     RowLayout {

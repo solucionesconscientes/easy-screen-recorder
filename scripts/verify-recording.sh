@@ -235,6 +235,50 @@ esac
 echo "VERIFICADO webm: video $codec_webm, que es de los que webm admite"
 rm -f "$ruta_webm"
 
+# --- Emision en directo por RTMP ---------------------------------------------
+# Se emite contra un servidor RTMP LOCAL, nunca contra una cuenta de verdad: el
+# receptor es un ffmpeg escuchando en 127.0.0.1, y lo que se exige es que lo que
+# llegue sea h264 + aac de verdad y no un fichero a medio escribir.
+#
+# Este caso es el que distingue «la opcion existe» de «la emision funciona».
+destino_rtmp="$HOME/.cache/easy-screen-recorder/verify/emitido.flv"
+rm -f "$destino_rtmp"
+puerto_rtmp=1935
+
+if ss -ltn 2>/dev/null | grep -q ":$puerto_rtmp "; then
+  echo
+  echo "SALTADA la emision: el puerto $puerto_rtmp esta ocupado"
+else
+  timeout 40 ffmpeg -v error -y -listen 1 \
+    -i "rtmp://127.0.0.1:$puerto_rtmp/live/arnes" -c copy "$destino_rtmp" \
+    >/dev/null 2>&1 &
+  pid_servidor=$!
+  sleep 4
+
+  echo
+  echo "emitiendo 8 segundos contra 127.0.0.1..."
+  "$binario" emitir --url "rtmp://127.0.0.1:$puerto_rtmp/live" --clave arnes \
+    --bitrate 2500 >/dev/null || fallo "«emitir» devolvio error"
+  sleep 8
+  "$binario" parar >/dev/null 2>&1
+  sleep 3
+  kill "$pid_servidor" 2>/dev/null
+  wait "$pid_servidor" 2>/dev/null
+
+  [ -s "$destino_rtmp" ] || fallo "el servidor RTMP no recibio nada"
+  codecs_rtmp="$(ffprobe -v error -show_entries stream=codec_name -of csv=p=0 "$destino_rtmp" | tr '\n' ' ')"
+  case "$codecs_rtmp" in
+    *h264*aac*|*aac*h264*) ;;
+    *) fallo "la emision trajo «$codecs_rtmp» y se esperaba h264 y aac" ;;
+  esac
+  dur_rtmp="$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$destino_rtmp")"
+  if ! awk "BEGIN{exit !($dur_rtmp >= 3.0)}"; then
+    fallo "la emision duro $dur_rtmp s y se emitieron 8"
+  fi
+  echo "VERIFICADO emision: $dur_rtmp s recibidos por RTMP, h264 + aac"
+  rm -f "$destino_rtmp"
+fi
+
 # --- Sobrevivir a un apagon --------------------------------------------------
 # Se mata al grabador con SIGKILL, que es lo mas parecido a un corte de luz que
 # se puede provocar a mano, y se exige que lo grabado siga ahi. Sin el volcado
