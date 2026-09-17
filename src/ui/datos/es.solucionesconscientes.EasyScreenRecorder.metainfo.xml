@@ -144,6 +144,30 @@ SPDX-License-Identifier: CC0-1.0
   <content_rating type="oars-1.1"/>
 
   <releases>
+    <release version="0.6.0" date="2026-09-17" type="development">
+      <description>
+        <p>Start recording from the tray icon. The tray menu could pause, stop
+        and save, but not start, so the only way to begin was the window, and
+        the window then had to get out of the way while the recorder was already
+        capturing. Now you can start from the tray, or with the global shortcut,
+        with the window already out of the way: nothing to minimise, so nothing
+        to film.</p>
+        <p>And when you do press Record in the window, it now gets out of the
+        way BEFORE the recorder starts, not after. The old order filmed the
+        minimise animation, and on a cold start it could film the window for
+        seconds.</p>
+        <p xml:lang="es">Empezar a grabar desde el icono de la bandeja. Su menú
+        sabía pausar, parar y guardar, pero no empezar, así que la única vía era
+        la ventana, y entonces la ventana tenía que apartarse cuando el grabador
+        ya estaba capturando. Ahora se empieza desde la bandeja, o con el atajo
+        global, con la ventana ya apartada: no hay nada que minimizar, así que
+        no hay nada que grabar.</p>
+        <p xml:lang="es">Y al dar a Grabar en la ventana, ahora se aparta ANTES
+        de que arranque el grabador, no después. El orden anterior grababa la
+        animación de minimizado, y en frío podía grabar la ventana durante
+        segundos.</p>
+      </description>
+    </release>
     <release version="0.5.1" date="2026-09-17" type="development">
       <description>
         <p>New screenshots. The ones on this page were from version 0.1.0 and no

@@ -5,6 +5,50 @@ máquina de desarrollo.
 
 ## Sin publicar
 
+### Empezar desde la bandeja, y apartarse antes de grabar (2026-09-17)
+
+Al dar a Grabar se veía la ventana minimizarse dentro del vídeo. La causa no era
+la animación, era el orden: el minimizado colgaba de `onEstadoCambiado`, o sea
+que ocurría cuando el estado ya era «grabando», y ese estado solo llega cuando
+`empezar_grabacion()` ha vuelto con éxito. Para entonces GSR llevaba rato
+capturando. Y no eran milisegundos: entre pulsar y minimizarse cabe todo el
+arranque del grabador, con un techo de `kEsperaSocketMs`, 15 s
+(`grabacion.cpp:29`).
+
+Lo de fondo, sin embargo, era otra cosa: **no había forma de EMPEZAR desde la
+bandeja**. Su menú sabía mostrar, guardar, pausar, parar y salir, todo para
+operar una grabación ya en marcha. Así que la única vía de empezar era la
+ventana, que es justo la que no debe salir. Ahora hay «Grabar la pantalla» en el
+menú, con el atajo escrito al lado cuando está registrado, porque el menú es
+donde alguien lo va a descubrir: la ventana también lo dice, pero la ventana es
+lo que no está delante cuando hace falta.
+
+Con la ventana ya apartada no hay nada que minimizar, así que no hay animación
+que colarse ni retardo que adivinar. Empieza cuando se pulsa, y el icono de la
+bandeja lo confirma en el instante en que el grabador arranca de verdad.
+
+Para el botón de la ventana sí hace falta apartarse primero: se espera la señal
+de visibilidad y además un margen de 350 ms, con un tope de 900 ms para que el
+botón no se quede muerto en un escritorio que no minimice. El margen hace falta
+porque en Wayland esa señal dice que el compositor aceptó el cambio de estado,
+no que haya acabado de dibujar. **La duración real de la animación de KWin quedó
+sin medir**: el arnés para medirla grababa el escritorio completo y se descartó
+por eso, así que el margen está dimensionado por arriba.
+
+El atajo global también se cubre: `alternarGrabacion()` llamaba a `grabar()`
+directamente desde C++ y se saltaba todo esto.
+
+Se probó y se descartó minimizar al llegar a «1» de la cuenta atrás para que ese
+segundo tapara la animación: dejaba el último segundo a ciegas y no se sabía
+cuándo empezaba de verdad, que es peor defecto que el que venía a arreglar. La
+cuenta se ve entera y los dos caminos usan el mismo mecanismo.
+
+Verificado: compila sin avisos con `-Werror`, 12/12 en ctest, la interfaz
+arranca sin errores de QML, y la entrada nueva del menú se leyó del item de la
+bandeja por DBus (`com.canonical.dbusmenu.GetLayout`) contra el binario en
+marcha. La grabación resultante **no** se ha verificado: la regla del proyecto
+es que la interfaz no se verifica.
+
 ### Capturas de la ficha, rehechas y repetibles (2026-09-17)
 
 Las tres eran de la v0.1.0 y ya no se parecían a la aplicación: enseñaban
