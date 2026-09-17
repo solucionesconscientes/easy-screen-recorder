@@ -118,7 +118,9 @@ int main() {
             COMPROBAR_NOTA(validar(a).empty() == permitido, cont + "+" + codec);
         }
     }
-    COMPROBAR(codecs_audio_para("flv").empty());
+    // flv ya NO esta vacio: es el contenedor de RTMP y respeta aac. Se comprueba
+    // en el bloque de emision, mas abajo.
+    COMPROBAR(codecs_audio_para("avi").empty());
 
     // La linea de comandos que ve GSR. El orden de -w primero no es manía:
     // es el argumento obligatorio (args_parser.c:536) y asi los errores de
@@ -342,6 +344,73 @@ int main() {
         COMPROBAR(modo_content_efectivo("eDP-1", "x11"));
         COMPROBAR(!modo_content_efectivo("eDP-1", "wayland"));
         COMPROBAR(modo_content_efectivo("portal", "wayland"));
+    }
+
+    // --- Emision en directo ----------------------------------------------
+    // GSR ya emite: reconoce «rtmp://» en -o (args_parser.c:234) y su manual
+    // trae el ejemplo de Twitch. Verificado emitiendo de verdad contra un
+    // servidor local: llegaron h264 + aac a 2,16 Mbps de los 2500 pedidos.
+    {
+        COMPROBAR(es_emision("rtmp://a.rtmp.youtube.com/live2/clave"));
+        COMPROBAR(es_emision("rtmps://a.rtmps.youtube.com/live2/clave"));
+        COMPROBAR(!es_emision("/home/u/video.mkv"));
+        COMPROBAR(!es_emision("http://ejemplo/x"));  // no es RTMP
+        // El servidor y la clave van separados hasta el ultimo momento: el
+        // servidor se recuerda entre sesiones, la clave jamas.
+        COMPROBAR(url_de_emision("rtmp://s/live2", "abc") == "rtmp://s/live2/abc");
+        COMPROBAR(url_de_emision("rtmp://s/live2/", "abc") == "rtmp://s/live2/abc");
+        COMPROBAR(url_de_emision("rtmp://s/live2", "") == "rtmp://s/live2");
+    }
+    {
+        auto a = base();
+        a.salida = "rtmp://127.0.0.1/live/clave";
+        a.contenedor = "flv";
+        a.modo_bitrate = "cbr";
+        a.bitrate_kbps = 2500;
+        a.codec_audio = "aac";  // flv solo respeta aac
+        COMPROBAR_NOTA(validar(a).empty(), validar(a).empty() ? "" : validar(a)[0]);
+        // El contenedor y el modo van en la linea porque una URL no tiene
+        // extension de la que sacarlos, y «-q» pasa a ser kbps.
+        const auto args = argumentos_gsr(a);
+        const auto c = std::find(args.begin(), args.end(), "-c");
+        COMPROBAR(c != args.end() && *(c + 1) == "flv");
+        const auto bm = std::find(args.begin(), args.end(), "-bm");
+        COMPROBAR(bm != args.end() && *(bm + 1) == "cbr");
+        const auto q = std::find(args.begin(), args.end(), "-q");
+        COMPROBAR(q != args.end() && *(q + 1) == "2500");
+    }
+    {
+        // Las cuatro maneras de pedir una emision que no emitiria.
+        auto a = base();
+        a.salida = "rtmp://127.0.0.1/live/clave";
+        a.modo_bitrate = "cbr";
+        a.bitrate_kbps = 2500;
+        a.codec_audio = "aac";
+        a.contenedor = "mkv";
+        COMPROBAR(algun_problema_contiene(validar(a), "tiene que ser flv"));
+        a.contenedor = "flv";
+        a.modo_bitrate.clear();
+        COMPROBAR(algun_problema_contiene(validar(a), "bitrate constante"));
+        a.modo_bitrate = "cbr";
+        a.bitrate_kbps = 10;
+        COMPROBAR(algun_problema_contiene(validar(a), "bitrate de emision va de"));
+        a.bitrate_kbps = 2500;
+        a.replay_segundos = 60;
+        COMPROBAR(algun_problema_contiene(validar(a), "repeticion no tiene sentido emitiendo"));
+        a.replay_segundos = 0;
+        a.salida = "rtmp://127.0.0.1/live";  // sin clave detras
+        COMPROBAR(algun_problema_contiene(validar(a), "falta la clave"));
+    }
+    {
+        // flv solo respeta aac: es una lista de uno y es correcta.
+        const auto lista = codecs_audio_para("flv");
+        COMPROBAR(lista.size() == 1 && lista[0] == "aac");
+        auto a = base();
+        a.salida = "rtmp://127.0.0.1/live/clave";
+        a.contenedor = "flv";
+        a.modo_bitrate = "cbr";
+        a.bitrate_kbps = 2500;
+        COMPROBAR(algun_problema_contiene(validar(a), "opus no se respeta"));
     }
 
     // carpeta_videos lee user-dirs.dirs. Se prueba con un XDG_CONFIG_HOME

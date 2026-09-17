@@ -34,4 +34,14 @@ bool guardar_ajuste(const std::string& clave, const std::string& valor);
 std::string carpeta_videos_elegida();
 std::string carpeta_audio_elegida();
 
+// El servidor de ingesta de la ultima emision, para no tener que escribirlo
+// cada vez. Vacio si no hay ninguno recordado.
+//
+// Se guarda el SERVIDOR y jamas la clave. La distincion no es cosmetica: la URL
+// de ingesta de YouTube es publica y aparece en su propia documentacion, y la
+// clave da permiso para emitir en tu canal. Este fichero es texto plano, asi que
+// lo unico correcto es que la clave no pase por el.
+std::string url_emision_recordada();
+bool recordar_url_emision(const std::string& servidor);
+
 }  // namespace esr

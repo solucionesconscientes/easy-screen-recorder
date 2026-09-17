@@ -73,4 +73,19 @@ std::string carpeta_videos_elegida() { return carpeta_de("carpeta_videos", carpe
 
 std::string carpeta_audio_elegida() { return carpeta_de("carpeta_audio", carpeta_musica()); }
 
+std::string url_emision_recordada() {
+    const auto valores = leer_configuracion();
+    const auto i = valores.find("url_emision");
+    return i == valores.end() ? std::string() : i->second;
+}
+
+bool recordar_url_emision(const std::string& servidor) {
+    // Se niega a guardar algo que parezca una clave pegada detras. Es una
+    // salvaguarda, no una comprobacion de formato: si alguien pega la URL
+    // completa de YouTube con la clave incluida, aqui se corta antes de que
+    // acabe en un fichero de texto plano.
+    if (servidor.find("/live2/") != std::string::npos) return false;
+    return guardar_ajuste("url_emision", servidor);
+}
+
 }  // namespace esr

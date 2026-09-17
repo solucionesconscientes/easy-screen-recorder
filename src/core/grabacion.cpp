@@ -95,7 +95,15 @@ SesionGrabacion sesion_por_defecto() {
     s.ruta_inicio = s.dir + "/inicio.txt";
     s.ruta_replay = s.dir + "/replay.txt";
     s.ruta_salida = s.dir + "/salida.txt";
+    s.ruta_emision = s.dir + "/emision.txt";
     return s;
+}
+
+std::string emision_en_marcha(const std::string& ruta_emision) {
+    std::ifstream f(ruta_emision);
+    std::string servidor;
+    if (!std::getline(f, servidor)) return {};
+    return servidor;
 }
 
 int replay_en_marcha(const std::string& ruta_replay) {
@@ -170,7 +178,9 @@ ResultadoLanzamiento empezar_grabacion(const AjustesGrabacion& ajustes,
     // GSR en flatpak, su /tmp es suyo; desde dentro de un sandbox, el /tmp que
     // ve GSR es el del anfitrion y el nuestro es privado. En los dos casos el
     // video acaba en un /tmp que nadie va a mirar.
-    if (escribe_fuera_de_nuestro_sandbox(inv->origen) &&
+    // La trampa de /tmp no aplica a una URL: no hay fichero que acabe en el
+    // sitio equivocado.
+    if (!es_emision(ajustes.salida) && escribe_fuera_de_nuestro_sandbox(inv->origen) &&
         ajustes.salida.rfind("/tmp/", 0) == 0) {
         r.motivo = "el fichero no puede ir a /tmp: lo escribe otro proceso y su /tmp no es "
                    "el mismo que el tuyo, asi que el video se quedaria donde no lo ves. "
@@ -184,10 +194,14 @@ ResultadoLanzamiento empezar_grabacion(const AjustesGrabacion& ajustes,
         r.motivo = "no se puede crear " + sesion.dir + ": " + ec.message();
         return r;
     }
-    const auto dir_salida = std::filesystem::path(ajustes.salida).parent_path();
-    if (!dir_salida.empty() && !std::filesystem::is_directory(dir_salida, ec)) {
-        r.motivo = "la carpeta de destino no existe: " + dir_salida.string();
-        return r;
+    // Una URL no tiene carpeta que comprobar. Sin esta guarda, «rtmp:» se
+    // interpretaba como un directorio inexistente y la emision no arrancaba.
+    if (!es_emision(ajustes.salida)) {
+        const auto dir_salida = std::filesystem::path(ajustes.salida).parent_path();
+        if (!dir_salida.empty() && !std::filesystem::is_directory(dir_salida, ec)) {
+            r.motivo = "la carpeta de destino no existe: " + dir_salida.string();
+            return r;
+        }
     }
 
     // Un socket huerfano de un GSR muerto lo limpia GSR solo; cualquier otro
@@ -218,12 +232,22 @@ ResultadoLanzamiento empezar_grabacion(const AjustesGrabacion& ajustes,
     } else {
         std::filesystem::remove(sesion.ruta_replay, ec);
     }
-    // En replay la salida es una carpeta y cada volcado se cierra solo, asi que
-    // no hay nada que reparar despues.
-    if (ajustes.replay_segundos == 0) {
+    // En replay la salida es una carpeta y cada volcado se cierra solo, y
+    // emitiendo no hay fichero: en los dos casos no hay nada que reparar.
+    if (ajustes.replay_segundos == 0 && !es_emision(ajustes.salida)) {
         std::ofstream(sesion.ruta_salida) << ajustes.salida << "\n";
     } else {
         std::filesystem::remove(sesion.ruta_salida, ec);
+    }
+    if (es_emision(ajustes.salida)) {
+        // Solo el servidor, cortando por la ultima barra: lo que va detras es la
+        // clave y no se escribe en ningun fichero.
+        const auto barra = ajustes.salida.find_last_of('/');
+        std::ofstream(sesion.ruta_emision)
+            << (barra == std::string::npos ? ajustes.salida : ajustes.salida.substr(0, barra))
+            << "\n";
+    } else {
+        std::filesystem::remove(sesion.ruta_emision, ec);
     }
 
     // Esperar a que el socket escuche. Si GSR muere antes, el log dice por que.
@@ -283,6 +307,7 @@ ResultadoParada parar_grabacion(const SesionGrabacion& sesion) {
     std::filesystem::remove(sesion.ruta_inicio, ec);
     std::filesystem::remove(sesion.ruta_replay, ec);
     std::filesystem::remove(sesion.ruta_salida, ec);
+    std::filesystem::remove(sesion.ruta_emision, ec);
     return r;
 }
 
