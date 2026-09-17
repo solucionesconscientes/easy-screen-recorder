@@ -4,20 +4,27 @@
 screenshots in the MetaInfo». No es una recomendación, así que sin ellas no hay
 envío. La primera, la `type="default"`, es la que sale en la ficha.
 
-El metainfo las referencia por URL cruda del repositorio y **apuntando al tag
-`v0.1.0`, no a `main`**. Eso también lo pide Flathub: «the link should be from a
+El metainfo las referencia por URL cruda del repositorio y **apuntando a un
+commit, no a `main`**. Eso también lo pide Flathub: «the link should be from a
 tag or a commit and not a branch». Una rama se mueve, y la ficha publicada
 enseñaría capturas de otra versión.
 
 **Consecuencia en el orden de los pasos, y es la parte que se olvida:** las
-capturas tienen que estar DENTRO del commit etiquetado. Así que:
+capturas tienen que estar DENTRO del commit que se referencia. Y ahí hay una
+elección:
 
-1. Tomar las capturas y commitearlas.
-2. **Mover el tag** a ese commit: `git tag -f -a v0.1.0` y `git push --force origin v0.1.0`.
-3. Poner en el manifiesto de Flathub el commit nuevo del tag.
+- **Apuntar al commit que las trae** (lo que se hace desde la 0.5.0). No hay que
+  mover ninguna etiqueta y funciona aunque las capturas lleguen después de
+  publicar. Es lo que se recomienda.
+- Apuntar a un tag obligaría a tomar las capturas ANTES de etiquetar, o a mover
+  la etiqueta después — y una etiqueta ya publicada no se mueve.
 
-Si se etiqueta antes de las capturas, las URLs dan 404 para siempre en esa
+Si se referencia algo que no las contiene, las URLs dan 404 para siempre en esa
 versión.
+
+**Y el orden con la publicación:** las capturas solo llegan a la ficha del
+software center en la siguiente publicación del flatpak, porque el metainfo va
+dentro del paquete. Rehacerlas después de publicar no cambia lo ya publicado.
 
 | Fichero | Qué tiene que enseñar | Estado |
 |---|---|---|

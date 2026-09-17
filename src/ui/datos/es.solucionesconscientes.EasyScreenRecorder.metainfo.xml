@@ -117,17 +117,17 @@ SPDX-License-Identifier: CC0-1.0
 
   <screenshots>
     <screenshot type="default">
-      <image>https://github.com/solucionesconscientes/easy-screen-recorder/raw/v0.5.0/docs/screenshots/principal.png</image>
+      <image>https://github.com/solucionesconscientes/easy-screen-recorder/raw/31adc334a11dd8f45f83132c8dcf7c7c4c268a21/docs/screenshots/principal.png</image>
       <caption>The main window: pick what to record and press record</caption>
       <caption xml:lang="es">La ventana principal: eliges qué grabar y grabas</caption>
     </screenshot>
     <screenshot>
-      <image>https://github.com/solucionesconscientes/easy-screen-recorder/raw/v0.5.0/docs/screenshots/grabando.png</image>
+      <image>https://github.com/solucionesconscientes/easy-screen-recorder/raw/31adc334a11dd8f45f83132c8dcf7c7c4c268a21/docs/screenshots/grabando.png</image>
       <caption>Recording, with the elapsed time and pause at hand</caption>
       <caption xml:lang="es">Grabando, con el tiempo y la pausa a mano</caption>
     </screenshot>
     <screenshot>
-      <image>https://github.com/solucionesconscientes/easy-screen-recorder/raw/v0.5.0/docs/screenshots/avanzado.png</image>
+      <image>https://github.com/solucionesconscientes/easy-screen-recorder/raw/31adc334a11dd8f45f83132c8dcf7c7c4c268a21/docs/screenshots/avanzado.png</image>
       <caption>The Advanced panel: format, codecs, quality and where recordings go</caption>
       <caption xml:lang="es">El panel Avanzado: formato, códecs, calidad y dónde van las grabaciones</caption>
     </screenshot>
