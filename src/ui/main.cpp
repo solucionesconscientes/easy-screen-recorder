@@ -149,6 +149,19 @@ int main(int argc, char** argv) {
     QMenu menu;
     QAction* accion_mostrar = menu.addAction(QObject::tr("Mostrar la ventana"));
     menu.addSeparator();
+    // Empezar desde aqui, sin sacar la ventana.
+    //
+    // Es la via buena y no un atajo de conveniencia: si la ventana ya esta
+    // apartada cuando se pulsa, no hay nada que minimizar, asi que no hay
+    // animacion que pueda colarse en el video ni cuenta atras que adivinar.
+    // Empieza cuando se pulsa, y el icono de la bandeja lo confirma en el
+    // instante exacto en que el grabador arranca.
+    //
+    // Graba el primer monitor con los defaults, lo mismo que el atajo global:
+    // es el gesto de «graba ya», no el de «graba con lo que tengo configurado».
+    // De ahi que el texto diga la pantalla y no «Grabar» a secas.
+    QAction* accion_grabar = menu.addAction(QObject::tr("Grabar la pantalla"));
+    menu.addSeparator();
     // En modo repeticion el que hace falta a mano es este: guardar lo que hay en
     // el buffer sin sacar la ventana, que es justo el momento en que uno no
     // quiere que aparezca nada en pantalla.
@@ -190,6 +203,13 @@ int main(int argc, char** argv) {
         QObject::connect(accion_mostrar, &QAction::triggered, ventana, traer);
     }
     QObject::connect(accion_salir, &QAction::triggered, &app, &QCoreApplication::quit);
+    if (controlador != nullptr) {
+        // alternarGrabacion es el mismo punto de entrada que el atajo global:
+        // arranca si no hay nada y para si hay algo. Aqui solo se ofrece para
+        // arrancar, porque parar ya tiene su propia entrada en el menu.
+        QObject::connect(accion_grabar, &QAction::triggered, controlador,
+                         [controlador] { controlador->alternarGrabacion(); });
+    }
 
     if (controlador != nullptr) {
         QObject::connect(accion_pausa, &QAction::triggered, controlador, [controlador] {
@@ -209,13 +229,23 @@ int main(int argc, char** argv) {
                                                  QSystemTrayIcon::Information, 6000);
                          });
         const auto refrescar = [&bandeja, controlador, accion_pausa, accion_parar,
-                                accion_guardar] {
+                                accion_guardar, accion_grabar] {
             const QString estado = controlador->estado();
             const bool pausado = estado == QStringLiteral("pausado");
             const bool audio = estado == QStringLiteral("grabandoAudio");
             const bool es_replay = estado == QStringLiteral("replay");
             const bool grabando =
                 estado == QStringLiteral("grabando") || audio || pausado || es_replay;
+            // Grabar solo cuando no hay nada en marcha: con una grabacion
+            // encima, lo que hace falta es pararla, y esas acciones ya estan.
+            accion_grabar->setVisible(!grabando && estado == QStringLiteral("listo"));
+            // El atajo, escrito en el menu. Es donde alguien lo va a descubrir:
+            // la ventana tambien lo dice, pero la ventana es justo lo que no
+            // esta delante cuando hace falta.
+            const QString atajo = controlador->atajoGrabar();
+            accion_grabar->setText(atajo.isEmpty()
+                                       ? QObject::tr("Grabar la pantalla")
+                                       : QObject::tr("Grabar la pantalla (%1)").arg(atajo));
             accion_guardar->setVisible(es_replay);
             bandeja.setIcon(iconoBandeja(grabando));
             bandeja.setToolTip(grabando ? QObject::tr("Easy Screen Recorder: grabando")

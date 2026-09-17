@@ -173,22 +173,24 @@ Kirigami.ApplicationWindow {
         repeat: true
         onTriggered: {
             raiz.cuentaAtras -= 1
-            // Se aparta al llegar a 1 y se arranca en 0. Ese ultimo segundo es
-            // lo que tapa la animacion del gestor de ventanas, y por eso el
-            // camino con cuenta atras no necesita medir cuanto dura: sobra
-            // tiempo. El aviso se ve durante «3» y «2», que es cuando sirve.
-            if (raiz.cuentaAtras === 1) raiz.showMinimized()
             if (raiz.cuentaAtras <= 0) {
                 stop()
-                raiz.lanzarGrabacion(raiz.regionPendiente)
+                // La cuenta atras se ve entera, 3-2-1, y solo despues se aparta
+                // la ventana. Se probo minimizar en «1» para que ese segundo
+                // tapara la animacion, y se descarto: dejaba el ultimo segundo
+                // a ciegas y no se sabia cuando empezaba de verdad. Mejor un
+                // solo mecanismo —apartarse y esperar— para los dos caminos.
+                raiz.apartarseYArrancar(function() {
+                    raiz.lanzarGrabacion(raiz.regionPendiente)
+                })
             }
         }
     }
 
-    // Apartarse sin cuenta atras.
+    // Apartarse y arrancar, el unico camino por el que se empieza a grabar.
     //
-    // Aqui no hay segundo de sobra, asi que se espera la señal de que la
-    // ventana se fue y ADEMAS un margen: en Wayland `visibility` dice que el
+    // Se espera la señal de que la ventana se fue y ADEMAS un margen: en
+    // Wayland `visibility` dice que el
     // compositor acepto el cambio de estado, no que haya terminado de dibujar
     // su animacion. El margen esta dimensionado por arriba a proposito, porque
     // lo unico que cuesta es empezar un tercio de segundo mas tarde; la
@@ -893,13 +895,6 @@ Kirigami.ApplicationWindow {
                         onTriggered: {
                             relojCuentaAtras.stop()
                             raiz.cuentaAtras = 0
-                            // Si ya se habia apartado —se aparta al llegar a 1,
-                            // y desde la barra de tareas se puede volver y
-                            // cancelar en ese ultimo segundo— hay que devolverla
-                            // a mano: el estado nunca cambio, asi que la red de
-                            // onEstadoCambiado no va a saltar y la ventana se
-                            // quedaria minimizada sin nada en marcha.
-                            if (raiz.apartada) raiz.volver()
                         }
                     }
                 }
