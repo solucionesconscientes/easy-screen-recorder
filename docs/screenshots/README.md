@@ -21,12 +21,57 @@ versión.
 
 | Fichero | Qué tiene que enseñar | Estado |
 |---|---|---|
-| `principal.png` | La ventana principal en reposo: fuente y botón de grabar. Es la `type="default"` | Tomada, **a rehacer** |
-| `grabando.png` | Grabando: el tiempo y los botones de pausa y parada | Tomada, **a rehacer** |
-| `avanzado.png` | El panel Avanzado abierto: formato, códecs, calidad y carpeta | Tomada, **a rehacer** |
+| `principal.png` | La ventana principal en reposo: fuente y botón de grabar. Es la `type="default"` | **Hecha** (2026-09-17, v0.5.0) |
+| `grabando.png` | Grabando: el tiempo y los botones de pausa y parada | **Hecha** (2026-09-17) |
+| `avanzado.png` | El panel Avanzado abierto: formato, códecs, calidad y carpeta | **Hecha** (2026-09-17) |
 | `demo.gif` | El GIF del README: abrir, elegir región, grabar, parar. 10–15 s | **Falta** |
 
-## Pendiente desde la 0.2.0
+## Cómo se rehacen ahora: `scripts/capturas-ficha.sh`
+
+Un comando, sin un solo clic:
+
+```bash
+scripts/capturas-ficha.sh
+```
+
+Toma las tres, en inglés, sin maximizar, las compone a 1100×790 en PNG sin
+transparencia y las deja en esta carpeta.
+
+**La clave que lo hizo posible es KWin.** Lo que bloqueaba esto no era pereza:
+en Wayland la aplicación **no puede ponerse delante sola**, porque
+`requestActivate()` necesita un token de activación que solo concede un clic de
+verdad. Pero la interfaz de scripting de KWin sí puede activar una ventana y
+quitarle el maximizado:
+
+```javascript
+const lista = workspace.windowList();
+for (let i = 0; i < lista.length; ++i) {
+    const w = lista[i];
+    if (String(w.resourceName) !== "easy-screen-recorder") continue;
+    if (w.minimized) w.minimized = false;
+    w.setMaximize(false, false);
+    workspace.activeWindow = w;
+}
+```
+
+Se carga con `qdbus6 org.kde.KWin /Scripting loadScript <fichero> <nombre>` y
+luego `start`.
+
+**Un detalle que cuesta un rato:** el identificador es `resourceName` y **no**
+`resourceClass`. La clase es `es.solucionesconscientes.EasyScreenRecorder`, así
+que buscar ahí «easy-screen-recorder» no casa por las mayúsculas, el script no
+encuentra nada y no dice por qué. `resourceName` sí es `easy-screen-recorder`.
+
+Y la de «grabando» se toma arrancando la grabación **antes** de abrir la
+ventana: así se abre ya en ese estado y no se minimiza, porque minimizarse es su
+reacción a que el estado *cambie*.
+
+## Historia: por qué esto costó tanto
+
+Lo que sigue se conserva porque el problema tardó cuatro tandas en resolverse y
+las trampas siguen siendo reales.
+
+### Pendiente desde la 0.2.0 (resuelto en la 0.5.0)
 
 Las tres siguen siendo las de la v0.1.0 y **ya no se parecen a la aplicación**:
 enseñan «eDP-1» en vez de «Laptop screen · 1366×768», la ventana estirada y el
