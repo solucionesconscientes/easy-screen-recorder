@@ -23,6 +23,7 @@ Kirigami.ApplicationWindow {
                                      || Controlador.estado === "grabandoAudio"
                                      || Controlador.estado === "pausado"
                                      || Controlador.estado === "replay"
+                                     || Controlador.estado === "emitiendo"
 
     // Al grabar pantalla, la ventana se aparta: si no, sale en el video.
     // Vuelve sola al guardar. En solo-audio se queda, que no estorba a nadie
@@ -45,8 +46,8 @@ Kirigami.ApplicationWindow {
     Connections {
         target: Controlador
         function onEstadoCambiado() {
-            if (Controlador.estado === "grabando"
-                    || Controlador.estado === "replay") raiz.showMinimized()
+            if (Controlador.estado === "grabando" || Controlador.estado === "replay"
+                    || Controlador.estado === "emitiendo") raiz.showMinimized()
             else if (Controlador.estado === "listo" && raiz.apartada) raiz.volver()
         }
     }
@@ -129,11 +130,22 @@ Kirigami.ApplicationWindow {
             replaySegundos: replay.checked ? segundosReplay.currentValue : 0
         }
         if (region !== "") opciones.region = region
-        Controlador.grabar(fuente.currentValue, opciones)
+        if (raiz.emitiendo) {
+            Controlador.emitir(fuente.currentValue, servidorEmision.text.trim(),
+                               claveEmision.text.trim(),
+                               parseInt(bitrateEmision.currentValue), opciones)
+        } else {
+            Controlador.grabar(fuente.currentValue, opciones)
+        }
     }
 
     // La camara superpuesta solo tiene sentido grabando pantalla: sobre una
     // fuente que YA es la camara, o sobre una nota de voz, no pinta nada.
+    // Emitir es un MODO, no una opcion mas: cambia el boton principal, quita la
+    // pausa y convierte la calidad en un bitrate. Por eso tiene su propia
+    // casilla y no se cuela como un ajuste cualquiera.
+    readonly property bool emitiendo: emitirEnDirecto.visible && emitirEnDirecto.checked
+
     readonly property bool puedeCamara: !fuente.esAudio
                                         && String(fuente.currentValue).indexOf("/dev/") !== 0
                                         && Controlador.camaras.length > 0
@@ -254,8 +266,12 @@ Kirigami.ApplicationWindow {
                     icon.name: "media-record"
                     text: Controlador.estado === "arrancando" ? qsTr("Arrancando…")
                         : Controlador.estado === "guardando" ? qsTr("Guardando…")
+                        : raiz.emitiendo ? qsTr("Emitir en directo")
                         : qsTr("Grabar")
+                    // Emitiendo hace falta la clave: sin ella el servidor
+                    // rechaza la conexion y el usuario solo ve que no pasa nada.
                     enabled: !ocupado && String(fuente.currentValue) !== ""
+                             && (!raiz.emitiendo || claveEmision.text.trim() !== "")
                     onClicked: {
                         // «region» es el identificador de GSR, no texto visible:
                         // por eso se compara con currentValue y sigue valiendo en
@@ -303,6 +319,73 @@ Kirigami.ApplicationWindow {
                     enabled: !ocupado
                     spacing: Kirigami.Units.largeSpacing
                     onImplicitHeightChanged: if (avanzado.checked) raiz.ajustarAltura()
+
+                    // --- Emitir en directo ---------------------------------
+                    //
+                    // Va arriba y a lo ancho porque es un MODO: mientras esta
+                    // puesto, no se graba a fichero, no hay pausa y la calidad
+                    // es un bitrate. Mezclarlo entre los ajustes de vídeo habria
+                    // hecho que se activara sin querer.
+                    QQC2.CheckBox {
+                        id: emitirEnDirecto
+                        visible: !fuente.esAudio
+                        text: qsTr("Emitir en directo en vez de guardar un fichero")
+                        QQC2.ToolTip.text: qsTr(
+                            "Manda la pantalla a YouTube, Twitch o cualquier servidor RTMP. " +
+                            "No se guarda nada en el disco.\n\nNo se puede pausar: dejar de " +
+                            "mandar imagen hace que la plataforma dé la emisión por caída.")
+                        QQC2.ToolTip.visible: hovered
+                        QQC2.ToolTip.delay: 400
+                    }
+                    RowLayout {
+                        visible: raiz.emitiendo
+                        Layout.fillWidth: true
+                        spacing: Kirigami.Units.largeSpacing
+                        QQC2.Label { text: qsTr("Servidor:") }
+                        QQC2.TextField {
+                            id: servidorEmision
+                            Layout.fillWidth: true
+                            // Se recuerda entre sesiones: es una URL publica, la
+                            // misma que YouTube pone en su propia pagina.
+                            text: Controlador.urlEmision
+                            placeholderText: "rtmp://a.rtmp.youtube.com/live2"
+                        }
+                        QQC2.Label { text: qsTr("Bitrate:") }
+                        QQC2.ComboBox {
+                            id: bitrateEmision
+                            textRole: "texto"
+                            valueRole: "valor"
+                            // Los tres que recomienda YouTube para 30 imagenes
+                            // por segundo. Emitiendo no hay «calidad»: hay un
+                            // caudal, y lo fija la plataforma, no nosotros.
+                            model: [
+                                { texto: qsTr("1080p · 4500 kbps"), valor: 4500 },
+                                { texto: qsTr("720p · 2500 kbps"), valor: 2500 },
+                                { texto: qsTr("1440p · 9000 kbps"), valor: 9000 }
+                            ]
+                            currentIndex: 0
+                        }
+                    }
+                    RowLayout {
+                        visible: raiz.emitiendo
+                        Layout.fillWidth: true
+                        spacing: Kirigami.Units.largeSpacing
+                        QQC2.Label { text: qsTr("Clave:") }
+                        QQC2.TextField {
+                            id: claveEmision
+                            Layout.fillWidth: true
+                            echoMode: TextInput.Password
+                            placeholderText: qsTr("pégala aquí; no se guarda")
+                        }
+                        QQC2.Label {
+                            // Dicho donde se pega, no en la documentacion: es una
+                            // credencial y el usuario tiene derecho a saber que
+                            // no se queda en ningun sitio.
+                            text: qsTr("La clave no se guarda: hay que pegarla cada vez")
+                            opacity: 0.7
+                            font: Kirigami.Theme.smallFont
+                        }
+                    }
 
                     // --- Camara, a lo ancho: el mapa necesita sitio ---------
                     QQC2.CheckBox {
@@ -427,7 +510,9 @@ Kirigami.ApplicationWindow {
 
                             QQC2.ComboBox {
                                 id: contenedor
-                                visible: !fuente.esAudio
+                                // Emitiendo el contenedor es flv y el codec aac:
+                                // no hay nada que elegir, asi que no se enseña.
+                                visible: !fuente.esAudio && !raiz.emitiendo
                                 Kirigami.FormData.label: qsTr("Formato:")
                                 model: Controlador.contenedores
                             }
@@ -444,7 +529,8 @@ Kirigami.ApplicationWindow {
                             }
                             QQC2.ComboBox {
                                 id: calidad
-                                visible: !fuente.esAudio
+                                // Emitiendo se fija un bitrate, no una calidad.
+                                visible: !fuente.esAudio && !raiz.emitiendo
                                 Kirigami.FormData.label: qsTr("Calidad:")
                                 textRole: "texto"
                                 valueRole: "valor"
@@ -567,7 +653,7 @@ Kirigami.ApplicationWindow {
                             }
                             QQC2.ComboBox {
                                 id: codecAudio
-                                visible: !fuente.esAudio
+                                visible: !fuente.esAudio && !raiz.emitiendo
                                 Kirigami.FormData.label: qsTr("Códec de audio:")
                                 // Solo los que GSR respeta en ese formato y en
                                 // ese reparto de pistas.
@@ -653,7 +739,9 @@ Kirigami.ApplicationWindow {
                             }
                             QQC2.CheckBox {
                                 id: replay
-                                visible: !fuente.esAudio
+                                // Repetir y emitir se excluyen: emitiendo no hay
+                                // buffer que guardar, lo que sale ya se ha ido.
+                                visible: !fuente.esAudio && !raiz.emitiendo
                                 text: qsTr("Modo repetición")
                                 QQC2.ToolTip.text: qsTr(
                                     "Graba sin escribir nada: va guardando en " +
@@ -684,12 +772,14 @@ Kirigami.ApplicationWindow {
                     }
 
                     // La carpeta, a lo ancho: una ruta larga no cabe en media.
+                    // Emitiendo no se guarda nada, asi que ni se enseña.
                     //
                     // El hueco sobrante va DESPUES del boton, no entre la ruta y
                     // el boton. Con la ruta estirandose, «Cambiar…» acababa
                     // pegado al borde derecho, a media ventana de la ruta que
                     // cambia: parecian dos cosas distintas.
                     RowLayout {
+                        visible: !raiz.emitiendo
                         Layout.fillWidth: true
                         QQC2.Label { text: qsTr("Guardar en:") }
                         QQC2.Label {
@@ -806,6 +896,7 @@ Kirigami.ApplicationWindow {
                     text: Controlador.estado === "pausado" ? qsTr("En pausa")
                         : Controlador.estado === "grabandoAudio" ? qsTr("Grabando audio")
                         : Controlador.estado === "replay" ? qsTr("En memoria, sin guardar")
+                        : Controlador.estado === "emitiendo" ? qsTr("Emitiendo en directo")
                         : qsTr("Grabando")
                     opacity: 0.7
                 }
@@ -829,6 +920,7 @@ Kirigami.ApplicationWindow {
                         // de la pantalla. En audio y en repeticion no se ofrece.
                         visible: Controlador.estado !== "grabandoAudio"
                                  && Controlador.estado !== "replay"
+                                 && Controlador.estado !== "emitiendo"
                         icon.name: Controlador.estado === "pausado"
                                    ? "media-playback-start" : "media-playback-pause"
                         text: Controlador.estado === "pausado" ? qsTr("Reanudar") : qsTr("Pausa")
@@ -839,8 +931,9 @@ Kirigami.ApplicationWindow {
                         icon.name: "media-playback-stop"
                         // En repeticion no se guarda nada al parar, y decir
                         // «Parar y guardar» ahi seria mentir.
-                        text: Controlador.estado === "replay" ? qsTr("Terminar")
-                                                              : qsTr("Parar y guardar")
+                        text: Controlador.estado === "replay"
+                                  || Controlador.estado === "emitiendo" ? qsTr("Terminar")
+                                                                        : qsTr("Parar y guardar")
                         onClicked: Controlador.parar()
                     }
                 }
