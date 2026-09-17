@@ -144,6 +144,16 @@ SPDX-License-Identifier: CC0-1.0
   <content_rating type="oars-1.1"/>
 
   <releases>
+    <release version="0.5.1" date="2026-09-17" type="development">
+      <description>
+        <p>New screenshots. The ones on this page were from version 0.1.0 and no
+        longer looked like the application. Nothing else changed: same code as
+        0.5.0.</p>
+        <p xml:lang="es">Capturas nuevas. Las de esta ficha eran de la versión
+        0.1.0 y ya no se parecían a la aplicación. No cambia nada más: el mismo
+        código que la 0.5.0.</p>
+      </description>
+    </release>
     <release version="0.5.0" date="2026-09-17" type="development">
       <description>
         <p>Live streaming over RTMP. Paste the ingest server and your key and

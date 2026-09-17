@@ -5,6 +5,38 @@ máquina de desarrollo.
 
 ## Sin publicar
 
+### Capturas de la ficha, rehechas y repetibles (2026-09-17)
+
+Las tres eran de la v0.1.0 y ya no se parecían a la aplicación: enseñaban
+`eDP-1` en vez de «Laptop screen · 1366×768», la ventana estirada y el panel
+Avanzado cortado por abajo. Y eran RGBA de dos tamaños distintos, cuando Flathub
+pide PNG sin transparencia y todas iguales.
+
+Ahora están en inglés, sin maximizar, a 1100×790 y sin alfa, con la emisión en
+directo ya visible en el panel Avanzado.
+
+**Y deja de ser una tarea manual.** Lo que la bloqueaba no era pereza: en
+Wayland la aplicación **no puede ponerse delante sola**, porque
+`requestActivate()` necesita un token de activación que solo concede un clic de
+verdad. La salida es la interfaz de scripting de **KWin**, que sí puede activar
+una ventana y quitarle el maximizado. `scripts/capturas-ficha.sh` hace las tres
+de una, sin un solo clic.
+
+Dos trampas apuntadas en `docs/screenshots/README.md` para la próxima vez:
+
+- El identificador de la ventana es **`resourceName`** y no `resourceClass`: la
+  clase es `es.solucionesconscientes.EasyScreenRecorder`, así que buscar ahí
+  «easy-screen-recorder» no casa por las mayúsculas, el script no encuentra nada
+  y no dice por qué.
+- La de «grabando» se toma arrancando la grabación **antes** de abrir la
+  ventana: así se abre ya en ese estado y no se minimiza, porque minimizarse es
+  su reacción a que el estado *cambie*.
+
+El metainfo pasa a apuntar a un **commit** en vez de a un tag. Apuntar a un tag
+obligaría a capturar antes de etiquetar, o a mover una etiqueta ya publicada.
+Verificado: las tres URLs responden 200 y `appstreamcli validate` da el metainfo
+por bueno.
+
 ### Emitir en directo por RTMP (2026-09-17)
 
 **GSR ya emitía y no lo sabíamos.** Reconoce `rtmp://` y `rtmps://` en `-o`
