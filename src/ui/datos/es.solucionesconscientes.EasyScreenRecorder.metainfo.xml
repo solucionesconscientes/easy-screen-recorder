@@ -144,6 +144,32 @@ SPDX-License-Identifier: CC0-1.0
   <content_rating type="oars-1.1"/>
 
   <releases>
+    <release version="0.7.0" date="2026-09-20" type="development">
+      <description>
+        <p>Pick a region and adjust it before recording. Releasing the mouse used
+        to pick the region and start recording in the same gesture, so a crooked
+        crop had no fix: you had to let it record, stop it and start over. Now the
+        crop stays where you left it. Drag inside it to move it, drag an edge or a
+        corner to resize it, and press Enter to record. Esc cancels.</p>
+        <p>The dimmed backdrop now opens a hole where the crop is, so you frame
+        the shot looking at what will actually be recorded instead of through 45 %
+        black.</p>
+        <p>And seven strings that were still showing in Spanish in the English
+        interface are translated: the streaming bitrates and the tray menu.</p>
+        <p xml:lang="es">Elegir una región y ajustarla antes de grabar. Soltar el
+        ratón elegía la región y arrancaba la grabación en el mismo gesto, así que
+        un recorte torcido no tenía arreglo: había que dejar que grabase, pararla
+        y volver a empezar. Ahora el recorte se queda donde lo dejas. Se mueve
+        arrastrándolo por dentro, se estira por un borde o una esquina, y Enter
+        graba. Esc cancela.</p>
+        <p xml:lang="es">El fondo oscurecido se abre justo en el recorte, así que
+        el encuadre se elige mirando lo que se va a grabar y no a través de un
+        45 % de negro.</p>
+        <p xml:lang="es">Y siete cadenas que seguían saliendo en español en la
+        interfaz en inglés ya están traducidas: los caudales de emisión y el menú
+        de la bandeja.</p>
+      </description>
+    </release>
     <release version="0.6.0" date="2026-09-17" type="development">
       <description>
         <p>Start recording from the tray icon. The tray menu could pause, stop
