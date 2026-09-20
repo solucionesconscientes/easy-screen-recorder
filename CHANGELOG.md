@@ -5,6 +5,55 @@ máquina de desarrollo.
 
 ## Sin publicar
 
+### El recorte de región se ajusta antes de grabar (2026-09-20)
+
+Soltar el ratón elegía la región y arrancaba la grabación en el mismo gesto. Un
+recorte torcido no tenía arreglo: había que dejar que grabase, pararla y volver
+a abrir el selector. Y el rótulo no decía en ningún momento qué iba a pasar al
+soltar, así que el primer arrastre de cualquiera es a ciegas.
+
+Ahora soltar deja el recorte puesto. Se mueve arrastrándolo por dentro y se
+estira por los bordes y las esquinas, con el cursor diciendo cuál se agarra.
+**Enter graba**; Esc cancela. El rótulo cambia en cuanto hay recorte, porque
+antes de tenerlo Enter no hace nada y ofrecerlo sería mentir.
+
+Por dentro el recorte pasa a guardarse como rectángulo y no como los dos puntos
+del arrastre: con dos puntos, estirar un borde obliga a adivinar cuál de ellos
+es. Pasarse de largo con un borde cambia de borde, en vez de dejar el rectángulo
+del revés o clavado en cero. El agarre son 12 px, recortados a la mitad del lado
+para que en un recorte pequeño no alcancen los dos bordes a la vez. Nada se sale
+de la pantalla, y se limita mientras se arrastra: lo que se ve es lo que se
+graba.
+
+Y el velo pasa a ser **cuatro trozos alrededor del recorte** en vez de uno encima
+de todo. El comentario del fichero decía «el recorte en claro sobre el fondo
+oscurecido» y eso no era verdad: el velo tapaba también el recorte, así que el
+encuadre se elegía a través de un 45 % de negro. Ahora el recorte se ve tal cual,
+que es justo lo que se va a grabar. El alfa va en el color y no en `opacity`,
+porque cuatro trozos con opacidad de grupo obligan a componer la pantalla entera
+aparte, y se tocan sin solaparse, porque solapados el negro se sumaría y la
+costura se vería.
+
+Eso dejó al rótulo sin velo debajo: con un recorte grande cae dentro, sobre lo
+que haya, y blanco sobre blanco no se lee. Lleva una pastilla oscura detrás.
+
+Verificado con un arnés desechable que carga el QML real y le manda los eventos
+de ratón y de teclado. Vive fuera del repositorio: dentro costaría Qt6::Test como
+dependencia, y la interfaz no se verifica. Arrastrar y soltar deja 300×250 sin
+emitir nada; arrastrar por dentro mueve sin cambiar el tamaño; el borde derecho y
+la esquina de arriba a la izquierda estiran solo lo suyo; Enter emite
+`400x300+100+110` y cierra; un clic suelto no es recorte y Enter no hace nada;
+Esc cancela.
+
+El velo no se da por bueno de palabra: el arnés lee la imagen de la ventana con
+`grabWindow()` y cuenta píxeles. Dentro del recorte, cero píxeles tapados; fuera,
+cero agujeros; los cuatro lados al negro del 45 % exacto (alfa 115); y la
+pastilla del rótulo cubre todo lo que hay debajo (alfa mínimo 200, el suyo). 43
+comprobaciones, todas en verde.
+
+Sigue **sin verificar** el arrastre humano sobre el compositor real y la escala
+fraccionaria.
+
 ### Empezar desde la bandeja, y apartarse antes de grabar (2026-09-17)
 
 Al dar a Grabar se veía la ventana minimizarse dentro del vídeo. La causa no era

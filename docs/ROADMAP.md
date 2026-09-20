@@ -46,7 +46,7 @@ localizadas:
 | Índice del enum de calidad | `Main.qml:212` | `currentIndex: 2` es `very_high` porque es el tercer valor **de la lista de GSR** |
 | Compatibilidad códec/formato | `Main.qml:195` | El filtrado replica qué respeta GSR en cada contenedor |
 | Rareza de comportamiento | `Main.qml:318` | «GSR no pausa el modo audio-only»: una limitación suya, codificada en la UI |
-| Formato de `-region` | `src/ui/qml/SelectorRegion.qml:88` | Las coordenadas se calculan en el formato de su bandera |
+| Formato de `-region` | `src/ui/qml/SelectorRegion.qml:57` | Las coordenadas se calculan en el formato de su bandera |
 | Estado `"sinGsr"` | `src/ui/controlador.hpp:21`, `Main.qml:108` | El nombre del backend está en la máquina de estados de la UI |
 | Campo `gsr` en la API pública | `esr/entorno.hpp:62-63` → `e.gsr.presente` | `libesr` expone dos herramientas llamadas `gsr` y `gsr_cli` |
 
