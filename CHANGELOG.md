@@ -54,6 +54,18 @@ comprobaciones, todas en verde.
 Sigue **sin verificar** el arrastre humano sobre el compositor real y la escala
 fraccionaria.
 
+### Las cadenas que faltaban en la traducción al inglés (2026-09-20)
+
+Siete cadenas de las dos últimas tandas nunca llegaron al `.ts`: los cuatro
+caudales de emisión, su explicación y las dos del menú de la bandeja. En inglés
+salían en español, porque Qt cae al texto fuente cuando no encuentra traducción,
+y eso no se ve desde aquí, que es en español. Regeneradas con `lupdate
+-no-obsolete`, que además se llevó tres entradas muertas: las cifras de 4500 kbps
+que estaban mal y se corrigieron en la Tanda 18.
+
+`lrelease` dice 118 traducciones, 118 terminadas y 0 sin terminar, y las cadenas
+nuevas se leyeron del `.qm` compilado, no del `.ts`.
+
 ### Empezar desde la bandeja, y apartarse antes de grabar (2026-09-17)
 
 Al dar a Grabar se veía la ventana minimizarse dentro del vídeo. La causa no era
