@@ -104,5 +104,5 @@ modules:
       # cannot, and what gets published has to be reproducible.
       - type: git
         url: https://github.com/solucionesconscientes/easy-screen-recorder.git
-        tag: v0.9.0
-        commit: 6a71eb7cd5f87c83d69a1f265ec13d8528243b34
+        tag: v0.10.0
+        commit: 948f5768b2f980bd1778b9d9317c0070ceeacca0
