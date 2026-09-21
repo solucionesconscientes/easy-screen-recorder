@@ -37,6 +37,16 @@ const QStringList kAccionPausa = {
     QStringLiteral("Pausar o reanudar la grabación"),
 };
 
+// Y el de tirar lo grabado. Tiene atajo por lo mismo que la pausa: cuando lo
+// necesitas, la ventana no esta delante. Lo que hace no es borrar sin mas, es
+// «pedirDescartar»: por debajo de diez segundos tira, y por encima pregunta.
+const QStringList kAccionDescartar = {
+    QStringLiteral("easy-screen-recorder"),
+    QStringLiteral("descartar"),
+    QStringLiteral("Easy Screen Recorder"),
+    QStringLiteral("Tirar la grabación sin guardarla"),
+};
+
 // SetPresent: activa el atajo ademas de apuntarlo. Respeta lo que el usuario
 // tuviera guardado, porque no lleva NoAutoloading.
 constexpr uint kActivarAtajo = 2;
@@ -137,6 +147,9 @@ AtajosGlobales::AtajosGlobales(Controlador* controlador, QObject* padre)
     registrar(kAccionPausa, {QStringLiteral("Meta+Shift+P"),
                              QStringLiteral("Meta+Alt+P"),
                              QStringLiteral("Meta+Ctrl+P")});
+    registrar(kAccionDescartar, {QStringLiteral("Meta+Shift+X"),
+                                 QStringLiteral("Meta+Alt+X"),
+                                 QStringLiteral("Meta+Ctrl+X")});
 
     // Y se pregunta cual ha quedado. No se da por hecho el que acabamos de
     // pedir: si el usuario ya lo habia cambiado, KDE conserva el suyo y es ese
@@ -169,4 +182,5 @@ void AtajosGlobales::alPulsar(const QString& componente, const QString& accion,
     if (componente != QStringLiteral("easy-screen-recorder")) return;
     if (accion == QStringLiteral("grabar_parar")) controlador_->alternarGrabacion();
     if (accion == QStringLiteral("pausar_reanudar")) controlador_->alternarPausa();
+    if (accion == QStringLiteral("descartar")) controlador_->pedirDescartar();
 }

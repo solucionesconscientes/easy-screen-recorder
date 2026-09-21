@@ -45,6 +45,10 @@ qt_add_executable(esr_ui
 )
 set_target_properties(esr_ui PROPERTIES OUTPUT_NAME easy-screen-recorder)
 
+# Sistema.qml es un singleton: los numeros del diseño se leen desde cualquier
+# fichero QML sin instanciarlo, que es justo lo que se quiere de una escala.
+set_source_files_properties(qml/Sistema.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
+
 qt_add_qml_module(esr_ui
   URI es.solucionesconscientes.esr
   VERSION 1.0
@@ -54,6 +58,9 @@ qt_add_qml_module(esr_ui
   NO_IMPORT_SCAN
   QML_FILES
     qml/Main.qml
+    qml/Sistema.qml
+    qml/FilaAjuste.qml
+    qml/CabeceraSeccion.qml
     qml/SelectorRegion.qml
     qml/ColocarCamara.qml
 )

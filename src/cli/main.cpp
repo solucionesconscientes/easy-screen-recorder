@@ -43,6 +43,11 @@ void uso() {
         "  easy-screen-recorder-cli reparar            arregla la grabacion que quedo a medias\n"
         "                              si el equipo se apago mientras grababa\n"
         "  easy-screen-recorder-cli reducir FICHERO    recomprime una grabacion para que ocupe\n"
+        "  easy-screen-recorder-cli descartar          para la grabacion y BORRA el fichero\n"
+        "  easy-screen-recorder-cli recortar FICHERO   quita segundos del principio y del final\n"
+        "                              sin recodificar: --quitar-inicio N --quitar-final N\n"
+        "  easy-screen-recorder-cli comprobar-codecs   graba unas sondas y dice si el hevc de\n"
+        "                              esta tarjeta sirve o es peor que h264\n"
         "                              menos, sin cambiar de codec. Con --maximo aprieta\n"
         "                              mas, perdiendo algo de calidad\n"
         "  easy-screen-recorder-cli pausar             pausa la grabacion en marcha\n"
@@ -84,6 +89,12 @@ void uso() {
         "  --modo-fotogramas M  cfr, vfr o content. «content» solo codifica cuando la\n"
         "                    pantalla cambia: menos consumo y menos tamaño en un\n"
         "                    tutorial con pausas. Sin el, el default de GSR (vfr)\n"
+        "  --sin-cursor      el puntero no sale en el video\n"
+        "  --guion FICHERO   programa que GSR ejecuta al terminar de guardar; recibe\n"
+        "                    la ruta y el tipo. Tiene que existir y ser ejecutable\n"
+        "  --buffer-en-disco  solo con --replay: el buffer va al disco en vez de a la\n"
+        "                    RAM. Ojo, escribe sin parar y eso desgasta un SSD\n"
+        "  --carpetas-por-fecha  solo con --replay: cada volcado a su carpeta del dia\n"
         "  --limite-resolucion WxH  escala la salida para caber ahi, respetando la\n"
         "                    proporcion. Por ejemplo 1920x1080 grabando en 4K\n"
         "  --replay N        modo replay: guarda en memoria los ultimos N segundos y no\n"
@@ -298,6 +309,14 @@ int grabar(const std::vector<std::string_view>& args, bool emitiendo = false) {
             a.camara_y_pct = std::atoi(std::string(valor()).c_str());
         } else if (opcion == "--camara-sin-espejo") {
             a.camara_espejo = false;
+        } else if (opcion == "--sin-cursor") {
+            a.cursor = false;
+        } else if (opcion == "--buffer-en-disco") {
+            a.buffer_en_disco = true;
+        } else if (opcion == "--carpetas-por-fecha") {
+            a.carpetas_por_fecha = true;
+        } else if (opcion == "--guion") {
+            a.guion_al_terminar = std::string(valor());
         } else if (opcion == "--guardar") {
             // Emitiendo, guardar ademas a fichero. La carpeta es la de siempre,
             // sin una bandera mas: quien quiera otra la cambia una vez y se
@@ -634,6 +653,88 @@ int reducir(const std::vector<std::string_view>& args) {
     return 0;
 }
 
+// Para la grabacion y BORRA el fichero. Sin papelera y sin preguntar: quien
+// escribe esto en una terminal ya ha decidido.
+int descartar() {
+    std::string motivo;
+    const auto ruta = esr::descartar_grabacion(esr::sesion_por_defecto(), motivo);
+    if (ruta.empty()) {
+        std::fprintf(stderr, "%s\n", motivo.c_str());
+        return kFallo;
+    }
+    std::printf("descartada y borrada: %s\n", ruta.c_str());
+    return 0;
+}
+
+int recortar(const std::vector<std::string_view>& args) {
+    std::string ruta;
+    double principio = 0.0;
+    double final = 0.0;
+    for (std::size_t i = 1; i < args.size(); ++i) {
+        const std::string_view o = args[i];
+        const auto valor = [&]() -> std::string {
+            return i + 1 < args.size() ? std::string(args[++i]) : std::string();
+        };
+        // atof mira la configuracion regional y aqui el usuario escribe
+        // «1.5» venga de donde venga: se lee con from_chars, que no la mira.
+        if (o == "--quitar-inicio") principio = esr::segundos_de(valor());
+        else if (o == "--quitar-final") final = esr::segundos_de(valor());
+        else if (ruta.empty()) ruta = std::string(o);
+    }
+    if (ruta.empty()) {
+        std::fprintf(stderr,
+                     "uso: easy-screen-recorder-cli recortar FICHERO "
+                     "[--quitar-inicio SEGUNDOS] [--quitar-final SEGUNDOS]\n");
+        return kMalUso;
+    }
+    std::string motivo;
+    if (!esr::recortar_grabacion(ruta, principio, final, motivo)) {
+        std::fprintf(stderr, "%s\n", motivo.c_str());
+        return kFallo;
+    }
+    std::printf("recortado: %s\n", ruta.c_str());
+    return 0;
+}
+
+// Averigua ANTES de grabar si el codificador hevc de esta tarjeta sirve para
+// algo. Graba unas sondas de tres segundos y las borra.
+int comprobar_codecs_cli(const std::vector<std::string_view>& args) {
+    std::string fuente;
+    for (std::size_t i = 1; i < args.size(); ++i) {
+        if (args[i] == "--fuente" && i + 1 < args.size()) fuente = std::string(args[++i]);
+    }
+    const auto entorno = esr::detectar();
+    const auto codecs = esr::codecs_video_ofrecibles(entorno.capacidades.info);
+    if (fuente.empty()) {
+        for (const auto& f : esr::fuentes_amables(entorno.capacidades.fuentes_captura)) {
+            if (f.tipo == esr::TipoFuente::Monitor) { fuente = f.id; break; }
+        }
+    }
+    if (fuente.empty()) {
+        std::fprintf(stderr, "no encuentro un monitor que grabar para la prueba\n");
+        return kFallo;
+    }
+    std::printf("probando en %s: unos diez segundos, grabando y borrando…\n", fuente.c_str());
+    const auto v = esr::comprobar_codecs(fuente, esr::sesion_por_defecto(), codecs);
+    if (!v.probado) {
+        std::fprintf(stderr, "%s\n", v.motivo.c_str());
+        return kFallo;
+    }
+    std::printf("  h264: %.0f kB/s\n", v.bytes_por_s_h264 / 1024.0);
+    if (!v.hevc_ofrecido) {
+        std::printf("  hevc: esta tarjeta no lo ofrece\n");
+        return 0;
+    }
+    std::printf("  hevc: %.0f kB/s%s\n", v.bytes_por_s_hevc / 1024.0,
+                v.hevc_a_ojo ? "  (su driver NO declara lo que sabe hacer)" : "");
+    if (v.hevc_a_ojo || v.bytes_por_s_hevc > v.bytes_por_s_h264 * 1.05) {
+        std::printf("\nEn esta tarjeta, h264 es mejor eleccion que hevc.\n");
+    } else {
+        std::printf("\nEn esta tarjeta hevc se porta bien.\n");
+    }
+    return 0;
+}
+
 int main(int argc, char** argv) {
     const std::vector<std::string_view> args(argv + 1, argv + argc);
 
@@ -659,6 +760,9 @@ int main(int argc, char** argv) {
     if (orden == "guardar") return guardar();
     if (orden == "reparar") return reparar();
     if (orden == "reducir") return reducir(args);
+    if (orden == "descartar") return descartar();
+    if (orden == "recortar") return recortar(args);
+    if (orden == "comprobar-codecs") return comprobar_codecs_cli(args);
     if (orden == "pausar") return pausar(true);
     if (orden == "reanudar") return pausar(false);
     if (orden == "estado") return estado();

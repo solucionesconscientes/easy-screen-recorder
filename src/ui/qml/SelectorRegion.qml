@@ -7,6 +7,7 @@
 // mueve por dentro y se estira por los bordes. Enter graba; Esc cancela. La
 // referencia es el selector de Spectacle: sin botones, sin dialogos.
 import QtQuick
+import es.solucionesconscientes.esr
 
 Window {
     id: selector
@@ -133,7 +134,8 @@ Window {
         width: selector.recorteAncho
         height: selector.recorteAlto
         color: "transparent"
-        border.color: "#da4453"
+        // El mismo rojo que todo lo que significa grabacion.
+        border.color: Sistema.grabando
         border.width: 2
 
         Text {

@@ -6,6 +6,8 @@
 
 #include <cstdint>
 #include <string>
+#include <string_view>
+#include <vector>
 
 #include "esr/ajustes.hpp"
 
@@ -112,6 +114,69 @@ bool se_puede_reducir(const std::string& ruta, std::string& motivo);
 // El original no se toca hasta que el nuevo existe y tiene duracion, igual que
 // en reparar_grabacion.
 ResultadoReduccion reducir_grabacion(const std::string& ruta, NivelReduccion nivel);
+
+// --- Quitar el principio y el final --------------------------------------
+//
+// Todo el mundo graba unos segundos de «¿donde estaba el boton?» al empezar y
+// otros tantos de buscar el raton al acabar.
+//
+// NO recodifica: corta copiando los flujos, asi que es instantaneo y no pierde
+// calidad. El precio es la precision: copiando solo se puede cortar en un
+// fotograma clave, y GSR pone uno cada dos segundos por defecto, asi que el
+// corte cae donde caiga dentro de esos dos segundos. Recodificar daria el corte
+// exacto y costaria lo que dure el video; para quitar la cola de un tutorial no
+// compensa.
+//
+// Los segundos son los que se QUITAN de cada punta. Devuelve false y llena
+// «motivo» si no se puede, y en ese caso el fichero se queda como estaba.
+bool recortar_grabacion(const std::string& ruta, double quitar_del_principio,
+                        double quitar_del_final, std::string& motivo);
+
+// Espacio libre en la carpeta que contiene esa ruta, en MB. -1 si no se puede
+// saber (una ruta que no existe, un sistema de ficheros que no lo dice).
+//
+// Quedarse sin espacio a mitad de grabacion es el peor fallo que puede tener un
+// grabador: te enteras al final y lo grabado no sirve.
+// Lee «1.5» como 1,5 den igual el idioma del sistema. std::stod y atof miran la
+// configuracion regional y en español se paran en el punto: eso hizo que el
+// recorte funcionara desde el CLI y se negara desde la ventana, que es la que
+// pone el idioma al arrancar.
+double segundos_de(std::string_view texto);
+
+long espacio_libre_mb(const std::string& ruta);
+
+// Para la grabacion y BORRA el fichero. Para cuando lo que se acaba de grabar
+// no vale y no hay que guardarlo.
+//
+// Devuelve la ruta que se borro, o vacio si no habia nada o no se pudo. El
+// borrado es irreversible y no hay papelera de por medio: quien llama a esto ya
+// ha preguntado.
+std::string descartar_grabacion(const SesionGrabacion& sesion, std::string& motivo);
+
+// --- Comprobar de que es capaz esta tarjeta ------------------------------
+//
+// Que GSR liste «hevc» solo dice que el driver lo anuncia, no que lo haga bien.
+// Medido el 2026-09-21 en una Intel HD 520: el driver no declaraba de que era
+// capaz su codificador HEVC, ffmpeg lo conducia a ojo, y el resultado salia
+// entre un 18 % y un 37 % MAS grande que h264 y ademas menos fiel.
+//
+// Hasta ahora eso se descubria despues, leyendo el log al parar. Esto lo
+// averigua ANTES, grabando unos segundos con cada codec y comparando. Tarda
+// unos diez segundos y graba a un temporal que se borra.
+struct VeredictoCodecs {
+    bool probado = false;
+    bool hevc_ofrecido = false;    // la maquina dice tenerlo
+    bool hevc_a_ojo = false;       // ...pero su driver no declara sus capacidades
+    double bytes_por_s_h264 = 0.0;
+    double bytes_por_s_hevc = 0.0;
+    std::string motivo;            // por que no se pudo probar
+};
+
+// «fuente» es la misma que se le pasaria a una grabacion normal (un monitor).
+// No graba audio: la prueba es del codificador de video y abrir el microfono
+// para esto seria de mal gusto.
+VeredictoCodecs comprobar_codecs(const std::string& fuente, const SesionGrabacion& sesion,
+                                 const std::vector<std::string>& codecs_disponibles);
 
 // Lee ese instante. 0 si no hay grabacion o no se puede leer.
 long inicio_grabacion(const std::string& ruta_inicio);

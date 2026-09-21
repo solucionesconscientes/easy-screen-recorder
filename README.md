@@ -87,6 +87,16 @@ Build dependencies, exactly what the CMake asks for:
   `Widgets` `Concurrent`
 - **`lrelease`** (Debian: `qt6-l10n-tools`) to build the English translation
 
+And at **run time**, two KDE QML modules the window imports:
+
+- **Kirigami** (Debian: `qml6-module-org-kde-kirigami`)
+- **Kirigami Addons**, for the settings cards
+  (Debian: `qml6-module-org-kde-kirigamiaddons-formcard`)
+
+Both ship inside the `org.kde.Platform` runtime the flatpak uses, so there is
+nothing to install there. Checked on 6.11: the module sits in
+`files/lib/qml/org/kde/kirigamiaddons/formcard`.
+
 Qt is **optional**: without it the GUI is skipped and the CLI and the tests
 still build.
 
@@ -100,7 +110,8 @@ On Debian and Ubuntu:
 
 ```bash
 sudo apt install cmake ninja-build g++ qt6-base-dev qt6-declarative-dev \
-  qt6-l10n-tools ffmpeg
+  qt6-l10n-tools qml6-module-org-kde-kirigami \
+  qml6-module-org-kde-kirigamiaddons-formcard ffmpeg
 ```
 
 ## Language

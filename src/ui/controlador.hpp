@@ -111,6 +111,16 @@ class Controlador : public QObject {
     // instante y la bandeja es el unico sitio donde mirar.
     Q_PROPERTY(int cuentaAtras READ cuentaAtras WRITE ponerCuentaAtras
                    NOTIFY cuentaAtrasCambiada)
+    // Espacio libre donde se va a grabar, en MB, o -1 si no se puede saber.
+    // Quedarse sin sitio a mitad de grabacion es el peor fallo que puede tener
+    // un grabador: te enteras al final y lo grabado no sirve.
+    Q_PROPERTY(int espacioLibreMb READ espacioLibreMb NOTIFY carpetasCambiadas)
+    // Lo que ocupa un minuto de lo que grabas TU, para poder decir cuanta RAM
+    // costara un buffer de repeticion sin inventarse la cifra.
+    Q_PROPERTY(int mbPorMinuto READ mbPorMinuto NOTIFY reduccionCambiada)
+    // La comprobacion de la tarjeta: graba unas sondas y dice si su hevc sirve.
+    Q_PROPERTY(bool comprobandoCodecs READ comprobandoCodecs NOTIFY veredictoCambiado)
+    Q_PROPERTY(QString veredictoCodecs READ veredictoCodecs NOTIFY veredictoCambiado)
     Q_PROPERTY(bool reduciendo READ reduciendo NOTIFY reduccionCambiada)
     Q_PROPERTY(QString ultimaReduccion READ ultimaReduccion NOTIFY reduccionCambiada)
     // En que porcentaje quedo la ultima grabacion reducida EN ESTA MAQUINA, o 0
@@ -182,6 +192,21 @@ public:
 
     bool hevcPocoFiable() const { return hevc_poco_fiable_; }
     int cuentaAtras() const { return cuenta_atras_; }
+    int espacioLibreMb() const;
+    int mbPorMinuto() const { return mb_por_minuto_; }
+    bool comprobandoCodecs() const { return comprobando_codecs_; }
+    QString veredictoCodecs() const { return veredicto_codecs_; }
+    // Para la grabacion y BORRA el fichero. Irreversible: quien llama ya ha
+    // preguntado.
+    Q_INVOKABLE void descartar();
+    // Lo que piden la bandeja y el atajo global. No descarta a ciegas: por
+    // debajo de diez segundos tira directamente, que es el caso de «me he
+    // equivocado al empezar», y por encima PIDE CONFIRMACION, porque un atajo
+    // que borra diez minutos de trabajo sin preguntar es una trampa.
+    Q_INVOKABLE void pedirDescartar();
+    // Graba unas sondas de tres segundos con cada codec y dice cual conviene en
+    // ESTA tarjeta. Tarda unos diez segundos.
+    Q_INVOKABLE void comprobarCodecs();
     void ponerCuentaAtras(int falta);
     // La pide la bandeja, porque con la ventana apartada su boton «Cancelar» no
     // esta a mano. Quien la atiende es el QML, que es quien tiene el reloj.
@@ -254,6 +279,9 @@ signals:
     void segundosCambiados();
     void relojEnBandejaCambiado();
     void cuentaAtrasCambiada();
+    void veredictoCambiado();
+    void grabacionDescartada();
+    void confirmarDescartePedido();
     void cancelarCuentaAtras();
     void reduccionCambiada();
     void grabacionReducida(const QString& texto);
@@ -298,13 +326,22 @@ private:
     void refrescarConfiguracion();
 
     int cuenta_atras_ = 0;
+    int mb_por_minuto_ = 0;
+    bool comprobando_codecs_ = false;
+    QString veredicto_codecs_;
+    std::string primer_monitor_;
+    // Lo que hay que quitar de cada punta al terminar. Como con la reduccion,
+    // se apunta al empezar: si alguien cambia el numero mientras graba, manda
+    // lo que pidio al darle a Grabar.
+    double quitar_inicio_ = 0.0;
+    double quitar_final_ = 0.0;
     bool reduciendo_ = false;
     QString ultima_reduccion_;
     // Que nivel de reduccion pidio la grabacion EN MARCHA. Se apunta al
     // empezar y no se lee del control al terminar: si alguien cambia la opcion
     // mientras graba, lo que vale es lo que pidio cuando le dio a Grabar.
     QString reduccion_pendiente_;
-    void reducirEnSegundoPlano(const QString& ruta);
+    void posprocesarEnSegundoPlano(const QString& ruta);
     QTimer reloj_;
     bool audio_en_curso_ = false;
     bool hay_atajos_ = false;

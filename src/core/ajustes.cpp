@@ -183,6 +183,10 @@ std::vector<std::string> validar(const AjustesGrabacion& a) {
     // Guardar aparte es cosa de emitir. En una grabacion normal ya hay fichero,
     // y en replay el volcado se pide cuando pasa algo que merezca la pena: si
     // ahi se guardara ademas del tiron, el modo repeticion no tendria sentido.
+    if (a.replay_segundos == 0 && (a.buffer_en_disco || a.carpetas_por_fecha)) {
+        problemas.push_back("el buffer en disco y las carpetas por fecha son del modo "
+                            "repeticion, y esta grabacion no lo es");
+    }
     if (!a.carpeta_guardado.empty() && !es_emision(a.salida)) {
         problemas.push_back("guardar aparte solo tiene sentido emitiendo: en una grabacion "
                             "normal la salida ya es un fichero");
@@ -353,6 +357,18 @@ std::vector<std::string> argumentos_gsr(const AjustesGrabacion& a) {
     // manda empezar_grabacion en cuanto el socket responde.
     if (!a.carpeta_guardado.empty()) {
         args.insert(args.end(), {"-ro", a.carpeta_guardado});
+    }
+    // El puntero solo se menciona cuando se quiere QUITAR: «yes» es el default
+    // de GSR y añadir un argumento para repetir el default es ruido en la linea.
+    if (!a.cursor) {
+        args.insert(args.end(), {"-cursor", "no"});
+    }
+    if (a.replay_segundos != 0) {
+        if (a.buffer_en_disco) args.insert(args.end(), {"-replay-storage", "disk"});
+        if (a.carpetas_por_fecha) args.insert(args.end(), {"-df", "yes"});
+    }
+    if (!a.guion_al_terminar.empty()) {
+        args.insert(args.end(), {"-sc", a.guion_al_terminar});
     }
     if (!a.modo_fotogramas.empty()) {
         args.insert(args.end(), {"-fm", a.modo_fotogramas});

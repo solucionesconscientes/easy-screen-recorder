@@ -129,11 +129,6 @@ SPDX-License-Identifier: CC0-1.0
       <caption>Recording, with the elapsed time and pause at hand</caption>
       <caption xml:lang="es">Grabando, con el tiempo y la pausa a mano</caption>
     </screenshot>
-    <screenshot>
-      <image>https://github.com/solucionesconscientes/easy-screen-recorder/raw/31adc334a11dd8f45f83132c8dcf7c7c4c268a21/docs/screenshots/seleccionando.png</image>
-      <caption>Picking a region by dragging: adjust it, then Enter records</caption>
-      <caption xml:lang="es">Eligiendo una región arrastrando: se ajusta y Enter graba</caption>
-    </screenshot>
   </screenshots>
 
   <requires>
@@ -147,6 +142,52 @@ SPDX-License-Identifier: CC0-1.0
   <content_rating type="oars-1.1"/>
 
   <releases>
+    <release version="0.10.0" date="2026-09-21" type="development">
+      <description>
+        <p>The window was rebuilt. It used to be 1114x866 on a 1366x768 screen,
+        so it did not fit on the screen it was designed on; it is now 540x687.
+        Source and Record sit in a header that never scrolls, and everything else
+        lives in one column of sections you can fold. Each folded section says
+        what it holds: "Video - Very high, 60 fps, h264". Everything you have set
+        now fits on one screen, where before it took almost six screens of
+        scrolling to read.</p>
+        <p>The nineteen little (i) buttons are gone. Every option carries its
+        explanation written underneath, always visible, which says more than a
+        tooltip you have to hunt for with the mouse.</p>
+        <p>Colour now means something and never decorates: red only ever says
+        there is a recording going on. Two contrast defects were found by
+        measuring and fixed, one of them inherited from the theme: white on the
+        accent blue scored 2.49 where the accessibility standard asks for 4.5.</p>
+        <p>New in this release: the pointer can be left out of the video, the
+        replay buffer can live on disk, replays can go into one folder per day, a
+        program of yours can run when a file is saved, a recording can be
+        discarded without saving, seconds can be trimmed off the start and the
+        end, profiles set several options at once, the recording can stop by
+        itself after the minutes you type, and a test tells you whether your card
+        actually does hevc well.</p>
+        <p xml:lang="es">La ventana se ha rehecho. Daba 1114x866 en una pantalla
+        de 1366x768, o sea que no cabía en la pantalla donde se diseñaba; ahora
+        son 540x687. Fuente y Grabar viven en una cabecera que no se desplaza
+        nunca, y lo demás en una sola columna de secciones que se pliegan. Cada
+        sección plegada dice lo que hay dentro: «Vídeo · Muy alta · 60 fps ·
+        h264». Tu configuración entera cabe de un vistazo, cuando antes leerla
+        eran casi seis pantallas de bajar.</p>
+        <p xml:lang="es">Los diecinueve botones «i» desaparecen. Cada opción
+        lleva su explicación escrita debajo, siempre a la vista, que dice más que
+        un globo que hay que perseguir con el ratón.</p>
+        <p xml:lang="es">El color pasa a significar y nunca a decorar: el rojo
+        solo dice que hay una grabación en curso. Dos fallos de contraste
+        encontrados midiendo, uno heredado del tema: blanco sobre el azul de
+        acento daba 2,49 y la norma de accesibilidad pide 4,5.</p>
+        <p xml:lang="es">Nuevo: el puntero se puede dejar fuera del vídeo, el
+        buffer de repetición puede vivir en el disco, los volcados pueden ir a una
+        carpeta por día, un programa tuyo puede ejecutarse al guardar, una
+        grabación se puede descartar sin guardarla, se pueden quitar segundos del
+        principio y del final, los perfiles dejan puestas varias opciones de
+        golpe, la grabación puede parar sola a los minutos que escribas, y una
+        prueba te dice si tu tarjeta hace bien hevc.</p>
+      </description>
+    </release>
     <release version="0.9.0" date="2026-09-21" type="development">
       <description>
         <p>The options are no longer hidden behind an Advanced button: they are

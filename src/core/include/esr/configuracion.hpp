@@ -82,4 +82,14 @@ bool recordar_reduccion(bool maximo, int porcentaje);
 bool hevc_poco_fiable();
 bool recordar_hevc_poco_fiable(bool si);
 
+// Cuantos MB por minuto ocupa lo que graba esta maquina, o 0 si todavia no se
+// ha grabado nada. Se apunta al guardar cada grabacion.
+//
+// Sirve para lo unico que no se puede saber de antemano: cuanta RAM va a costar
+// un buffer de repeticion. Quince minutos de escritorio quieto son unos 36 MB;
+// quince minutos de juego, medio giga. La diferencia la marca lo que grabes tu,
+// no una tabla escrita aqui.
+int mb_por_minuto_recordado();
+bool recordar_mb_por_minuto(int mb);
+
 }  // namespace esr

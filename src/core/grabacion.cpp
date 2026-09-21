@@ -8,6 +8,10 @@
 #include <unistd.h>
 
 #include <algorithm>
+#include <string_view>
+#include <charconv>
+#include <array>
+#include <chrono>
 #include <cstdlib>
 #include <ctime>
 #include <filesystem>
@@ -41,12 +45,38 @@ constexpr int kLimiteInmediatoMs = 10000;
 // cierre, ffprobe le devuelve «N/A». Se usa ffprobe y no una lectura propia
 // porque es lo que hace cualquier reproductor y aqui lo que importa es si el
 // fichero se va a poder abrir.
+// Numeros con punto decimal SIEMPRE, den igual el idioma del sistema.
+//
+// Esto no es puntillismo: costo un rato encontrarlo. ffprobe escribe «2.967» y
+// ffmpeg espera «2.967», pero std::stod y std::to_string miran la configuracion
+// regional, y Qt la pone al arrancar la ventana. En un sistema en español,
+// std::stod("2.967") se para en el punto y devuelve DOS, y std::to_string(0.5)
+// escribe «0,500000», que ffmpeg no entiende.
+//
+// Resultado: el recorte funcionaba desde el CLI —que no toca la configuracion
+// regional— y se negaba desde la ventana, diciendo que la grabacion duraba dos
+// segundos cuando duraba tres. from_chars y to_chars no miran el idioma: por eso
+// estan aqui y no la pareja de siempre.
+double texto_a_double(std::string_view texto) {
+    double valor = 0.0;
+    const auto* fin = texto.data() + texto.size();
+    const auto r = std::from_chars(texto.data(), fin, valor);
+    return r.ec == std::errc() ? valor : 0.0;
+}
+
+std::string double_a_texto(double valor) {
+    std::array<char, 32> buf{};
+    const auto r = std::to_chars(buf.data(), buf.data() + buf.size(), valor,
+                                 std::chars_format::fixed, 3);
+    return r.ec == std::errc() ? std::string(buf.data(), r.ptr) : std::string("0");
+}
+
 double duracion_de(const std::string& ruta) {
     const auto r = ejecutar("ffprobe", {"-v", "error", "-show_entries", "format=duration",
                                         "-of", "csv=p=0", ruta});
     if (!r.ejecutado || r.codigo != 0) return 0.0;
     try {
-        return std::stod(r.salida);
+        return texto_a_double(r.salida);
     } catch (const std::exception&) {
         return 0.0;  // «N/A» y cualquier otra cosa que no sea un numero
     }
@@ -229,6 +259,36 @@ ResultadoLanzamiento empezar_grabacion(const AjustesGrabacion& ajustes,
         const auto dir_salida = std::filesystem::path(ajustes.salida).parent_path();
         if (!dir_salida.empty() && !std::filesystem::is_directory(dir_salida, ec)) {
             r.motivo = "la carpeta de destino no existe: " + dir_salida.string();
+            return r;
+        }
+    }
+
+    // El guion que GSR ejecutara al terminar, comprobado ANTES de lanzar: con un
+    // -sc que no existe el grabador ni arranca, y el error sale en su log, que
+    // es donde nadie mira.
+    if (!ajustes.guion_al_terminar.empty()) {
+        if (!std::filesystem::is_regular_file(ajustes.guion_al_terminar, ec)) {
+            r.motivo = "el guion que se ejecuta al terminar no existe: " +
+                       ajustes.guion_al_terminar;
+            return r;
+        }
+        if (::access(ajustes.guion_al_terminar.c_str(), X_OK) != 0) {
+            r.motivo = "el guion que se ejecuta al terminar no tiene permiso de ejecucion: " +
+                       ajustes.guion_al_terminar;
+            return r;
+        }
+    }
+
+    // Y el espacio libre. Quedarse sin sitio a mitad de grabacion es el peor
+    // fallo posible: te enteras al final y lo grabado no sirve. Aqui solo se
+    // rechaza el caso indiscutible —menos de 100 MB, donde no cabe ni un minuto
+    // de nada—; avisar a partir de ahi es cosa de la interfaz, que es quien
+    // puede enseñar la cifra sin abortar.
+    if (!es_emision(ajustes.salida) && !ajustes.salida.empty()) {
+        const long libres = espacio_libre_mb(ajustes.salida);
+        if (libres >= 0 && libres < 100) {
+            r.motivo = "quedan " + std::to_string(libres) +
+                       " MB libres donde ibas a grabar: no cabe una grabacion";
             return r;
         }
     }
@@ -565,6 +625,191 @@ ResultadoReduccion reducir_grabacion(const std::string& ruta, NivelReduccion niv
     recordar_reduccion(nivel == NivelReduccion::Maximo,
                        static_cast<int>((despues * 100) / r.bytes_antes));
     return r;
+}
+
+double segundos_de(std::string_view texto) { return texto_a_double(texto); }
+
+long espacio_libre_mb(const std::string& ruta) {
+    std::error_code ec;
+    auto carpeta = std::filesystem::path(ruta);
+    if (!std::filesystem::is_directory(carpeta, ec)) carpeta = carpeta.parent_path();
+    if (carpeta.empty()) return -1;
+    const auto info = std::filesystem::space(carpeta, ec);
+    if (ec) return -1;
+    return static_cast<long>(info.available / (1024 * 1024));
+}
+
+std::string descartar_grabacion(const SesionGrabacion& sesion, std::string& motivo) {
+    // Se para por el camino de siempre: hay que dejar el fichero cerrado antes
+    // de borrarlo, y ademas es lo que limpia la sesion.
+    const auto r = parar_grabacion(sesion);
+    if (!r.parado) {
+        motivo = r.motivo;
+        return {};
+    }
+    if (r.ruta_fichero.empty()) {
+        motivo = "no habia ningun fichero que descartar";
+        return {};
+    }
+    std::error_code ec;
+    if (!std::filesystem::remove(r.ruta_fichero, ec)) {
+        motivo = "no se pudo borrar " + r.ruta_fichero +
+                 (ec ? ": " + ec.message() : std::string());
+        return {};
+    }
+    return r.ruta_fichero;
+}
+
+namespace {
+
+// Graba unos segundos con ese codec a un temporal y devuelve los bytes por
+// segundo, o -1 si no se pudo. Deja el log de GSR intacto para quien quiera
+// leerlo despues.
+double sondear_codec(const std::string& fuente, const std::string& codec,
+                     const SesionGrabacion& sesion, const std::string& destino) {
+    AjustesGrabacion a;
+    a.fuente = fuente;
+    a.salida = destino;
+    a.codec_video = codec;
+    a.sin_audio = true;
+    a.audios.clear();
+    // Pocos fotogramas y poca resolucion no: se sondea como se graba, que es de
+    // lo que va la pregunta. Lo unico que se recorta es la duracion.
+    std::error_code ec;
+    std::filesystem::remove(destino, ec);
+    const auto arranque = empezar_grabacion(a, sesion);
+    if (!arranque.en_marcha) return -1.0;
+    std::this_thread::sleep_for(std::chrono::seconds(3));
+    const auto parada = parar_grabacion(sesion);
+    if (!parada.parado) return -1.0;
+    const double dur = duracion_de(destino);
+    const auto tam = std::filesystem::file_size(destino, ec);
+    if (ec || dur <= 0.0) return -1.0;
+    return static_cast<double>(tam) / dur;
+}
+
+}  // namespace
+
+VeredictoCodecs comprobar_codecs(const std::string& fuente, const SesionGrabacion& sesion,
+                                 const std::vector<std::string>& codecs_disponibles) {
+    VeredictoCodecs v;
+    if (grabacion_en_marcha(sesion)) {
+        v.motivo = "hay una grabacion en marcha: esta prueba graba, asi que espera a que acabe";
+        return v;
+    }
+    const bool hay_h264 = std::find(codecs_disponibles.begin(), codecs_disponibles.end(),
+                                    "h264") != codecs_disponibles.end();
+    v.hevc_ofrecido = std::find(codecs_disponibles.begin(), codecs_disponibles.end(),
+                                "hevc") != codecs_disponibles.end();
+    if (!hay_h264) {
+        v.motivo = "esta maquina no ofrece h264, que es contra lo que se compara";
+        return v;
+    }
+
+    std::error_code ec;
+    const std::string base = sesion.dir + "/sonda";
+    v.bytes_por_s_h264 = sondear_codec(fuente, "h264", sesion, base + "-h264.mkv");
+    if (v.bytes_por_s_h264 < 0.0) {
+        v.motivo = "no se pudo grabar la prueba con h264";
+        std::filesystem::remove(base + "-h264.mkv", ec);
+        return v;
+    }
+    if (v.hevc_ofrecido) {
+        v.bytes_por_s_hevc = sondear_codec(fuente, "hevc", sesion, base + "-hevc.mkv");
+        // El aviso del driver se lee del log de ESTA sonda, que es la ultima
+        // que escribio. Es la señal decisiva: lo demas son indicios.
+        v.hevc_a_ojo = anota_hevc_poco_fiable(sesion.ruta_log);
+        std::filesystem::remove(base + "-hevc.mkv", ec);
+    }
+    std::filesystem::remove(base + "-h264.mkv", ec);
+    // Lo que se aprende se recuerda, igual que cuando se descubre grabando.
+    if (v.hevc_ofrecido && (v.hevc_a_ojo || (v.bytes_por_s_hevc > v.bytes_por_s_h264 * 1.05))) {
+        recordar_hevc_poco_fiable(true);
+    } else if (v.hevc_ofrecido && v.bytes_por_s_hevc > 0.0) {
+        recordar_hevc_poco_fiable(false);
+    }
+    v.probado = true;
+    return v;
+}
+
+bool recortar_grabacion(const std::string& ruta, double quitar_del_principio,
+                        double quitar_del_final, std::string& motivo) {
+    if (quitar_del_principio < 0.0 || quitar_del_final < 0.0) {
+        motivo = "los segundos que quitar no pueden ser negativos";
+        return false;
+    }
+    if (quitar_del_principio == 0.0 && quitar_del_final == 0.0) return true;
+
+    std::error_code ec;
+    if (!std::filesystem::exists(ruta, ec)) {
+        motivo = "ese fichero no existe";
+        return false;
+    }
+    const double duracion = duracion_de(ruta);
+    if (duracion <= 0.0) {
+        motivo = "no se puede leer la duracion de esa grabacion";
+        return false;
+    }
+    // Se exige que quede algo, y con margen: recortar hasta dejar dos segundos
+    // es tirar la grabacion con pasos extra.
+    const double restante = duracion - quitar_del_principio - quitar_del_final;
+    if (restante < 2.0) {
+        motivo = "recortando eso no quedaria grabacion: dura " +
+                 std::to_string(static_cast<int>(duracion)) + " s";
+        return false;
+    }
+    if (!localizar("ffmpeg")) {
+        motivo = "hace falta ffmpeg";
+        return false;
+    }
+
+    const std::string ext = extension_de(ruta);
+    const std::string temporal =
+        ruta.substr(0, ruta.size() - (ext.empty() ? 0 : ext.size() + 1)) +
+        ".recortando." + (ext.empty() ? std::string("mkv") : ext);
+    std::filesystem::remove(temporal, ec);
+
+    // -ss DESPUES de -i, y esto costo medirlo: con -ss delante, que es lo que
+    // recomienda todo el mundo por rapido, ffmpeg salta pero NO reajusta las
+    // marcas de tiempo de estos mkv, asi que el hueco del principio sigue
+    // contando y el fichero «recortado» dura lo mismo. Medido: de 7,97 s
+    // quitando 2 y 2 salian 5,90 en vez de 3,97. Detras de -i sale 3,907.
+    //
+    // Lo que cuesta es leer y tirar la parte saltada, que sin descodificar es
+    // barato y ademas solo afecta a lo que se quita, no al fichero entero.
+    std::vector<std::string> args{"-v", "error", "-y", "-i", ruta};
+    if (quitar_del_principio > 0.0) {
+        args.push_back("-ss");
+        args.push_back(double_a_texto(quitar_del_principio));
+    }
+    if (quitar_del_final > 0.0) {
+        args.push_back("-t");
+        args.push_back(double_a_texto(restante));
+    }
+    args.insert(args.end(), {"-c", "copy", "-map", "0", temporal});
+
+    const int limite_ms = static_cast<int>(std::max(60.0, duracion * 2.0) * 1000.0);
+    const auto res = ejecutar("ffmpeg", args, limite_ms);
+    if (!res.ejecutado || res.codigo != 0) {
+        motivo = res.expirado ? "el recorte tardo demasiado y se corto"
+                              : "no se pudo recortar: " + res.motivo;
+        std::filesystem::remove(temporal, ec);
+        return false;
+    }
+    // Lo de siempre: lo que decide no es el codigo de salida, es que lo que
+    // sale tenga duracion.
+    if (duracion_de(temporal) <= 0.0) {
+        motivo = "lo recortado no se puede leer; se deja la grabacion como estaba";
+        std::filesystem::remove(temporal, ec);
+        return false;
+    }
+    std::filesystem::rename(temporal, ruta, ec);
+    if (ec) {
+        motivo = "no se pudo sustituir el fichero: " + ec.message();
+        std::filesystem::remove(temporal, ec);
+        return false;
+    }
+    return true;
 }
 
 bool reparar_grabacion(const std::string& ruta, std::string& motivo) {

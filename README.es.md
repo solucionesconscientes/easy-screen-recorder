@@ -88,6 +88,16 @@ Dependencias de compilación, exactamente las que pide el CMake:
   `Widgets` `Concurrent`
 - **`lrelease`** (Debian: `qt6-l10n-tools`) para compilar la traducción al inglés
 
+Y en **tiempo de ejecución**, dos módulos QML de KDE que la ventana importa:
+
+- **Kirigami** (Debian: `qml6-module-org-kde-kirigami`)
+- **Kirigami Addons**, para las tarjetas de ajustes
+  (Debian: `qml6-module-org-kde-kirigamiaddons-formcard`)
+
+Los dos vienen dentro del runtime `org.kde.Platform` que usa el flatpak, así
+que ahí no hay nada que instalar. Comprobado en el 6.11: el módulo está en
+`files/lib/qml/org/kde/kirigamiaddons/formcard`.
+
 Qt es **opcional**: sin él la interfaz gráfica no se compila, y el CLI y los
 tests sí.
 
@@ -101,7 +111,8 @@ En Debian y Ubuntu:
 
 ```bash
 sudo apt install cmake ninja-build g++ qt6-base-dev qt6-declarative-dev \
-  qt6-l10n-tools ffmpeg
+  qt6-l10n-tools qml6-module-org-kde-kirigami \
+  qml6-module-org-kde-kirigamiaddons-formcard ffmpeg
 ```
 
 ## Idioma

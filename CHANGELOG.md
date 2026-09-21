@@ -3,7 +3,164 @@
 Formato: una entrada por tanda, con lo verificado. Las fechas son de la
 máquina de desarrollo.
 
-## Sin publicar
+## 0.10.0 (2026-09-21)
+
+### La ventana, rehecha entera (2026-09-21)
+
+Funcionaba y no se entendía. El titular pidió revisar la interfaz, y la revisión
+empezó midiendo lo que había: **la ventana daba 1114x866 en una pantalla de
+1366x768**. No cabía en la pantalla donde se diseña, y el gestor de ventanas la
+recortaba. Ese fue el primer dato; el resto salió detrás.
+
+**Jerarquía por frecuencia.** De los cuarenta y dos controles, uno se toca
+siempre y diecisiete se tocan una vez en la vida, y los cuarenta y dos tenían el
+mismo peso visual en dos columnas cortadas por espacio, no por sentido. Ahora
+hay una **cabecera que no se desplaza nunca** —fuente, Grabar y perfil— y debajo
+**una sola columna de tarjetas con título**, en el orden en que se piensa una
+grabación: qué grabo, vídeo, audio, mientras grabo, al terminar, dónde se
+guarda. La ventana queda en **540x687**, que además es 1:1,2722, la raíz de phi.
+Grabando se encoge a 540x334, que es el rectángulo áureo, porque ahí solo hay un
+reloj y tres botones.
+
+**Fuera los diecinueve botones «i».** Llegó a haber diecinueve en la misma
+ventana y en la captura se veían como dos columnas de circulitos: eran la
+textura más visible de la página. Cada explicación pasa a estar **escrita debajo
+de su opción, siempre a la vista**, que además dice más que un globo que hay que
+descubrir y perseguir con el ratón. Los perfiles salen de un desplegable perdido
+y pasan a la cabecera, en fila, que es donde se ven los cuatro de golpe.
+
+**Dos fallos de contraste, encontrados midiendo.** El blanco sobre el azul de
+acento de Breeze da **2,49** y WCAG AA pide 4,5; oscurecido un 50 % da 4,73, y
+sigue siendo el acento de cada cual, así que quien tenga Plasma en verde verá el
+botón en verde. El gris de las descripciones de Kirigami da **4,21**; bajado a
+L=42 % da 5,44. El rojo de la bandeja sube de 4,26 a 4,86, que a 22 px de alto
+se nota, y la pausa deja de ser gris para ser naranja: el gris se lee como
+«desactivado», que es otra cosa.
+
+**El color pasa a significar y nada más.** Rojo solo donde hay una grabación en
+curso: el punto del botón, la franja de la ventana al grabar, la pastilla de la
+bandeja, el marco del selector de región y «Descartar». Se probó teñir cada
+sección con tonos separados por el ángulo áureo y se descartó, porque eso es
+decorar.
+
+**Y el reparto áureo de la cabecera, probado y quitado.** Se quedaba 0,382 del
+alto; su contenido pide 221 px de 687, así que regalaba 41 px a una cabecera ya
+holgada y se los quitaba al hueco desplazable, que es el que anda justo. Cuando
+la proporción y la medida no coinciden, manda la medida. Está contado en
+`docs/diseno.md`, junto con el resto de los números y de dónde sale cada uno.
+
+**Los textos, repasados con ocho reglas.** Una sola voz; el beneficio antes que
+el mecanismo; ninguna frase que abra en negativo; cifras de esta máquina en vez
+de adjetivos; ninguna palabra que el usuario no diría en voz alta —buffer,
+caudal, nivel—; y el hecho en vez del juicio sobre su equipo: «tu tarjeta lo
+hace mal» pasa a «en tu tarjeta sale más grande y con menos detalle que h264».
+
+Dependencia nueva, justificada: **Kirigami Addons** (`formcard`), LGPL-2.0+,
+para las tarjetas. Viene dentro del runtime `org.kde.Platform 6.11` del flatpak
+—comprobado en `files/lib/qml/org/kde/kirigamiaddons/formcard`— así que el
+paquete publicado no crece.
+
+**Las secciones se pliegan, y su título dice lo que hay dentro.** Fue lo
+primero que se notó al usarlo: con todo desplegado había que bajar mucho para
+llegar a lo último. Medido: **2567 px de contenido en un hueco de 445, o sea 5,8
+pantallas**. Plegadas son **332 px**, las seis caben en la primera pantalla y no
+hay que bajar nada; con la más larga abierta, 2,2 pantallas.
+
+No es el botón «Avanzado» que se quitó en la 0.9.0, y la diferencia es una línea
+de texto: plegado se lee «Vídeo · Muy alta · 60 fps · h264». Aquel escondía sin
+decir qué escondía; esto enseña **más** de lo que se sabía antes sin bajar hasta
+allí, porque ahora la configuración entera se lee de un vistazo. Se recuerda
+cuáles dejaste abiertas.
+
+Al plegar aparecieron dos cosas que había que arreglar y no se veían antes. La
+lógica miraba `visible` en dos sitios —el modo de fotogramas y el de emitir— y
+con la sección cerrada eso significa «tarjeta oculta», así que la grabación
+habría perdido opciones que estaban puestas. Y un layout dentro de otro rellena
+por defecto en Qt: el bloque de avisos, sin un solo aviso que enseñar, se quedaba
+63 px y dejaba un palmo de nada entre la cabecera y la primera sección.
+
+**Y arranca antes, no después.** Medido con el mismo arnés para las dos
+versiones, seis vueltas cada una, en una pantalla virtual de 1366x768: la 0.9.0
+da una mediana de **2186 ms** y esta **1766 ms**, o sea **420 ms menos**. La
+cifra absoluta es alta porque ahí se dibuja por software; lo que vale es la
+comparación, hecha seguida y en la misma máquina. El ahorro no viene del módulo
+nuevo sino de lo que se fue con él: la ventana ya no crece a saltos midiendo su
+propio contenido al arrancar, y no se instancian diecinueve botones de ayuda.
+
+Verificado: compila sin un aviso, `ctest` 12/12, `reuse lint` en verde, 208
+cadenas traducidas al inglés y la ventana fotografiada en una pantalla virtual
+de 1366x768 y en la sesión real, configurando y grabando.
+
+### Once funciones pedidas de una vez (2026-09-21)
+
+El titular pidió aplicar toda una lista de propuestas. Van juntas porque tocan
+los mismos ficheros, y cada una con su verificación.
+
+**Lo que GSR ya sabía hacer y no ofrecíamos.** El **puntero** se puede quitar del
+vídeo (`-cursor no`), que es lo que hace falta para una demo limpia. El **buffer
+de repetición** puede vivir en el disco en vez de en la RAM (`-replay-storage
+disk`), con el aviso de GSR sobre el desgaste del SSD. Los volcados pueden ir a
+**una carpeta por día** (`-df`). Y se puede poner un **programa propio que se
+ejecute al guardar** (`-sc`): el grabador le pasa la ruta y el tipo, y ahí cabe
+todo lo que esta aplicación no va a hacer, como subirlo o moverlo. Se comprueba
+antes de lanzar que exista y sea ejecutable, porque con un `-sc` que no existe el
+grabador ni arranca y el error solo sale en su log.
+
+**Terminar sin guardar.** Botón en la ventana, entrada en la bandeja y atajo
+global. No borra a ciegas: por debajo de diez segundos tira directamente, que es
+«me he equivocado al empezar», y por encima **pregunta**, incluso si la orden
+vino del atajo, en cuyo caso saca la ventana para poder preguntar.
+
+**Recortar el principio y el final.** Todo el mundo graba unos segundos de
+«¿dónde estaba el botón?». No recodifica: copia los flujos, así que es
+instantáneo y no pierde calidad, a cambio de cortar en el fotograma clave más
+cercano, y eso está dicho debajo de la opción.
+
+**Parar sola** a los minutos que escribas, para una clase o una captura
+desatendida. Y ya que estábamos, **los minutos del modo repetición también se
+escriben**: eran cuatro valores de una lista cerrada —30 s, 1, 5 y 15 minutos— y
+los treinta segundos de una jugada y los veinte minutos de una clase son la misma
+opción con otro número. Los límites son los de GSR, de 2 segundos a 24 horas, y
+el campo entiende tanto «90» como «3 min». **Perfiles** (Tutorial, Juego, Reunión) que dejan puestas varias
+opciones de golpe sin mandar sobre nada: después se cambia lo que sea y se
+recuerda lo que quede.
+
+**Aviso de espacio libre**, en rojo por debajo de 2 GB, y rechazo por debajo de
+100 MB: quedarse sin sitio a mitad de grabación es el peor fallo posible porque
+te enteras al final. **La RAM que costará el buffer**, calculada con lo que
+graba esta máquina de verdad (unos 36 MB para quince minutos de escritorio
+quieto, medio giga si hay movimiento): otra cifra que no se inventa, se mide.
+
+**Y comprobar la tarjeta.** Un botón que graba tres segundos con cada códec, los
+compara y dice cuál conviene aquí. En esta máquina responde en siete segundos:
+«h264 45 kB/s, hevc 75 kB/s, su driver NO declara lo que sabe hacer» y recomienda
+h264. Antes eso se descubría después de grabar; ahora se puede preguntar antes.
+
+**Un fallo de los que solo aparecen en un idioma.** El recorte funcionaba desde
+el CLI y se negaba desde la ventana, diciendo que una grabación de tres segundos
+duraba dos. La causa: `std::stod` y `std::to_string` **miran la configuración
+regional**, Qt la pone al arrancar la ventana, y en español `std::stod("2.967")`
+se para en el punto y devuelve 2. El CLI no toca la configuración regional, por
+eso allí iba bien. Ahora esas conversiones usan `from_chars` y `to_chars`, que no
+miran el idioma, y hay un test que pone el idioma español a mano para que no
+vuelva. Afectaba también a la duración con la que se decide si una grabación
+quedó a medias.
+
+**Y la maquetación, que se rompió y hubo que rehacer.** Con seis filas nuevas las
+dos columnas se pisaban: se leía «il:» donde ponía «Perfil:». Tres cosas lo
+arreglaron: el desplegable de códecs ahora enseña solo el identificador y mide lo
+que mide un desplegable normal (un ComboBox se mide por su entrada más larga
+aunque no la enseñe, y las descripciones lo hacían gigante), las filas con dos
+controles se bajaron a una franja a todo lo ancho, y la ventana pasó a 58
+unidades de rejilla. Mirado en una captura de la ventana, no supuesto.
+
+Verificado ejecutando: descartar borra el fichero y deja la sesión limpia, por
+CLI y desde la bandeja por DBus; el recorte deja 7,97 s en 3,99 y el primer
+fotograma pasa a ser el del segundo 2; la comprobación de códecs acierta y
+recuerda el veredicto; el espacio libre sale bien en la ventana; y `ejecutar()`
+mataba a los cinco segundos cualquier ffmpeg largo, que ahora recibe un margen
+calculado sobre la duración. ctest 12/12, sin un aviso, `reuse lint` en verde y
+195 cadenas traducidas.
 
 ### La cuenta atrás se ve en la bandeja (2026-09-21)
 

@@ -139,4 +139,21 @@ bool recordar_hevc_poco_fiable(bool si) {
     return guardar_ajuste("hevc_poco_fiable", si ? "1" : "0");
 }
 
+int mb_por_minuto_recordado() {
+    const auto valores = leer_configuracion();
+    const auto i = valores.find("mb_por_minuto");
+    if (i == valores.end()) return 0;
+    try {
+        const int v = std::stoi(i->second);
+        return (v > 0 && v < 100000) ? v : 0;
+    } catch (const std::exception&) {
+        return 0;
+    }
+}
+
+bool recordar_mb_por_minuto(int mb) {
+    if (mb <= 0 || mb >= 100000) return false;
+    return guardar_ajuste("mb_por_minuto", std::to_string(mb));
+}
+
 }  // namespace esr

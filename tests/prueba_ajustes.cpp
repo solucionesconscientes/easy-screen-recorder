@@ -347,6 +347,58 @@ int main() {
     }
 
     // --- Emision en directo ----------------------------------------------
+    // El puntero: solo se menciona para QUITARLO, porque «yes» es el default de
+    // GSR y repetir un default es ruido en la linea de comandos.
+    {
+        auto a = base();
+        a.salida = "/tmp/x.mkv";
+        // Ojo con comparar iteradores de temporales distintos: cada llamada
+        // devuelve un vector nuevo y los iteradores mueren con el.
+        const auto con_cursor = argumentos_gsr(a);
+        COMPROBAR(std::find(con_cursor.begin(), con_cursor.end(), "-cursor") ==
+                  con_cursor.end());
+        a.cursor = false;
+        const auto args = argumentos_gsr(a);
+        const auto c = std::find(args.begin(), args.end(), "-cursor");
+        COMPROBAR(c != args.end() && *(c + 1) == "no");
+    }
+
+    // El buffer en disco y las carpetas por fecha son del modo repeticion: en
+    // una grabacion normal no salen y ademas la validacion las rechaza.
+    {
+        auto a = base();
+        a.salida = "/tmp/x.mkv";
+        a.buffer_en_disco = true;
+        COMPROBAR(!validar(a).empty());
+        a.buffer_en_disco = false;
+        a.carpetas_por_fecha = true;
+        COMPROBAR(!validar(a).empty());
+    }
+    {
+        auto a = base();
+        a.salida = "/tmp/repeticiones";
+        a.contenedor = "mkv";
+        a.replay_segundos = 60;
+        a.buffer_en_disco = true;
+        a.carpetas_por_fecha = true;
+        COMPROBAR_NOTA(validar(a).empty(), validar(a).empty() ? "" : validar(a)[0]);
+        const auto args = argumentos_gsr(a);
+        const auto rs = std::find(args.begin(), args.end(), "-replay-storage");
+        COMPROBAR(rs != args.end() && *(rs + 1) == "disk");
+        const auto df = std::find(args.begin(), args.end(), "-df");
+        COMPROBAR(df != args.end() && *(df + 1) == "yes");
+    }
+
+    // El guion que GSR ejecuta al terminar viaja tal cual en -sc.
+    {
+        auto a = base();
+        a.salida = "/tmp/x.mkv";
+        a.guion_al_terminar = "/home/u/subir.sh";
+        const auto args = argumentos_gsr(a);
+        const auto sc = std::find(args.begin(), args.end(), "-sc");
+        COMPROBAR(sc != args.end() && *(sc + 1) == "/home/u/subir.sh");
+    }
+
     // Guardar aparte en una grabacion normal no tiene sentido: ahi la salida ya
     // es un fichero.
     {

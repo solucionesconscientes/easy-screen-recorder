@@ -116,13 +116,31 @@ tmp, destino = sys.argv[1], sys.argv[2]
 # sobre un lienzo opaco comun. El lienzo se ajusta a la mayor con margen: en uno
 # demasiado grande la ventana queda perdida en un descampado gris, que en una
 # ficha de tienda se lee como aplicacion a medio hacer.
-LIENZO = (1100, 790)
 FONDO = (220, 223, 225)
-for nombre in ("principal", "grabando", "seleccionando"):
-    v = Image.open("%s/%s.png" % (tmp, nombre)).convert("RGBA")
+MARGEN = 40
+nombres = ("principal", "grabando", "seleccionando")
+capturas = {n: Image.open("%s/%s.png" % (tmp, n)).convert("RGBA") for n in nombres}
+
+# El lienzo lo MIDEN las capturas, ya no es una constante. Era (1100, 790) y se
+# quedo corto en cuanto la ventana cambio de forma en la 0.10.0: el arnes moria
+# con «no cabe en el lienzo» justo al final, despues de grabar. Un numero
+# escrito a mano sobre algo que cambia es una averia con fecha.
+#
+# Lo miden las DOS capturas de ventana. El selector ocupa la pantalla entera y,
+# si mandara el, las otras dos quedarian perdidas en un descampado gris, que en
+# una ficha de tienda se lee como aplicacion a medio hacer. Al selector se le
+# baja la escala para que quepa, que es lo que menos duele: es la foto de una
+# pantalla y se entiende igual mas pequena.
+ancho = max(capturas[n].width for n in ("principal", "grabando")) + MARGEN
+alto = max(capturas[n].height for n in ("principal", "grabando")) + MARGEN
+LIENZO = (ancho, alto)
+
+for nombre in nombres:
+    v = capturas[nombre]
     if v.width > LIENZO[0] or v.height > LIENZO[1]:
-        raise SystemExit("la captura %s (%dx%d) no cabe en el lienzo %s" %
-                         (nombre, v.width, v.height, LIENZO))
+        escala = min((LIENZO[0] - MARGEN) / v.width, (LIENZO[1] - MARGEN) / v.height)
+        v = v.resize((int(v.width * escala), int(v.height * escala)), Image.LANCZOS)
+        print("   %-12s reducida al %d %% para que quepa" % (nombre, escala * 100))
     lienzo = Image.new("RGB", LIENZO, FONDO)
     lienzo.paste(v, ((LIENZO[0] - v.width) // 2, (LIENZO[1] - v.height) // 2), v)
     lienzo.save("%s/%s.png" % (destino, nombre), "PNG", optimize=True)

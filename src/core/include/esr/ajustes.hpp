@@ -81,6 +81,35 @@ struct AjustesGrabacion {
     // IPC con start-replay-recording: con -ro a secas no graba nada.
     std::string carpeta_guardado;
 
+    // ¿Sale el puntero en el video? (-cursor). GSR lo graba por defecto.
+    //
+    // Se puede quitar, y no es un capricho: en una demo de una interfaz, el
+    // puntero paseando mientras se explica distrae mas que ayuda, y en una
+    // grabacion de una ventana para documentacion sobra siempre.
+    bool cursor = true;
+
+    // --- Cosas que solo tienen sentido en modo repeticion ----------------
+    //
+    // Donde vive el buffer (-replay-storage). GSR lo guarda en RAM por defecto,
+    // y eso significa que los minutos elegidos son memoria ocupada: con
+    // movimiento, 15 minutos rondan medio giga. En disco no ocupa RAM, a cambio
+    // de escribir sin parar; el propio GSR avisa de que eso desgasta un SSD.
+    bool buffer_en_disco = false;
+    // Carpetas por fecha para cada volcado (-df). Con doscientas repeticiones
+    // en una carpeta plana no hay quien encuentre nada.
+    bool carpetas_por_fecha = false;
+
+    // --- Un guion propio al terminar (-sc) -------------------------------
+    //
+    // GSR ejecuta ese programa cuando acaba de guardar y le pasa la ruta del
+    // fichero y el tipo («regular», «replay» o «screenshot»). Es el gancho para
+    // lo que no vamos a hacer nosotros: subirlo, moverlo, avisar por donde sea.
+    //
+    // No se valida lo que haga: es el guion de quien lo pone. Lo unico que se
+    // comprueba antes de lanzar es que exista y se pueda ejecutar, porque un
+    // -sc que no existe hace que GSR ni arranque.
+    std::string guion_al_terminar;
+
     // Modo de fotogramas (-fm): «cfr», «vfr» o «content». Vacio deja el default
     // de GSR, que es vfr. «content» solo codifica cuando la pantalla cambia.
     std::string modo_fotogramas;

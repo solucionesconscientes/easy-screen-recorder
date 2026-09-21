@@ -273,6 +273,7 @@ QString Controlador::ajusteRecordado(const QString& clave, const QString& porDef
 
 void Controlador::refrescarConfiguracion() {
     conf_ = esr::leer_configuracion();
+    mb_por_minuto_ = esr::mb_por_minuto_recordado();
     hevc_poco_fiable_ = esr::hevc_poco_fiable();
     reduccion_normal_ = esr::reduccion_recordada(false);
     reduccion_maximo_ = esr::reduccion_recordada(true);
@@ -365,6 +366,15 @@ void Controlador::aplicarEntorno(const esr::Entorno& e) {
     }
 
     hay_microfono_ = esr::hay_microfono(e.capacidades.dispositivos_audio);
+    // Un monitor cualquiera, para la prueba de codecs: grabar tres segundos de
+    // una camara o de «portal» no dice nada del codificador.
+    primer_monitor_.clear();
+    for (const auto& f : esr::fuentes_amables(e.capacidades.fuentes_captura)) {
+        if (f.tipo == esr::TipoFuente::Monitor) {
+            primer_monitor_ = f.id;
+            break;
+        }
+    }
     ponerAplicacionesSonando(e.capacidades.audio_por_aplicacion);
     servidor_grafico_ = QString::fromStdString(e.capacidades.info.servidor_grafico);
 
@@ -494,6 +504,8 @@ void Controlador::grabar(const QString& fuente, const QVariantMap& opciones) {
     // terminar: si alguien cambia el desplegable mientras graba, lo que manda
     // es lo que eligio al darle a Grabar.
     reduccion_pendiente_ = opciones.value(QStringLiteral("reducir")).toString();
+    quitar_inicio_ = opciones.value(QStringLiteral("quitarInicio"), 0).toDouble();
+    quitar_final_ = opciones.value(QStringLiteral("quitarFinal"), 0).toDouble();
 
     const QString audio = opciones.value(QStringLiteral("audio"), QStringLiteral("sistema")).toString();
     if (audio == QStringLiteral("micro")) {
@@ -622,15 +634,139 @@ void Controlador::emitir(const QString& fuente, const QString& servidor, const Q
     grabar(fuente, con_emision);
 }
 
-void Controlador::reducirEnSegundoPlano(const QString& ruta) {
-    const QString nivel = reduccion_pendiente_;
+int Controlador::espacioLibreMb() const {
+    const std::string carpeta = esr::carpeta_videos_elegida();
+    return static_cast<int>(esr::espacio_libre_mb(carpeta));
+}
+
+void Controlador::pedirDescartar() {
+    if (estado_ != QStringLiteral("grabando") && estado_ != QStringLiteral("grabandoAudio") &&
+        estado_ != QStringLiteral("pausado")) {
+        return;
+    }
+    if (segundos_ < 10) {
+        descartar();
+        return;
+    }
+    emit confirmarDescartePedido();
+}
+
+void Controlador::descartar() {
+    // Lo pendiente de post-proceso se cancela: no hay fichero que recortar ni
+    // que reducir.
     reduccion_pendiente_.clear();
-    if (nivel.isEmpty() || ruta.isEmpty()) return;
+    quitar_inicio_ = 0.0;
+    quitar_final_ = 0.0;
+    reloj_.stop();
+    ponerEstado(QStringLiteral("guardando"));
+
+    // Parar espera a que el fichero este escrito, sin limite de tiempo, asi que
+    // jamas en el hilo de la ventana. Y hay que esperar: borrar un fichero que
+    // el grabador todavia esta cerrando es pedir un fichero a medias.
+    auto* vigilante = new QFutureWatcher<QPair<bool, QString>>(this);
+    connect(vigilante, &QFutureWatcher<QPair<bool, QString>>::finished, this,
+            [this, vigilante] {
+                const auto [bien, texto] = vigilante->result();
+                vigilante->deleteLater();
+                audio_en_curso_ = false;
+                if (!bien) {
+                    ponerError(texto);
+                } else {
+                    ruta_guardada_.clear();
+                    emit rutaGuardadaCambiada();
+                    emit grabacionDescartada();
+                }
+                refrescarConfiguracion();
+                ponerEstado(QStringLiteral("listo"));
+            });
+    vigilante->setFuture(QtConcurrent::run([] {
+        std::string motivo;
+        const auto ruta = esr::descartar_grabacion(esr::sesion_por_defecto(), motivo);
+        return QPair<bool, QString>(!ruta.empty(), QString::fromStdString(motivo));
+    }));
+}
+
+void Controlador::comprobarCodecs() {
+    if (comprobando_codecs_) return;
+    if (primer_monitor_.empty()) {
+        ponerError(tr("no encuentro un monitor con el que hacer la prueba"));
+        return;
+    }
+    comprobando_codecs_ = true;
+    veredicto_codecs_.clear();
+    emit veredictoCambiado();
+
+    std::vector<std::string> codecs;
+    for (const QString& c : codecs_video_) codecs.push_back(c.toStdString());
+    const std::string fuente = primer_monitor_;
+
+    auto* vigilante = new QFutureWatcher<esr::VeredictoCodecs>(this);
+    connect(vigilante, &QFutureWatcher<esr::VeredictoCodecs>::finished, this,
+            [this, vigilante] {
+                const auto v = vigilante->result();
+                vigilante->deleteLater();
+                comprobando_codecs_ = false;
+                if (!v.probado) {
+                    veredicto_codecs_ = QString::fromStdString(v.motivo);
+                } else if (!v.hevc_ofrecido) {
+                    veredicto_codecs_ = tr("Tu tarjeta solo codifica h264, que es el que la "
+                                           "ventana usa por defecto. Nada que cambiar.");
+                } else if (v.hevc_a_ojo || v.bytes_por_s_hevc > v.bytes_por_s_h264 * 1.05) {
+                    // La cifra va delante del consejo: es lo que lo sostiene.
+                    veredicto_codecs_ =
+                        tr("Grabando lo mismo: h264 %1 kB/s, hevc %2 kB/s. En tu tarjeta h264 "
+                           "es mejor elección.")
+                            .arg(static_cast<int>(v.bytes_por_s_h264 / 1024.0))
+                            .arg(static_cast<int>(v.bytes_por_s_hevc / 1024.0));
+                } else {
+                    veredicto_codecs_ =
+                        tr("Grabando lo mismo: h264 %1 kB/s, hevc %2 kB/s. Tu tarjeta maneja "
+                           "bien hevc.")
+                            .arg(static_cast<int>(v.bytes_por_s_h264 / 1024.0))
+                            .arg(static_cast<int>(v.bytes_por_s_hevc / 1024.0));
+                }
+                refrescarConfiguracion();
+                emit veredictoCambiado();
+                emit fuentesCambiadas();  // la lista de codecs puede cambiar de nota
+            });
+    vigilante->setFuture(QtConcurrent::run([fuente, codecs] {
+        return esr::comprobar_codecs(fuente, esr::sesion_por_defecto(), codecs);
+    }));
+}
+
+void Controlador::posprocesarEnSegundoPlano(const QString& ruta) {
+    const QString nivel = reduccion_pendiente_;
+    const double quitar_inicio = quitar_inicio_;
+    const double quitar_final = quitar_final_;
+    reduccion_pendiente_.clear();
+    quitar_inicio_ = 0.0;
+    quitar_final_ = 0.0;
+    if (ruta.isEmpty()) return;
+
+    // Lo que ocupa un minuto de lo que graba esta persona. Se apunta siempre,
+    // haya post-proceso o no: es lo que permite decir despues cuanta RAM
+    // costaria un buffer de repeticion sin inventarse la cifra.
+    if (segundos_ > 2) {
+        std::error_code ec;
+        const auto bytes = std::filesystem::file_size(ruta.toStdString(), ec);
+        if (!ec && bytes > 0) {
+            const double mb_min = (static_cast<double>(bytes) / (1024.0 * 1024.0)) /
+                                  (static_cast<double>(segundos_) / 60.0);
+            if (esr::recordar_mb_por_minuto(static_cast<int>(mb_min + 0.5))) {
+                mb_por_minuto_ = static_cast<int>(mb_min + 0.5);
+                emit reduccionCambiada();
+            }
+        }
+    }
+
+    const bool hay_recorte = quitar_inicio > 0.0 || quitar_final > 0.0;
     std::string motivo;
-    // Si no se puede, se calla: la grabacion esta guardada y es lo que
+    const bool hay_reduccion =
+        !nivel.isEmpty() && esr::se_puede_reducir(ruta.toStdString(), motivo);
+    // Si no hay nada que hacer, se calla: la grabacion esta guardada y es lo que
     // importaba. Plantar un error por no haber podido encoger seria castigar a
     // alguien por una opcion que solo aporta cuando se puede.
-    if (!esr::se_puede_reducir(ruta.toStdString(), motivo)) return;
+    if (!hay_recorte && !hay_reduccion) return;
 
     reduciendo_ = true;
     ultima_reduccion_.clear();
@@ -658,8 +794,32 @@ void Controlador::reducirEnSegundoPlano(const QString& ruta) {
             });
     // En otro proceso y con el hilo aparte: una recompresion tarda lo que dure
     // el video y la ventana no puede quedarse quieta mientras.
-    vigilante->setFuture(QtConcurrent::run(
-        [ruta, valor] { return esr::reducir_grabacion(ruta.toStdString(), valor); }));
+    // Primero recortar y luego reducir, en ese orden y en el mismo hilo: recortar
+    // es copiar, asi que hacerlo antes ahorra recomprimir lo que se iba a tirar.
+    vigilante->setFuture(QtConcurrent::run([ruta, valor, hay_recorte, hay_reduccion,
+                                            quitar_inicio, quitar_final] {
+        const std::string r = ruta.toStdString();
+        esr::ResultadoReduccion res;
+        std::error_code ec;
+        const auto antes = std::filesystem::file_size(r, ec);
+        if (hay_recorte) {
+            std::string fallo;
+            // Si el recorte no se puede —por ejemplo, quitar mas de lo que
+            // dura—, se sigue: la grabacion esta guardada y eso es lo que
+            // importaba.
+            esr::recortar_grabacion(r, quitar_inicio, quitar_final, fallo);
+        }
+        if (hay_reduccion) {
+            res = esr::reducir_grabacion(r, valor);
+            if (res.hecho && !ec) res.bytes_antes = antes;  // el antes de TODO
+            return res;
+        }
+        const auto despues = std::filesystem::file_size(r, ec);
+        res.hecho = !ec && despues < antes;
+        res.bytes_antes = antes;
+        res.bytes_despues = despues;
+        return res;
+    }));
 }
 
 void Controlador::alternarPausa() {
@@ -697,7 +857,7 @@ void Controlador::guardarReplay() {
                 // codecs lo diga sin esperar al proximo arranque.
                 refrescarConfiguracion();
                 emit fuentesCambiadas();
-                reducirEnSegundoPlano(texto);
+                posprocesarEnSegundoPlano(texto);
                 emit grabacionGuardada(texto);
             });
     vigilante->setFuture(QtConcurrent::run([]() -> QPair<bool, QString> {
@@ -767,7 +927,7 @@ void Controlador::parar() {
                 // codecs lo diga sin esperar al proximo arranque.
                 refrescarConfiguracion();
                 emit fuentesCambiadas();
-                reducirEnSegundoPlano(texto);
+                posprocesarEnSegundoPlano(texto);
                 emit grabacionGuardada(texto);
                 ponerEstado(QStringLiteral("listo"));
             });

@@ -77,11 +77,29 @@ escribas ni una línea hasta leer `docs/gsr-audio-only.md`.
 **Ligera e intuitiva. No es negociable y prima sobre añadir opciones.**
 
 - Arranque por debajo de 1 segundo y poca RAM.
-- Grabar en dos clics: Fuente, Grabar. Lo demás, a la vista debajo, en dos
-  columnas y con la página desplazable. Estuvo plegado tras un botón
-  "Avanzado" hasta la 0.9.0 y se quitó por lo que pasó al probarlo: la primera
-  opción que alguien buscó de verdad la buscó en la ventana, no la encontró, y
-  dio por hecho que no existía. Los dos clics siguen siendo dos.
+- Grabar en dos clics: Fuente, Grabar. Los dos viven en una cabecera que NO se
+  desplaza nunca, junto al perfil. Lo demás va debajo, en una sola columna de
+  tarjetas con título, ordenadas por el momento en que se piensan: qué grabo,
+  vídeo, audio, mientras grabo, al terminar, dónde se guarda.
+  - Estuvo plegado tras un botón "Avanzado" hasta la 0.9.0 y se quitó por lo
+    que pasó al probarlo: la primera opción que alguien buscó de verdad la
+    buscó en la ventana, no la encontró, y dio por hecho que no existía. Nada
+    vuelve a esconderse detrás de un botón sin nombre.
+  - Estuvo en dos columnas hasta la 0.10.0, y se quitó por lo mismo que se mide,
+    no por gusto: la ventana salía de 1114x866 en una pantalla de 1366x768, o
+    sea que no cabía en la pantalla donde se diseñaba. Ahora son 540x687.
+  - **Las secciones se pliegan, y su título enseña lo que hay dentro**: «Vídeo ·
+    Muy alta · 60 fps · h264». Eso es lo que lo separa del "Avanzado" que se
+    quitó, y no es opinable: desplegado eran 2567 px de contenido en un hueco de
+    445 —5,8 pantallas de bajar— y plegado son 332, o sea ninguna. Un título que
+    no diga su contenido vuelve a ser "Avanzado"; no lo quites.
+- **Cada opción lleva su explicación escrita debajo, siempre a la vista.**
+  Vivieron en botones «i» hasta la 0.10.0 y llegó a haber diecinueve en la
+  misma ventana: eran la textura más visible de la página. Una explicación que
+  hay que descubrir y perseguir con el ratón no está puesta.
+- **El color solo significa, nunca decora**, y su contraste se mide contra el
+  fondo donde cae. Las proporciones y el ritmo salen de una serie, no del ojo.
+  Todo eso está en `docs/diseno.md`, con los números y de dónde salen.
 - Defaults sensatos sin tocar nada: mkv, h264 cuando la máquina lo codifica por
   hardware (por compatibilidad, no por calidad), sistema y micrófono mezclados si
   hay micrófono (solo sistema si no lo hay), carpeta Vídeos.

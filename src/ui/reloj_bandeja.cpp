@@ -78,7 +78,7 @@ QIcon pastillaConTexto(const QColor& fondo, const QString& arriba, const QString
 QIcon iconoCuentaAtras(int falta) {
     // El mismo rojo del grabar: lo que viene es una grabacion. Un digito solo,
     // a todo el alto, que es lo que hace que se lea de un vistazo.
-    return pastillaConTexto(QColor(0xda, 0x44, 0x53), QString::number(falta), {});
+    return pastillaConTexto(QColor(0xd6, 0x2e, 0x3f), QString::number(falta), {});
 }
 
 QIcon iconoReloj(int segundos, bool pausado) {
@@ -87,10 +87,16 @@ QIcon iconoReloj(int segundos, bool pausado) {
     // pixmap que pintamos nosotros el panel no lo recolorea, asi que con el
     // color del tema las cifras desaparecen en cuanto el panel va al reves del
     // esquema de color. El rojo se lee igual sobre un panel claro y sobre uno
-    // oscuro, y encima dice lo que esta pasando; en pausa se apaga a gris, que
-    // es la otra cosa que puede estar pasando. Es el rojo de Breeze que ya usa
-    // el selector de region.
-    const QColor fondo = pausado ? QColor(0x7f, 0x8c, 0x8d) : QColor(0xda, 0x44, 0x53);
+    // oscuro, y encima dice lo que esta pasando.
+    //
+    // Dos correcciones medidas, las mismas que en la ventana:
+    //
+    //   - El rojo es el ForegroundNegative de Breeze un punto mas oscuro. Tal
+    //     cual, el blanco encima daba 4,26 de contraste y AA pide 4,5; asi da
+    //     4,86. A 22 px de alto eso se nota.
+    //   - En pausa va NARANJA, no gris. El gris se lee como «desactivado», que
+    //     es otra cosa: pausado es un estado vivo, y el naranja lo dice.
+    const QColor fondo = pausado ? QColor(0xf6, 0x74, 0x00) : QColor(0xd6, 0x2e, 0x3f);
     return pastillaConTexto(fondo, lineas.first, lineas.second);
 }
 

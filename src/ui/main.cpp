@@ -188,6 +188,10 @@ int main(int argc, char** argv) {
     QAction* accion_guardar = menu.addAction(QObject::tr("Guardar lo último"));
     QAction* accion_pausa = menu.addAction(QObject::tr("Pausa"));
     QAction* accion_parar = menu.addAction(QObject::tr("Parar y guardar"));
+    // Tirar lo grabado desde la bandeja. Con la ventana apartada, esta es la
+    // via: por debajo de diez segundos tira directamente y por encima saca la
+    // ventana con la confirmacion, que lo decide el controlador.
+    QAction* accion_descartar = menu.addAction(QObject::tr("Descartar sin guardar"));
     menu.addSeparator();
     // La opcion vive AQUI y no en «Avanzado» de la ventana por dos razones: es
     // una preferencia de la bandeja, y «Avanzado» se deshabilita mientras se
@@ -266,6 +270,8 @@ int main(int argc, char** argv) {
             }
         });
         QObject::connect(accion_parar, &QAction::triggered, controlador, &Controlador::parar);
+        QObject::connect(accion_descartar, &QAction::triggered, controlador,
+                         [controlador] { controlador->pedirDescartar(); });
         QObject::connect(accion_guardar, &QAction::triggered, controlador,
                          &Controlador::guardarReplay);
 
@@ -333,7 +339,8 @@ int main(int argc, char** argv) {
                          });
 
         const auto refrescar = [&bandeja, controlador, accion_pausa, accion_parar,
-                                accion_guardar, accion_grabar, pintar_reloj] {
+                                accion_descartar, accion_guardar, accion_grabar,
+                                pintar_reloj] {
             const QString estado = controlador->estado();
             const bool pausado = estado == QStringLiteral("pausado");
             const bool audio = estado == QStringLiteral("grabandoAudio");
@@ -363,6 +370,9 @@ int main(int argc, char** argv) {
             // En repeticion y emitiendo, parar no guarda nada: el texto tiene que
             // decirlo, y lo dice igual que el boton de la ventana.
             accion_parar->setVisible(grabando);
+            // Descartar solo donde hay un fichero que tirar: en repeticion no
+            // hay ninguno todavia y emitiendo no hay nada que borrar.
+            accion_descartar->setVisible(grabando && !es_replay && !emitiendo);
             accion_parar->setText(es_replay || emitiendo ? QObject::tr("Terminar")
                                                         : QObject::tr("Parar y guardar"));
             pintar_reloj();

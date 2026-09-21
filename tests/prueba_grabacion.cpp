@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include <clocale>
 #include <filesystem>
 #include "esr/grabacion.hpp"
 
@@ -181,6 +182,55 @@ void reducir() {
     std::filesystem::remove(vacio);
 }
 
+// Recortar, el espacio libre y descartar. Lo que se puede comprobar sin una
+// grabacion de verdad es a quien dicen que no; el camino bueno se verifico
+// grabando por CLI y midiendo con ffprobe (CHANGELOG).
+void recortar_y_espacio() {
+    std::string motivo;
+    COMPROBAR(!recortar_grabacion("/no/existe.mkv", 1.0, 0.0, motivo));
+    COMPROBAR(!motivo.empty());
+    // Negativo no tiene sentido y no se intenta siquiera.
+    motivo.clear();
+    COMPROBAR(!recortar_grabacion("/no/existe.mkv", -1.0, 0.0, motivo));
+    COMPROBAR(motivo.find("negativos") != std::string::npos);
+    // Y no quitar nada es un exito que no toca el fichero: asi quien llame a
+    // esto puede hacerlo siempre, sin mirar antes si hay algo que quitar.
+    COMPROBAR(recortar_grabacion("/no/existe.mkv", 0.0, 0.0, motivo));
+
+    // El espacio libre: la raiz siempre dice algo, y una ruta inventada no.
+    COMPROBAR(espacio_libre_mb("/") > 0);
+    COMPROBAR(espacio_libre_mb("/no/existe/de/ninguna/manera/x.mkv") == -1);
+
+    // Los numeros NO miran el idioma del sistema.
+    //
+    // Este test existe por un fallo real: std::stod y atof usan la
+    // configuracion regional, Qt la pone al arrancar la ventana, y en español
+    // «2.967» se lee como 2. El recorte funcionaba desde el CLI, que no toca el
+    // idioma, y se negaba desde la ventana diciendo que una grabacion de tres
+    // segundos duraba dos. Se pone el idioma a mano para reproducirlo.
+    {
+        const char* antes = std::setlocale(LC_NUMERIC, nullptr);
+        const std::string guardado = antes != nullptr ? antes : "C";
+        // Si el sistema no tiene el idioma español instalado, esto no cambia
+        // nada y el test sigue valiendo con el idioma que haya.
+        std::setlocale(LC_NUMERIC, "es_ES.UTF-8");
+        COMPROBAR(segundos_de("2.967") > 2.9);
+        COMPROBAR(segundos_de("0.5") > 0.4);
+        COMPROBAR(segundos_de("10") == 10.0);
+        COMPROBAR(segundos_de("") == 0.0);
+        std::setlocale(LC_NUMERIC, guardado.c_str());
+    }
+
+    // Descartar sin nada que descartar avisa y no rompe.
+    SesionGrabacion s;
+    s.dir = "/tmp/esr-sesion-que-no-existe";
+    s.ruta_socket = s.dir + "/ipc.sock";
+    s.ruta_pid = s.dir + "/gsr.pid";
+    motivo.clear();
+    COMPROBAR(descartar_grabacion(s, motivo).empty());
+    COMPROBAR(!motivo.empty());
+}
+
 }  // namespace
 
 int main() {
@@ -188,5 +238,6 @@ int main() {
     cliente_ipc();
     sesion();
     reducir();
+    recortar_y_espacio();
     return prueba::resumen("prueba_grabacion");
 }
