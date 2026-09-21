@@ -5,7 +5,7 @@
 cmake_minimum_required(VERSION 3.25)
 
 project(easy-screen-recorder
-        VERSION 0.7.0
+        VERSION 0.8.0
         DESCRIPTION "Grabador de pantalla para Linux/Wayland sobre gpu-screen-recorder"
         LANGUAGES CXX)
 

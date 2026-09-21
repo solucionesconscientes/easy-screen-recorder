@@ -144,6 +144,32 @@ SPDX-License-Identifier: CC0-1.0
   <content_rating type="oars-1.1"/>
 
   <releases>
+    <release version="0.8.0" date="2026-09-21" type="development">
+      <description>
+        <p>The recording time, in the tray. While recording, the window steps
+        aside so it does not end up in the video, so the only way to see how long
+        you had been recording was to bring it back, which is exactly what you do
+        not want to do. Now a second tray icon says it: minutes on top, seconds
+        below, and the full time in its tooltip.</p>
+        <p>It is off by default and the tick is in the tray menu, "Show the
+        recording time in the tray". Tick it and it appears, straight away, even
+        mid-recording. The choice is remembered.</p>
+        <p>Also fixed: while streaming live, the tray showed the idle icon and hid
+        "Finish", which was the entry you needed to end the stream without
+        bringing the window back.</p>
+        <p xml:lang="es">El tiempo de grabación, en la bandeja. Mientras se graba,
+        la ventana se aparta para no salir en el vídeo, así que el tiempo que
+        llevabas grabando solo se veía trayéndola de vuelta, que es justo lo que
+        no hay que hacer. Ahora lo dice un segundo icono de la bandeja: minutos
+        arriba, segundos abajo, y el tiempo entero en su tooltip.</p>
+        <p xml:lang="es">Viene apagado y la casilla está en el menú de la
+        bandeja, «Enseñar el tiempo en la bandeja». Al marcarla aparece en el
+        acto, incluso con la grabación ya en marcha, y queda recordado.</p>
+        <p xml:lang="es">Y un arreglo: emitiendo en directo, la bandeja ponía el
+        icono de reposo y escondía el «Terminar», que era justo lo que hacía falta
+        para cortar el directo sin sacar la ventana.</p>
+      </description>
+    </release>
     <release version="0.7.0" date="2026-09-20" type="development">
       <description>
         <p>Pick a region and adjust it before recording. Releasing the mouse used
