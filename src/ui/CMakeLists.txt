@@ -41,6 +41,7 @@ qt_add_executable(esr_ui
   main.cpp
   medidor.cpp
   controlador.cpp
+  reloj_bandeja.cpp
 )
 set_target_properties(esr_ui PROPERTIES OUTPUT_NAME easy-screen-recorder)
 

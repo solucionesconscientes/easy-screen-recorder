@@ -50,6 +50,16 @@ int main() {
     COMPROBAR(conf.size() == 2);
     COMPROBAR(conf.at("carpeta_audio") == real);
 
+    // El reloj de la bandeja: apagado si no hay nada escrito, ida y vuelta, y
+    // un valor que no se entiende no lo enciende.
+    COMPROBAR(!reloj_bandeja_activo());
+    COMPROBAR(recordar_reloj_bandeja(true));
+    COMPROBAR(reloj_bandeja_activo());
+    COMPROBAR(recordar_reloj_bandeja(false));
+    COMPROBAR(!reloj_bandeja_activo());
+    COMPROBAR(guardar_ajuste("reloj_bandeja", "true"));
+    COMPROBAR(!reloj_bandeja_activo());
+
     std::filesystem::remove_all(sandbox);
     return prueba::resumen("prueba_configuracion");
 }

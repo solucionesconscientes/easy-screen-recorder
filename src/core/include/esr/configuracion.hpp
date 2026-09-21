@@ -44,4 +44,14 @@ std::string carpeta_audio_elegida();
 std::string url_emision_recordada();
 bool recordar_url_emision(const std::string& servidor);
 
+// ¿Se enseña el tiempo de grabacion en la bandeja, en un segundo icono al lado
+// del de la aplicacion? Apagado por defecto: es un item mas en el panel de
+// alguien, y eso se pide, no se impone.
+//
+// Se recuerda entre sesiones porque es una preferencia y no una opcion de una
+// grabacion: quien lo quiere, lo quiere siempre, y volver a marcarlo en cada
+// arranque seria el mismo castigo que elegir la carpeta cada vez.
+bool reloj_bandeja_activo();
+bool recordar_reloj_bandeja(bool activo);
+
 }  // namespace esr

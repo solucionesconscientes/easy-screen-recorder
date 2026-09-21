@@ -24,6 +24,8 @@
 
 #include "atajos.hpp"
 #include "controlador.hpp"
+#include "esr/configuracion.hpp"
+#include "reloj_bandeja.hpp"
 
 namespace {
 
@@ -66,6 +68,17 @@ QIcon iconoBandeja(bool grabando) {
                                  : QStringLiteral("camera-video-symbolic");
     QIcon icono = QIcon::fromTheme(nuestro);
     return icono.isNull() ? QIcon::fromTheme(red) : icono;
+}
+
+// Los estados en los que hay algo en marcha. Es la misma lista que la ventana
+// (Main.qml:22), y ahora esta escrita una sola vez aqui: la version de la
+// bandeja se dejaba fuera «emitiendo», asi que emitiendo en directo ponia el
+// icono de reposo y escondia «Terminar», que era justo lo que hacia falta para
+// cortar el directo sin sacar la ventana.
+bool enCurso(const QString& estado) {
+    return estado == QStringLiteral("grabando") || estado == QStringLiteral("grabandoAudio") ||
+           estado == QStringLiteral("pausado") || estado == QStringLiteral("replay") ||
+           estado == QStringLiteral("emitiendo");
 }
 
 }  // namespace
@@ -142,6 +155,13 @@ int main(int argc, char** argv) {
     QSystemTrayIcon bandeja(iconoBandeja(false));
     bandeja.setToolTip(QStringLiteral("Easy Screen Recorder"));
 
+    // El reloj: un SEGUNDO item, al lado, que solo existe mientras hay algo en
+    // marcha y solo si esta pedido. Va aparte y no pintado sobre el icono de la
+    // aplicacion para que la marca siga reconocible justo cuando esta grabando,
+    // que es cuando se la busca en el panel. Mientras esta apagado no se enseña,
+    // asi que no hay un item registrado ni cuesta nada.
+    QSystemTrayIcon reloj;
+
     // Y con menu, no solo con clic. Mientras se graba, la ventana esta
     // minimizada y apartada: si la unica forma de pausar fuera restaurarla, la
     // ventana entraria en el video justo en el momento en que uno intenta que
@@ -169,8 +189,26 @@ int main(int argc, char** argv) {
     QAction* accion_pausa = menu.addAction(QObject::tr("Pausa"));
     QAction* accion_parar = menu.addAction(QObject::tr("Parar y guardar"));
     menu.addSeparator();
+    // La opcion vive AQUI y no en «Avanzado» de la ventana por dos razones: es
+    // una preferencia de la bandeja, y «Avanzado» se deshabilita mientras se
+    // graba, que es justo el momento en que a alguien se le ocurre que querria
+    // ver el tiempo. Se recuerda entre sesiones.
+    QAction* accion_reloj = menu.addAction(QObject::tr("Enseñar el tiempo en la bandeja"));
+    accion_reloj->setCheckable(true);
+    accion_reloj->setChecked(esr::reloj_bandeja_activo());
+    menu.addSeparator();
     QAction* accion_salir = menu.addAction(QObject::tr("Salir"));
     bandeja.setContextMenu(&menu);
+    // El reloj NO lleva menu, y no por quedarse corto: darle el mismo QMenu que
+    // al otro item TUMBA la aplicacion. Medido, no supuesto: con las dos lineas
+    // puestas, una grabacion de tres segundos por ESR_AUTOPRUEBA acaba en
+    // violacion de segmento al salir, y por el camino el exportador escupe «No
+    // id for action». El mismo QMenu exportado por dos items de bandeja se
+    // reparte los identificadores de sus acciones y uno de los dos se queda con
+    // punteros que ya no valen. Sin la linea, el mismo arnes sale con 0.
+    //
+    // Asi que el reloj es solo un numero: el menu esta a un icono de distancia,
+    // en el de la aplicacion, que es donde ha estado siempre.
 
     // El icono no se enseña hasta aqui: con el menu ya puesto, el escritorio lo
     // recoge de una vez y no hay un instante con un icono sin menu detras.
@@ -228,14 +266,41 @@ int main(int argc, char** argv) {
                              bandeja.showMessage(QObject::tr("Grabación guardada"), ruta,
                                                  QSystemTrayIcon::Information, 6000);
                          });
+        // El reloj se repinta cada segundo, y solo si hay que enseñarlo. Es un
+        // pixmap pequeño y una señal de DBus por segundo mientras se graba, el
+        // mismo orden de trabajo que el reloj del propio panel.
+        const auto pintar_reloj = [&reloj, controlador, accion_reloj] {
+            const QString estado = controlador->estado();
+            const bool pausado = estado == QStringLiteral("pausado");
+            if (!accion_reloj->isChecked() || !enCurso(estado)) {
+                if (reloj.isVisible()) reloj.hide();
+                return;
+            }
+            const int segundos = controlador->segundos();
+            reloj.setIcon(esr::ui::iconoReloj(segundos, pausado));
+            // El tooltip lleva el tiempo entero, con horas si las hay: es el
+            // sitio donde cabe lo que el icono tiene que recortar.
+            reloj.setToolTip(pausado
+                                 ? QObject::tr("En pausa · %1").arg(esr::ui::tiempoEscrito(segundos))
+                                 : QObject::tr("Grabando · %1").arg(esr::ui::tiempoEscrito(segundos)));
+            if (!reloj.isVisible()) reloj.show();
+        };
+        QObject::connect(controlador, &Controlador::segundosCambiados, &reloj, pintar_reloj);
+        QObject::connect(accion_reloj, &QAction::toggled, &reloj, [pintar_reloj](bool si) {
+            // Se recuerda al marcarla, no al salir: si la aplicacion se va por
+            // donde no debe, la preferencia ya esta guardada.
+            esr::recordar_reloj_bandeja(si);
+            pintar_reloj();
+        });
+
         const auto refrescar = [&bandeja, controlador, accion_pausa, accion_parar,
-                                accion_guardar, accion_grabar] {
+                                accion_guardar, accion_grabar, pintar_reloj] {
             const QString estado = controlador->estado();
             const bool pausado = estado == QStringLiteral("pausado");
             const bool audio = estado == QStringLiteral("grabandoAudio");
             const bool es_replay = estado == QStringLiteral("replay");
-            const bool grabando =
-                estado == QStringLiteral("grabando") || audio || pausado || es_replay;
+            const bool emitiendo = estado == QStringLiteral("emitiendo");
+            const bool grabando = enCurso(estado);
             // Grabar solo cuando no hay nada en marcha: con una grabacion
             // encima, lo que hace falta es pararla, y esas acciones ya estan.
             accion_grabar->setVisible(!grabando && estado == QStringLiteral("listo"));
@@ -251,13 +316,17 @@ int main(int argc, char** argv) {
             bandeja.setToolTip(grabando ? QObject::tr("Easy Screen Recorder: grabando")
                                         : QStringLiteral("Easy Screen Recorder"));
             // GSR no pausa el modo audio-only: la pausa es del IPC de la
-            // pantalla. Igual que en la ventana, ahi no se ofrece.
-            accion_pausa->setVisible(grabando && !audio && !es_replay);
+            // pantalla. Emitiendo la acepta pero corta la imagen del directo
+            // (docs/emision.md). Igual que en la ventana, en ninguno de los tres
+            // se ofrece.
+            accion_pausa->setVisible(grabando && !audio && !es_replay && !emitiendo);
             accion_pausa->setText(pausado ? QObject::tr("Reanudar") : QObject::tr("Pausa"));
-            // En repeticion, parar no guarda nada: el texto tiene que decirlo.
+            // En repeticion y emitiendo, parar no guarda nada: el texto tiene que
+            // decirlo, y lo dice igual que el boton de la ventana.
             accion_parar->setVisible(grabando);
-            accion_parar->setText(es_replay ? QObject::tr("Terminar")
-                                            : QObject::tr("Parar y guardar"));
+            accion_parar->setText(es_replay || emitiendo ? QObject::tr("Terminar")
+                                                        : QObject::tr("Parar y guardar"));
+            pintar_reloj();
         };
         QObject::connect(controlador, &Controlador::estadoCambiado, &bandeja, refrescar);
         // Y una vez ya, porque la aplicacion puede arrancar con una grabacion

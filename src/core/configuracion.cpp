@@ -88,4 +88,17 @@ bool recordar_url_emision(const std::string& servidor) {
     return guardar_ajuste("url_emision", servidor);
 }
 
+bool reloj_bandeja_activo() {
+    const auto valores = leer_configuracion();
+    const auto i = valores.find("reloj_bandeja");
+    // Solo «1» enciende. Cualquier otra cosa, incluido un fichero editado a
+    // mano con «true», deja la bandeja como estaba: un valor que no se entiende
+    // no se interpreta a favor de añadir un icono que nadie pidio.
+    return i != valores.end() && i->second == "1";
+}
+
+bool recordar_reloj_bandeja(bool activo) {
+    return guardar_ajuste("reloj_bandeja", activo ? "1" : "0");
+}
+
 }  // namespace esr

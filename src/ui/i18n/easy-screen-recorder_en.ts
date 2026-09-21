@@ -562,60 +562,75 @@ The video is inside, but it is missing its closing header and many players will 
 <context>
     <name>QObject</name>
     <message>
-        <location filename="../main.cpp" line="150"/>
+        <location filename="../main.cpp" line="170"/>
         <source>Mostrar la ventana</source>
         <translation>Show the window</translation>
     </message>
     <message>
-        <location filename="../main.cpp" line="163"/>
-        <location filename="../main.cpp" line="247"/>
+        <location filename="../main.cpp" line="183"/>
+        <location filename="../main.cpp" line="312"/>
         <source>Grabar la pantalla</source>
         <translation>Record the screen</translation>
     </message>
     <message>
-        <location filename="../main.cpp" line="168"/>
+        <location filename="../main.cpp" line="188"/>
         <source>Guardar lo último</source>
         <translation>Save the last bit</translation>
     </message>
     <message>
-        <location filename="../main.cpp" line="169"/>
-        <location filename="../main.cpp" line="256"/>
+        <location filename="../main.cpp" line="189"/>
+        <location filename="../main.cpp" line="323"/>
         <source>Pausa</source>
         <translation>Pause</translation>
     </message>
     <message>
-        <location filename="../main.cpp" line="170"/>
-        <location filename="../main.cpp" line="260"/>
+        <location filename="../main.cpp" line="190"/>
+        <location filename="../main.cpp" line="328"/>
         <source>Parar y guardar</source>
         <translation>Stop and save</translation>
     </message>
     <message>
-        <location filename="../main.cpp" line="172"/>
+        <location filename="../main.cpp" line="196"/>
+        <source>Enseñar el tiempo en la bandeja</source>
+        <translation>Show the recording time in the tray</translation>
+    </message>
+    <message>
+        <location filename="../main.cpp" line="200"/>
         <source>Salir</source>
         <translation>Quit</translation>
     </message>
     <message>
-        <location filename="../main.cpp" line="228"/>
+        <location filename="../main.cpp" line="266"/>
         <source>Grabación guardada</source>
         <translation>Recording saved</translation>
     </message>
     <message>
-        <location filename="../main.cpp" line="248"/>
+        <location filename="../main.cpp" line="284"/>
+        <source>En pausa · %1</source>
+        <translation>Paused · %1</translation>
+    </message>
+    <message>
+        <location filename="../main.cpp" line="285"/>
+        <source>Grabando · %1</source>
+        <translation>Recording · %1</translation>
+    </message>
+    <message>
+        <location filename="../main.cpp" line="313"/>
         <source>Grabar la pantalla (%1)</source>
         <translation>Record the screen (%1)</translation>
     </message>
     <message>
-        <location filename="../main.cpp" line="251"/>
+        <location filename="../main.cpp" line="316"/>
         <source>Easy Screen Recorder: grabando</source>
         <translation>Easy Screen Recorder: recording</translation>
     </message>
     <message>
-        <location filename="../main.cpp" line="256"/>
+        <location filename="../main.cpp" line="323"/>
         <source>Reanudar</source>
         <translation>Resume</translation>
     </message>
     <message>
-        <location filename="../main.cpp" line="259"/>
+        <location filename="../main.cpp" line="327"/>
         <source>Terminar</source>
         <translation>Finish</translation>
     </message>

@@ -5,6 +5,70 @@ máquina de desarrollo.
 
 ## Sin publicar
 
+### El tiempo de grabación en la bandeja, si se pide (2026-09-20)
+
+Mientras se graba, la ventana está apartada a propósito. El tiempo que llevas
+grabando solo se veía trayéndola de vuelta, que es justo lo que no hay que hacer.
+Ahora lo dice la bandeja.
+
+Va en un **segundo icono**, al lado del de la aplicación, y no pintado encima del
+suyo: la marca tiene que seguir siendo reconocible justo cuando está grabando,
+que es cuando se la busca en el panel. Solo existe mientras hay algo en marcha.
+
+Y en **dos líneas, minutos arriba y segundos abajo**, porque el hueco de un icono
+en el panel son unos 22 px: `01:23` en una línea sale a cuatro píxeles por cifra
+y no se lee. Partido, cada cifra se queda con la mitad del alto, que es la altura
+a la que el propio panel escribe su reloj. Pasada la hora, arriba van las horas
+con su «h» y abajo los minutos; el tooltip lleva siempre el tiempo entero.
+
+Fondo rojo y cifras blancas, y no el color de texto del tema. Un pixmap que
+pintamos nosotros el panel no lo recolorea, así que con el color del tema las
+cifras desaparecen en cuanto el panel va al revés del esquema de color. El rojo
+se lee igual sobre un panel claro y sobre uno oscuro, y además dice lo que está
+pasando; en pausa se apaga a gris.
+
+**Es opcional y viene apagado.** La casilla está en el menú de la bandeja,
+«Enseñar el tiempo en la bandeja», y no en el «Avanzado» de la ventana, por dos
+razones: es una preferencia de la bandeja, y «Avanzado» se deshabilita mientras
+se graba, que es justo el momento en que a alguien se le ocurre que querría ver
+el tiempo. Se recuerda entre sesiones en la clave `reloj_bandeja`, y un valor que
+no se entiende no enciende nada.
+
+De paso, un fallo que estaba y no se veía: la bandeja no contaba «emitiendo»
+entre los estados en marcha, así que emitiendo en directo ponía el icono de
+reposo y escondía el «Terminar» que hacía falta para cortar el directo sin sacar
+la ventana. La lista de estados en marcha estaba escrita dos veces con dos
+contenidos distintos; ahora está una sola vez y dice lo mismo que la ventana.
+
+**Y una caída, medida antes que supuesta:** darle al reloj el mismo `QMenu` que
+al icono de la aplicación tumba la aplicación. Con esa línea puesta, una
+grabación de tres segundos por `ESR_AUTOPRUEBA` acaba en violación de segmento al
+salir y por el camino el exportador escupe «No id for action»; sin ella sale con
+0, igual que el binario sin este cambio. Un mismo `QMenu` exportado por dos items
+de bandeja se reparte los identificadores de sus acciones. Así que el reloj se
+queda sin menú: el menú está a un icono de distancia.
+
+Verificado ejecutando, y contra el binario. Que las cifras se leen a 22 px: un
+arnés compila `reloj_bandeja.cpp`, le pide los iconos y los guarda, y se han
+mirado sobre panel claro (#eff0f1) y oscuro (#232629); ahí entran también los
+casos raros, 00:09, 01:03, 59:59, 1h/00 y 12h/34, porque el tamaño de letra se
+busca hasta que la línea más larga cabe a lo ancho.
+
+Que aparece de verdad: con una grabación en marcha, el proceso registra **dos**
+items de bandeja, y el segundo exporta `IconPixmap` en 22, 24, 32, 48 y 64 px y
+el tooltip «Grabando · 00:00», leídos por DBus, no supuestos. Que la casilla está
+y manda: `com.canonical.dbusmenu.GetLayout` la devuelve como `checkmark = 1`, y
+con la opción apagada el proceso registra un solo item durante toda la grabación.
+Que se va al parar: pulsando «Parar y guardar» por DBus, como haría el panel,
+queda un item. Y que la preferencia se recuerda, con ida y vuelta en
+`prueba_configuracion`, donde además un «true» escrito a mano no la enciende.
+
+Regresión: compila sin un aviso, ctest 12/12, `reuse lint` en verde.
+
+Sin verificar: el gris de la pausa solo se ha visto en el arnés, no en el panel,
+y el tamaño que pide tu panel, que es lo que decide cómo de grandes se ven las
+cifras.
+
 ### El recorte de región se ajusta antes de grabar (2026-09-20)
 
 Soltar el ratón elegía la región y arrancaba la grabación en el mismo gesto. Un
