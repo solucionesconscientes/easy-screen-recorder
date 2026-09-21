@@ -138,6 +138,56 @@ Para mantener "ligera e intuitiva" por delante:
 - Nada de efectos que necesiten más telemetría de la descrita (clicks
   visuales exigirían capturar botones del ratón: otra investigación).
 
+## Reducir el tamaño: medido y decidido (2026-09-21)
+
+Esto no estaba en el plan original de este documento, que iba de zoom y puntero.
+Salió de una pregunta del titular sobre códecs y acabó siendo la pieza de
+post-proceso que sí se ha escrito.
+
+**La idea.** Un codificador por hardware está hecho para ir rápido: tiene un
+presupuesto de tiempo por fotograma y hace lo que le da tiempo. Uno por software
+puede volver sobre los mismos fotogramas y encontrar lo que la GPU no tuvo tiempo
+de buscar. Recomprimir después no tira calidad: recupera el trabajo que la GPU no
+hizo.
+
+**Medido en la máquina de desarrollo** (Intel HD 520, Skylake), grabando con
+h264 por GPU a «Muy alta» y recomprimiendo con `-preset medium`:
+
+| Contenido | Nivel | Queda en | Tiempo | SSIM contra la grabación |
+|---|---|---|---|---|
+| Escritorio | x264 CRF 23 | 53 % | 0,9× | 0,99837 |
+| Escritorio | x264 CRF 28 | 42 % | 0,6× | 0,99680 |
+| Movimiento | x264 CRF 23 | 55 % | 0,6× | 0,99337 |
+| Movimiento | x264 CRF 28 | 27 % | 0,6× | 0,98601 |
+| Movimiento | x265 CRF 28 | 33 % | 1,1× | 0,98850 |
+
+De ahí salen los dos niveles: **CRF 23** («Reducir el tamaño») y **CRF 28**
+(«Reducir al máximo»).
+
+**Por qué NO se cambia de códec.** La opción agresiva se planteó pasando a HEVC.
+Los números lo desmienten: x264 en CRF 28 deja el fichero más pequeño que x265 en
+CRF 28 (27 % contra 33 %), en la mitad de tiempo, y sin cambiar de formato. Y
+cambiar de códec traicionaría a quien eligió webm por la web o h264 por
+compatibilidad. La regla es **mismo códec, mejor codificador**.
+
+**Quién queda fuera, y por qué:**
+
+- **webm (vp8/vp9):** recomprimir una grabación vp8 con libvpx-vp9 costó **15
+  veces la duración del vídeo** para dejarla en el 93 % (CRF 31) o el 74 %
+  (CRF 36). Ofrecer eso sería una trampa.
+- **HDR y 10 bits:** recomprimir por el camino normal destruiría justo lo que
+  alguien fue a buscar al elegirlos.
+- **Solo audio:** un opus ya está comprimido.
+- **av1:** hasta medir SVT-AV1.
+- **hevc:** sí se ofrece, con 1,8× y 3× tiempo real medidos (66 % y 45 %).
+
+**Por qué la interfaz no promete ningún porcentaje.** El porcentaje es una
+división cuyo divisor es lo bueno que fuera el codificador de esa tarjeta. En una
+GPU moderna la grabación ya nace apretada y el margen es menor. Así que la
+ventana no dice «la mitad»: dice el antes y el después reales al terminar, y **la
+máquina recuerda lo que le pasó a ella** (`reduccion_ultima` en la
+configuración) para poder decir «la última vez quedó en el 59 %».
+
 ## La decisión del titular
 
 Tres alcances posibles, de más a menos:

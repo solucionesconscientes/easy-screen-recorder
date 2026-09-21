@@ -77,9 +77,14 @@ escribas ni una línea hasta leer `docs/gsr-audio-only.md`.
 **Ligera e intuitiva. No es negociable y prima sobre añadir opciones.**
 
 - Arranque por debajo de 1 segundo y poca RAM.
-- Grabar en dos clics: Fuente, Grabar. Todo lo demás en "Avanzado", plegado.
-- Defaults sensatos sin tocar nada: mkv, mejor códec de hardware disponible,
-  audio de sistema, carpeta Vídeos.
+- Grabar en dos clics: Fuente, Grabar. Lo demás, a la vista debajo, en dos
+  columnas y con la página desplazable. Estuvo plegado tras un botón
+  "Avanzado" hasta la 0.9.0 y se quitó por lo que pasó al probarlo: la primera
+  opción que alguien buscó de verdad la buscó en la ventana, no la encontró, y
+  dio por hecho que no existía. Los dos clics siguen siendo dos.
+- Defaults sensatos sin tocar nada: mkv, h264 cuando la máquina lo codifica por
+  hardware (por compatibilidad, no por calidad), sistema y micrófono mezclados si
+  hay micrófono (solo sistema si no lo hay), carpeta Vídeos.
 - **Solo exponer lo que la máquina soporta de verdad.** `libesr` hace esa
   detección para que la UI nunca ofrezca algo que vaya a fallar. Cuando el
   parser no entiende una salida, deja un aviso; no se inventa una capacidad.

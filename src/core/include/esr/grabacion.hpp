@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <cstdint>
 #include <string>
 
 #include "esr/ajustes.hpp"
@@ -34,6 +35,10 @@ struct SesionGrabacion {
     // que ruta_replay: el socket no dice de que modo es la grabacion, y una
     // ventana abierta a mitad ofreceria cosas que ahi no valen.
     std::string ruta_emision;  // dir/emision.txt
+    // La carpeta donde se esta guardando la emision, si se pidio. Existe para
+    // que parar sepa que antes del stop hay que cerrar ESE fichero: su respuesta
+    // trae la ruta, y la del stop de una emision viene vacia.
+    std::string ruta_guardado;  // dir/guardado.txt
 };
 
 // El servidor de la emision en marcha, o vacio si esta grabacion no emite.
@@ -64,6 +69,49 @@ std::string grabacion_a_medias(const SesionGrabacion& sesion);
 // El original NO se borra hasta que el reparado existe y tiene duracion: si algo
 // sale mal, es preferible quedarse con el fichero raro que con ninguno.
 bool reparar_grabacion(const std::string& ruta, std::string& motivo);
+
+// --- Reducir el tamaño de una grabacion ya hecha -------------------------
+//
+// Un codificador por HARDWARE esta hecho para ir rapido: tiene un presupuesto
+// de tiempo por fotograma y hace lo que le da tiempo. Uno por software puede
+// volver sobre los mismos fotogramas y encontrar las repeticiones que la GPU no
+// tuvo tiempo de buscar. Por eso esto encoge el fichero sin que se note: no
+// tira calidad, recupera el trabajo que la GPU no hizo.
+//
+// Cuanto encoge depende de lo bueno que fuera el codificador de esa tarjeta, y
+// eso cambia de una maquina a otra. Por eso aqui no hay ninguna cifra prometida:
+// se devuelve el antes y el despues y que cada maquina hable de lo suyo. Las
+// mediciones que sustentan los niveles estan en docs/post-proceso.md.
+enum class NivelReduccion {
+    Normal,  // CRF 23: practicamente indistinguible
+    Maximo,  // CRF 28: mas pequeño, con una perdida pequeña pero real
+};
+
+struct ResultadoReduccion {
+    bool hecho = false;
+    std::uintmax_t bytes_antes = 0;
+    std::uintmax_t bytes_despues = 0;
+    std::string motivo;  // por que no se hizo, cuando no se hizo
+};
+
+// Si este fichero se puede reducir, y si no, por que. La UI lo usa para no
+// ofrecer lo que no va a poder hacer.
+//
+// Se niega con: solo audio, HDR o 10 bits (recomprimirlo destruiria justo lo
+// que se fue a buscar) y los codecs cuyo codificador de software es
+// impracticable. vp9 quedo fuera midiendo: 15 veces el tiempo del video para
+// ahorrar un 7 %.
+bool se_puede_reducir(const std::string& ruta, std::string& motivo);
+
+// Recomprime el fichero EN SU SITIO, con el MISMO codec con el que se grabo.
+//
+// Mismo codec a proposito: cambiarlo traicionaria lo que pidio quien grabo. El
+// que eligio webm quiere un webm, y el que grabo en h264 por compatibilidad no
+// quiere descubrir que su fichero ya no lo abre el televisor.
+//
+// El original no se toca hasta que el nuevo existe y tiene duracion, igual que
+// en reparar_grabacion.
+ResultadoReduccion reducir_grabacion(const std::string& ruta, NivelReduccion nivel);
 
 // Lee ese instante. 0 si no hay grabacion o no se puede leer.
 long inicio_grabacion(const std::string& ruta_inicio);

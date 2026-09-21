@@ -54,4 +54,32 @@ bool recordar_url_emision(const std::string& servidor);
 bool reloj_bandeja_activo();
 bool recordar_reloj_bandeja(bool activo);
 
+// En que porcentaje quedo la ultima grabacion reducida en esta maquina, o 0 si
+// todavia no se ha reducido ninguna.
+//
+// Existe porque la cifra no se puede escribir en la interfaz: cuanto encoge una
+// grabacion depende de lo bueno que fuera el codificador de esa tarjeta, y eso
+// cambia de un equipo a otro. Prometer «la mitad» seria vender una medicion
+// hecha en otra maquina. Asi que cada equipo guarda lo suyo y la interfaz cuenta
+// lo que ha pasado aqui, no lo que pasa en el portatil de quien programo esto.
+// El nivel importa: «al maximo» deja el fichero bastante mas pequeño que
+// «reducir», asi que una sola cifra para los dos enseñaria la del ultimo nivel
+// usado al elegir el otro. Una cifra que no corresponde es peor que ninguna.
+int reduccion_recordada(bool maximo);
+bool recordar_reduccion(bool maximo, int porcentaje);
+
+// ¿Ha demostrado esta maquina que su codificador HEVC no es de fiar?
+//
+// El grabador lo dice en su log cuando el driver no declara de que es capaz su
+// codificador y ffmpeg tiene que conducirlo a ojo («Driver does not advertise
+// encoder features»). Medido el 2026-09-21 en la maquina de desarrollo: con ese
+// aviso, hevc salio entre un 18 % y un 37 % MAS grande que h264 y ademas menos
+// fiel, en los cuatro niveles de calidad (docs/post-proceso.md).
+//
+// No es una lista de tarjetas escrita a mano, que seria justo lo que el proyecto
+// prohibe: es el propio equipo diciendo lo que le pasa. En una tarjeta que si
+// declare sus capacidades, esto nunca se enciende.
+bool hevc_poco_fiable();
+bool recordar_hevc_poco_fiable(bool si);
+
 }  // namespace esr

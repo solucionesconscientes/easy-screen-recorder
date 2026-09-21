@@ -34,4 +34,11 @@ std::pair<QString, QString> lineasReloj(int segundos);
 // El icono, en los tamaños que puede pedir un panel.
 QIcon iconoReloj(int segundos, bool pausado);
 
+// El icono de la cuenta atras: UN solo digito, que a 22 px se lee de lejos.
+//
+// Existe porque con la cuenta atras la ventana se aparta al instante, asi que
+// la bandeja es el unico sitio donde se puede ver cuanto falta. Antes la ventana
+// se quedaba a la vista los tres segundos justo para eso.
+QIcon iconoCuentaAtras(int falta);
+
 }  // namespace esr::ui

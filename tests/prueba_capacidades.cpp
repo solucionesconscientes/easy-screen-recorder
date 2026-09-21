@@ -91,6 +91,21 @@ void volcado_real() {
         COMPROBAR_NOTA(false, "falta default_output");
     }
 
+    // El microfono: el volcado real de esta maquina lo tiene, y se reconoce por
+    // lo que NO es: ni un nombre inventado por GSR ni un monitor de altavoz.
+    COMPROBAR(hay_microfono(c.dispositivos_audio));
+    // Una maquina sin entradas lista igual los dos nombres inventados y el
+    // monitor de su altavoz. Ahi no hay microfono, y decir que si dejaria el
+    // audio por defecto pidiendo una entrada que no existe.
+    {
+        const std::vector<Opcion> sin_micro{
+            Opcion{"default_output", {"Default output"}},
+            Opcion{"default_input", {"Default input"}},
+            Opcion{"alsa_output.pci-0000_00_1f.3.analog-stereo.monitor", {"Monitor of ..."}}};
+        COMPROBAR(!hay_microfono(sin_micro));
+        COMPROBAR(!hay_microfono({}));
+    }
+
     // Nada sonaba al hacer el volcado. Lista vacia con codigo 0 es un estado
     // legitimo, no un fallo, y no debe dejar aviso.
     COMPROBAR(c.audio_por_aplicacion.empty());

@@ -60,6 +60,23 @@ int main() {
     COMPROBAR(guardar_ajuste("reloj_bandeja", "true"));
     COMPROBAR(!reloj_bandeja_activo());
 
+    // Lo que esta maquina ha medido al reducir. Sin nada escrito, 0; y un
+    // porcentaje imposible se ignora en vez de enseñarse.
+    COMPROBAR(reduccion_recordada(false) == 0);
+    COMPROBAR(recordar_reduccion(false, 59));
+    COMPROBAR(reduccion_recordada(false) == 59);
+    // Cada nivel lleva la suya: «al maximo» encoge mas, y enseñar la del otro
+    // seria una cifra que no corresponde.
+    COMPROBAR(reduccion_recordada(true) == 0);
+    COMPROBAR(recordar_reduccion(true, 34));
+    COMPROBAR(reduccion_recordada(true) == 34);
+    COMPROBAR(reduccion_recordada(false) == 59);
+    COMPROBAR(!recordar_reduccion(false, 0));
+    COMPROBAR(!recordar_reduccion(false, 140));
+    COMPROBAR(reduccion_recordada(false) == 59);
+    COMPROBAR(guardar_ajuste("reduccion_ultima_normal", "ochenta"));
+    COMPROBAR(reduccion_recordada(false) == 0);
+
     std::filesystem::remove_all(sandbox);
     return prueba::resumen("prueba_configuracion");
 }

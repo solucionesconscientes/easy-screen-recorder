@@ -42,6 +42,9 @@ void uso() {
         "  easy-screen-recorder-cli guardar            vuelca el buffer de replay a un fichero\n"
         "  easy-screen-recorder-cli reparar            arregla la grabacion que quedo a medias\n"
         "                              si el equipo se apago mientras grababa\n"
+        "  easy-screen-recorder-cli reducir FICHERO    recomprime una grabacion para que ocupe\n"
+        "                              menos, sin cambiar de codec. Con --maximo aprieta\n"
+        "                              mas, perdiendo algo de calidad\n"
         "  easy-screen-recorder-cli pausar             pausa la grabacion en marcha\n"
         "  easy-screen-recorder-cli reanudar           reanuda la grabacion pausada\n"
         "  easy-screen-recorder-cli estado             dice si hay una grabacion en marcha\n"
@@ -96,6 +99,10 @@ void uso() {
         "                    hay que darla cada vez\n"
         "  --bitrate N       kbps constantes. Por defecto 4500, que es lo que\n"
         "                    recomienda YouTube para 1080p30\n"
+        "  --guardar         ademas de emitir, guarda lo emitido en un fichero\n"
+        "                    en la carpeta de videos. Lo escribe el mismo\n"
+        "                    grabador, asi que no cuesta una segunda\n"
+        "                    codificacion. Al parar se imprime la ruta\n"
         "\n"
         "  Emitiendo, «pausar» funciona pero deja de mandar imagen, y una\n"
         "  plataforma trata eso como emision caida. Se avisa y se deja hacer.\n"
@@ -291,6 +298,11 @@ int grabar(const std::vector<std::string_view>& args, bool emitiendo = false) {
             a.camara_y_pct = std::atoi(std::string(valor()).c_str());
         } else if (opcion == "--camara-sin-espejo") {
             a.camara_espejo = false;
+        } else if (opcion == "--guardar") {
+            // Emitiendo, guardar ademas a fichero. La carpeta es la de siempre,
+            // sin una bandera mas: quien quiera otra la cambia una vez y se
+            // recuerda, que es como funciona el resto.
+            a.carpeta_guardado = esr::carpeta_videos_elegida();
         } else if (opcion == "--modo-fotogramas") {
             a.modo_fotogramas = std::string(valor());
         } else if (opcion == "--limite-resolucion") {
@@ -586,6 +598,42 @@ int dispositivos() {
 
 }  // namespace
 
+// Recomprime una grabacion ya hecha para que ocupe menos.
+//
+// Vive aqui antes que en la ventana por contrato: si algo no funciona por CLI,
+// no se toca la interfaz.
+int reducir(const std::vector<std::string_view>& args) {
+    std::string ruta;
+    auto nivel = esr::NivelReduccion::Normal;
+    for (std::size_t i = 1; i < args.size(); ++i) {
+        if (args[i] == "--maximo") {
+            nivel = esr::NivelReduccion::Maximo;
+        } else if (ruta.empty()) {
+            ruta = std::string(args[i]);
+        }
+    }
+    if (ruta.empty()) {
+        std::fprintf(stderr, "uso: easy-screen-recorder-cli reducir FICHERO [--maximo]\n");
+        return kMalUso;
+    }
+    std::string motivo;
+    if (!esr::se_puede_reducir(ruta, motivo)) {
+        std::fprintf(stderr, "no se puede reducir: %s\n", motivo.c_str());
+        return kFallo;
+    }
+    std::printf("reduciendo… (tarda aproximadamente lo que dure el video)\n");
+    const auto r = esr::reducir_grabacion(ruta, nivel);
+    if (!r.hecho) {
+        std::fprintf(stderr, "%s\n", r.motivo.c_str());
+        return kFallo;
+    }
+    const double antes = static_cast<double>(r.bytes_antes) / (1024.0 * 1024.0);
+    const double despues = static_cast<double>(r.bytes_despues) / (1024.0 * 1024.0);
+    std::printf("%.1f MB -> %.1f MB (queda en el %d %%)\n", antes, despues,
+                static_cast<int>((r.bytes_despues * 100) / r.bytes_antes));
+    return 0;
+}
+
 int main(int argc, char** argv) {
     const std::vector<std::string_view> args(argv + 1, argv + argc);
 
@@ -610,6 +658,7 @@ int main(int argc, char** argv) {
     if (orden == "parar") return parar();
     if (orden == "guardar") return guardar();
     if (orden == "reparar") return reparar();
+    if (orden == "reducir") return reducir(args);
     if (orden == "pausar") return pausar(true);
     if (orden == "reanudar") return pausar(false);
     if (orden == "estado") return estado();

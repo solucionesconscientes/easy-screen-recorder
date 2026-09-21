@@ -5,6 +5,7 @@
 #include "controlador.hpp"
 
 #include <QCoreApplication>
+#include <QLocale>
 #include <QtConcurrent/QtConcurrent>
 
 #include <cstdio>
@@ -57,6 +58,7 @@ QString resolucionBonita(const std::string& resolucion) {
 }  // namespace
 
 Controlador::Controlador(QObject* padre) : QObject(padre), medidor_(this) {
+    refrescarConfiguracion();
     connect(&medidor_, &Medidor::nivelCambiado, this, &Controlador::nivelMicroCambiado);
     reloj_.setInterval(1000);
     connect(&reloj_, &QTimer::timeout, this, [this] {
@@ -242,14 +244,66 @@ void Controlador::elegirCarpeta(bool paraAudio, const QUrl& carpeta) {
     emit carpetasCambiadas();
 }
 
+namespace {
+
+// «12,4 MB», con la coma decimal del idioma. Para el aviso de la reduccion.
+QString tamanoBonito(std::uintmax_t bytes) {
+    const double mb = static_cast<double>(bytes) / (1024.0 * 1024.0);
+    return QLocale().toString(mb, 'f', 1) + QStringLiteral(" MB");
+}
+
+}  // namespace
+
+void Controlador::ponerCuentaAtras(int falta) {
+    if (cuenta_atras_ == falta) return;
+    cuenta_atras_ = falta;
+    emit cuentaAtrasCambiada();
+}
+
+void Controlador::recordarAjuste(const QString& clave, const QString& valor) {
+    if (clave.isEmpty()) return;
+    esr::guardar_ajuste(("ui_" + clave).toStdString(), valor.toStdString());
+    conf_[("ui_" + clave).toStdString()] = valor.toStdString();
+}
+
+QString Controlador::ajusteRecordado(const QString& clave, const QString& porDefecto) const {
+    const auto i = conf_.find(("ui_" + clave).toStdString());
+    return i == conf_.end() ? porDefecto : QString::fromStdString(i->second);
+}
+
+void Controlador::refrescarConfiguracion() {
+    conf_ = esr::leer_configuracion();
+    hevc_poco_fiable_ = esr::hevc_poco_fiable();
+    reduccion_normal_ = esr::reduccion_recordada(false);
+    reduccion_maximo_ = esr::reduccion_recordada(true);
+}
+
+void Controlador::ponerRelojEnBandeja(bool si) {
+    if (reloj_bandeja_ == si) return;
+    reloj_bandeja_ = si;
+    // Se guarda al marcarla y no al salir: si la aplicacion se va por donde no
+    // debe, la preferencia ya esta escrita. Si el fichero no se deja escribir, la
+    // sesion en curso obedece igual; no es un ajuste por el que valga la pena
+    // plantarle un error en la cara a nadie.
+    esr::recordar_reloj_bandeja(si);
+    emit relojEnBandejaCambiado();
+}
+
 void Controlador::aplicarEntorno(const esr::Entorno& e) {
     fuentes_.clear();
     codecs_video_.clear();
-    // «auto» delante: delega en GSR, que es el criterio probado, y ademas es el
-    // unico que acierta siempre con el contenedor. El resto, tal como la maquina
-    // los nombra, pero solo los que GSR acepta de verdad en -k: «h264_software»
-    // salia de --info y mataba al grabador al arrancar.
-    codecs_video_ << QStringLiteral("auto");
+    // SIN «auto». Lo tuvo delante hasta la 0.9.0 y se quita porque no dice nada:
+    // quien abre ese desplegable quiere saber en que se graba, y «auto» obliga a
+    // ir al log del grabador para averiguarlo. La interfaz elige h264 cuando
+    // esta, que es lo que elegiria GSR (codec_select.c:449-462) y lo que abre
+    // cualquier reproductor.
+    //
+    // Lo que se pierde, dicho: la vuelta atras de GSR cuando la captura no cabe
+    // en la resolucion maxima del codificador h264 de esa GPU, que es un caso de
+    // pantallas enormes. libesr y el CLI siguen aceptando «auto».
+    //
+    // Solo los que GSR acepta de verdad en -k: «h264_software» salia de --info y
+    // mataba al grabador al arrancar.
     for (const auto& c : esr::codecs_video_ofrecibles(e.capacidades.info)) {
         codecs_video_ << QString::fromStdString(c);
     }
@@ -310,6 +364,7 @@ void Controlador::aplicarEntorno(const esr::Entorno& e) {
         camaras_ << entrada;
     }
 
+    hay_microfono_ = esr::hay_microfono(e.capacidades.dispositivos_audio);
     ponerAplicacionesSonando(e.capacidades.audio_por_aplicacion);
     servidor_grafico_ = QString::fromStdString(e.capacidades.info.servidor_grafico);
 
@@ -421,6 +476,12 @@ void Controlador::grabar(const QString& fuente, const QVariantMap& opciones) {
         a.bitrate_kbps = opciones.value(QStringLiteral("emitirBitrate"), 4500).toInt();
         a.codec_audio = "aac";
         a.replay_segundos = 0;
+        // Y si se pidio, se guarda ademas a fichero. La carpeta es la misma de
+        // los videos, la que ya esta elegida: una emision guardada es un video
+        // como otro cualquiera.
+        if (opciones.value(QStringLiteral("guardarEmision"), false).toBool()) {
+            a.carpeta_guardado = carpeta_v;
+        }
         // El servidor se recuerda; la clave jamas.
         esr::recordar_url_emision(servidor.toStdString());
     }
@@ -428,6 +489,11 @@ void Controlador::grabar(const QString& fuente, const QVariantMap& opciones) {
     // GSR, y darle un nombre de fichero le haria escribir dentro de el como si
     // fuera un directorio.
     if (a.replay_segundos != 0) a.salida = carpeta_v;
+
+    // Lo que se pidio para DESPUES de grabar. Se apunta ahora y no se mira al
+    // terminar: si alguien cambia el desplegable mientras graba, lo que manda
+    // es lo que eligio al darle a Grabar.
+    reduccion_pendiente_ = opciones.value(QStringLiteral("reducir")).toString();
 
     const QString audio = opciones.value(QStringLiteral("audio"), QStringLiteral("sistema")).toString();
     if (audio == QStringLiteral("micro")) {
@@ -556,6 +622,46 @@ void Controlador::emitir(const QString& fuente, const QString& servidor, const Q
     grabar(fuente, con_emision);
 }
 
+void Controlador::reducirEnSegundoPlano(const QString& ruta) {
+    const QString nivel = reduccion_pendiente_;
+    reduccion_pendiente_.clear();
+    if (nivel.isEmpty() || ruta.isEmpty()) return;
+    std::string motivo;
+    // Si no se puede, se calla: la grabacion esta guardada y es lo que
+    // importaba. Plantar un error por no haber podido encoger seria castigar a
+    // alguien por una opcion que solo aporta cuando se puede.
+    if (!esr::se_puede_reducir(ruta.toStdString(), motivo)) return;
+
+    reduciendo_ = true;
+    ultima_reduccion_.clear();
+    emit reduccionCambiada();
+
+    const auto valor = nivel == QStringLiteral("maximo") ? esr::NivelReduccion::Maximo
+                                                         : esr::NivelReduccion::Normal;
+    auto* vigilante = new QFutureWatcher<esr::ResultadoReduccion>(this);
+    connect(vigilante, &QFutureWatcher<esr::ResultadoReduccion>::finished, this,
+            [this, vigilante] {
+                const auto r = vigilante->result();
+                vigilante->deleteLater();
+                reduciendo_ = false;
+                refrescarConfiguracion();
+                if (r.hecho) {
+                    // El antes y el despues DE VERDAD, que es el unico numero
+                    // honesto: cuanto encoge depende de lo bueno que fuera el
+                    // codificador de esta tarjeta.
+                    ultima_reduccion_ = tr("%1 → %2")
+                                            .arg(tamanoBonito(r.bytes_antes),
+                                                 tamanoBonito(r.bytes_despues));
+                    emit grabacionReducida(ultima_reduccion_);
+                }
+                emit reduccionCambiada();
+            });
+    // En otro proceso y con el hilo aparte: una recompresion tarda lo que dure
+    // el video y la ventana no puede quedarse quieta mientras.
+    vigilante->setFuture(QtConcurrent::run(
+        [ruta, valor] { return esr::reducir_grabacion(ruta.toStdString(), valor); }));
+}
+
 void Controlador::alternarPausa() {
     // Emitiendo no se pausa desde aqui. GSR lo acepta —probado, responde
     // «Paused»— pero deja de mandar imagen y la plataforma da la emision por
@@ -586,6 +692,12 @@ void Controlador::guardarReplay() {
                 }
                 ruta_guardada_ = texto;
                 emit rutaGuardadaCambiada();
+                // Al parar, libesr puede haber apuntado que el codificador HEVC
+                // de esta maquina no es de fiar: se relee para que la lista de
+                // codecs lo diga sin esperar al proximo arranque.
+                refrescarConfiguracion();
+                emit fuentesCambiadas();
+                reducirEnSegundoPlano(texto);
                 emit grabacionGuardada(texto);
             });
     vigilante->setFuture(QtConcurrent::run([]() -> QPair<bool, QString> {
@@ -650,6 +762,12 @@ void Controlador::parar() {
                 }
                 ruta_guardada_ = texto;
                 emit rutaGuardadaCambiada();
+                // Al parar, libesr puede haber apuntado que el codificador HEVC
+                // de esta maquina no es de fiar: se relee para que la lista de
+                // codecs lo diga sin esperar al proximo arranque.
+                refrescarConfiguracion();
+                emit fuentesCambiadas();
+                reducirEnSegundoPlano(texto);
                 emit grabacionGuardada(texto);
                 ponerEstado(QStringLiteral("listo"));
             });

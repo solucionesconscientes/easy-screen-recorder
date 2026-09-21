@@ -28,6 +28,9 @@ SPDX-License-Identifier: CC0-1.0
     <ul>
       <li>Records any monitor, a region you drag, the focused window or a
       camera, with the encoding done on the GPU.</li>
+      <li>Does not encode repeated frames: an hour of a still screen does not
+      weigh like an hour of video. And it can compress the recording afterwards,
+      by CPU, without changing format.</li>
       <li>Audio-only mode, to Opus, AAC, FLAC, WAV or MP3, without turning on
       video capture at all.</li>
       <li>Pause and resume mid-recording, and a global shortcut to start and
@@ -127,9 +130,9 @@ SPDX-License-Identifier: CC0-1.0
       <caption xml:lang="es">Grabando, con el tiempo y la pausa a mano</caption>
     </screenshot>
     <screenshot>
-      <image>https://github.com/solucionesconscientes/easy-screen-recorder/raw/31adc334a11dd8f45f83132c8dcf7c7c4c268a21/docs/screenshots/avanzado.png</image>
-      <caption>The Advanced panel: format, codecs, quality and where recordings go</caption>
-      <caption xml:lang="es">El panel Avanzado: formato, códecs, calidad y dónde van las grabaciones</caption>
+      <image>https://github.com/solucionesconscientes/easy-screen-recorder/raw/31adc334a11dd8f45f83132c8dcf7c7c4c268a21/docs/screenshots/seleccionando.png</image>
+      <caption>Picking a region by dragging: adjust it, then Enter records</caption>
+      <caption xml:lang="es">Eligiendo una región arrastrando: se ajusta y Enter graba</caption>
     </screenshot>
   </screenshots>
 
@@ -144,6 +147,37 @@ SPDX-License-Identifier: CC0-1.0
   <content_rating type="oars-1.1"/>
 
   <releases>
+    <release version="0.9.0" date="2026-09-21" type="development">
+      <description>
+        <p>The options are no longer hidden behind an Advanced button: they are
+        right there, in two columns, each with a small (i) that explains what it
+        does. The video codec list drops "auto" and says what each codec is good
+        for, the quality levels no longer promise a file size they cannot keep,
+        and "Maximum resolution" shows your actual screen.</p>
+        <p>New: the recording can be made smaller when it ends. The same codec is
+        re-encoded by the processor, which takes its time and finds what the
+        graphics card had no time to look for, so the file roughly halves without
+        changing format. And the recording time now shows in the tray, along with
+        the countdown, so the window can step aside straight away.</p>
+        <p>The window also remembers what you choose, which it barely did before:
+        source, format, codecs, quality, camera, and the rest. Never the stream
+        key.</p>
+        <p xml:lang="es">Las opciones dejan de estar detrás de un botón
+        «Avanzado»: salen a la vista, en dos columnas, y cada una con una (i) que
+        explica para qué sirve. El códec de vídeo pierde el «auto» y dice qué es
+        bueno para qué, los niveles de calidad dejan de prometer un tamaño que no
+        pueden cumplir, y «Resolución máxima» enseña tu pantalla de verdad.</p>
+        <p xml:lang="es">Nuevo: la grabación puede reducirse al terminar. Se
+        vuelve a comprimir con el mismo códec por procesador, que se toma su
+        tiempo y encuentra lo que la tarjeta gráfica no tuvo tiempo de buscar, así
+        que el fichero se queda en torno a la mitad sin cambiar de formato. Y el
+        tiempo de grabación se ve en la bandeja, junto con la cuenta atrás, para
+        que la ventana pueda apartarse al instante.</p>
+        <p xml:lang="es">La ventana además recuerda lo que eliges, que antes casi
+        no lo hacía: fuente, formato, códecs, calidad, cámara y lo demás. La clave
+        de emisión jamás.</p>
+      </description>
+    </release>
     <release version="0.8.0" date="2026-09-21" type="development">
       <description>
         <p>The recording time, in the tray. While recording, the window steps

@@ -2,10 +2,12 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "esr/configuracion.hpp"
 #include "esr/grabacion.hpp"
 
 #include <unistd.h>
 
+#include <algorithm>
 #include <cstdlib>
 #include <ctime>
 #include <filesystem>
@@ -96,6 +98,7 @@ SesionGrabacion sesion_por_defecto() {
     s.ruta_replay = s.dir + "/replay.txt";
     s.ruta_salida = s.dir + "/salida.txt";
     s.ruta_emision = s.dir + "/emision.txt";
+    s.ruta_guardado = s.dir + "/guardado.txt";
     return s;
 }
 
@@ -147,6 +150,32 @@ std::string diagnostico_de_log(const std::string& ruta_log) {
     if (cola.empty()) return "y su log quedo vacio: murio antes de decir nada";
     return "esto es el final de su log:\n" + cola;
 }
+
+namespace {
+
+// Enciende por IPC la grabacion a fichero que corre en paralelo a la emision.
+// Devuelve false y llena «motivo» si el grabador dice que no.
+bool empezar_guardado(const SesionGrabacion& sesion, std::string& motivo) {
+    std::string fallo;
+    auto conexion = ConexionIpc::conectar(sesion.ruta_socket, &fallo);
+    if (!conexion) {
+        motivo = "no se pudo pedir que se guardara la emision: " + fallo;
+        return false;
+    }
+    // Respuesta inmediata, no diferida: esta solo dice si empezo.
+    const auto respuesta = conexion->pedir("start-replay-recording", kEsperaSocketMs, &fallo);
+    if (!respuesta) {
+        motivo = "no se pudo pedir que se guardara la emision: " + fallo;
+        return false;
+    }
+    if (!respuesta->ok) {
+        motivo = "el grabador no guarda la emision: " + traducir_error_ipc(respuesta->data);
+        return false;
+    }
+    return true;
+}
+
+}  // namespace
 
 ResultadoLanzamiento empezar_grabacion(const AjustesGrabacion& ajustes,
                                        const SesionGrabacion& sesion) {
@@ -204,6 +233,15 @@ ResultadoLanzamiento empezar_grabacion(const AjustesGrabacion& ajustes,
         }
     }
 
+    // La carpeta donde se va a guardar la emision, comprobada antes de lanzar:
+    // GSR con un -ro que no existe arranca igual y el fallo solo sale en su log,
+    // asi que el usuario emitiria creyendo que se esta guardando.
+    if (!ajustes.carpeta_guardado.empty() &&
+        !std::filesystem::is_directory(ajustes.carpeta_guardado, ec)) {
+        r.motivo = "la carpeta donde guardar la emision no existe: " + ajustes.carpeta_guardado;
+        return r;
+    }
+
     // Un socket huerfano de un GSR muerto lo limpia GSR solo; cualquier otro
     // fichero en esa ruta le impide arrancar (src/cli/ipc.c:767-784). Mejor
     // decirlo aqui que dejar que muera con su error criptico en el log.
@@ -249,10 +287,23 @@ ResultadoLanzamiento empezar_grabacion(const AjustesGrabacion& ajustes,
     } else {
         std::filesystem::remove(sesion.ruta_emision, ec);
     }
+    if (!ajustes.carpeta_guardado.empty()) {
+        std::ofstream(sesion.ruta_guardado) << ajustes.carpeta_guardado << "\n";
+    } else {
+        std::filesystem::remove(sesion.ruta_guardado, ec);
+    }
 
     // Esperar a que el socket escuche. Si GSR muere antes, el log dice por que.
     for (int esperado = 0; esperado < kEsperaSocketMs; esperado += kPasoEsperaMs) {
         if (grabacion_en_marcha(sesion)) {
+            // -ro solo abre la puerta; el fichero no empieza hasta que se pide.
+            // Si no se puede pedir, se para todo y se dice: quien marco
+            // «guardar la emision» no puede acabar sin fichero y enterarse al
+            // final, que es cuando ya no tiene arreglo.
+            if (!ajustes.carpeta_guardado.empty() && !empezar_guardado(sesion, r.motivo)) {
+                parar_grabacion(sesion);
+                return r;
+            }
             r.en_marcha = true;
             r.pid = lanzado.pid;
             return r;
@@ -271,6 +322,27 @@ ResultadoLanzamiento empezar_grabacion(const AjustesGrabacion& ajustes,
     return r;
 }
 
+namespace {
+
+// ¿Dice el log que el driver conduce el codificador HEVC a ojo? Esa frase la
+// escribe ffmpeg desde dentro del grabador cuando el driver no declara de que
+// es capaz, y ahi el resultado es peor que h264: medido, entre un 18 % y un
+// 37 % mas grande y menos fiel.
+bool anota_hevc_poco_fiable(const std::string& ruta_log) {
+    std::ifstream f(ruta_log);
+    if (!f) return false;
+    std::string linea;
+    bool hevc = false;
+    bool a_ojo = false;
+    while (std::getline(f, linea)) {
+        if (linea.find("hevc") != std::string::npos) hevc = true;
+        if (linea.find("does not advertise encoder features") != std::string::npos) a_ojo = true;
+    }
+    return hevc && a_ojo;
+}
+
+}  // namespace
+
 ResultadoParada parar_grabacion(const SesionGrabacion& sesion) {
     ResultadoParada r;
 
@@ -288,6 +360,16 @@ ResultadoParada parar_grabacion(const SesionGrabacion& sesion) {
         return r;
     }
 
+    // Si la emision se estaba guardando, primero se cierra ESE fichero. Su
+    // respuesta trae la ruta y la del stop de una emision viene vacia, porque
+    // una emision no deja fichero: sin esto, el usuario no sabria donde quedo.
+    std::string guardado;
+    std::error_code ec_guardado;
+    if (std::filesystem::exists(sesion.ruta_guardado, ec_guardado)) {
+        const auto rg = conexion->pedir("stop-replay-recording", -1, &motivo);
+        if (rg && rg->ok && rg->tiene_data) guardado = rg->data;
+    }
+
     // Sin limite de tiempo: la respuesta llega con el fichero ya escrito.
     const auto respuesta = conexion->pedir("stop", -1, &motivo);
     if (!respuesta) {
@@ -300,7 +382,12 @@ ResultadoParada parar_grabacion(const SesionGrabacion& sesion) {
     }
 
     r.parado = true;
-    r.ruta_fichero = respuesta->tiene_data ? respuesta->data : "";
+    // Guardando una emision manda la ruta del fichero, no lo que responde el
+    // stop: ahi lo que viene es la URL del servidor, que no es ningun fichero y
+    // ademas lleva la clave pegada detras.
+    r.ruta_fichero = !guardado.empty()            ? guardado
+                     : respuesta->tiene_data      ? respuesta->data
+                                                  : "";
 
     std::error_code ec;
     std::filesystem::remove(sesion.ruta_pid, ec);
@@ -308,6 +395,12 @@ ResultadoParada parar_grabacion(const SesionGrabacion& sesion) {
     std::filesystem::remove(sesion.ruta_replay, ec);
     std::filesystem::remove(sesion.ruta_salida, ec);
     std::filesystem::remove(sesion.ruta_emision, ec);
+    std::filesystem::remove(sesion.ruta_guardado, ec);
+
+    // Lo que esta maquina acaba de demostrar sobre su codificador HEVC. El
+    // grabador lo escribe en su log y es la unica fuente honesta: nadie puede
+    // saber de antemano si un driver declara sus capacidades.
+    if (anota_hevc_poco_fiable(sesion.ruta_log)) recordar_hevc_poco_fiable(true);
     return r;
 }
 
@@ -326,6 +419,152 @@ std::string grabacion_a_medias(const SesionGrabacion& sesion) {
     // escribe fragmentado y sobrevive sin ayuda.
     if (duracion_de(ruta) > 0.0) return {};
     return ruta;
+}
+
+namespace {
+
+// El codec de video de un fichero, tal como lo nombra ffprobe.
+std::string codec_de(const std::string& ruta) {
+    const auto r = ejecutar("ffprobe", {"-v", "error", "-select_streams", "v:0",
+                                        "-show_entries", "stream=codec_name",
+                                        "-of", "csv=p=0", ruta});
+    if (!r.ejecutado || r.codigo != 0) return {};
+    std::string codec = r.salida;
+    while (!codec.empty() && (codec.back() == '\n' || codec.back() == '\r')) codec.pop_back();
+    return codec;
+}
+
+// El formato de pixel, para reconocer 10 bits y HDR sin adivinar por el nombre
+// del codec: «hevc» a secas puede ser de 8 o de 10 bits.
+std::string formato_pixel_de(const std::string& ruta) {
+    const auto r = ejecutar("ffprobe", {"-v", "error", "-select_streams", "v:0",
+                                        "-show_entries", "stream=pix_fmt",
+                                        "-of", "csv=p=0", ruta});
+    if (!r.ejecutado || r.codigo != 0) return {};
+    std::string fmt = r.salida;
+    while (!fmt.empty() && (fmt.back() == '\n' || fmt.back() == '\r')) fmt.pop_back();
+    return fmt;
+}
+
+// El codificador de software de la familia de ese codec. Vacio si no hay uno
+// que merezca la pena.
+//
+// vp8 y vp9 NO estan, y no es un olvido: medido el 2026-09-21, recomprimir una
+// grabacion vp8 con libvpx-vp9 costo QUINCE veces la duracion del video para
+// dejarla en el 93 %. Ofrecer eso seria una trampa.
+// av1 tampoco, hasta medir SVT-AV1.
+std::string codificador_para(const std::string& codec) {
+    if (codec == "h264") return "libx264";
+    if (codec == "hevc") return "libx265";
+    return {};
+}
+
+}  // namespace
+
+bool se_puede_reducir(const std::string& ruta, std::string& motivo) {
+    std::error_code ec;
+    if (!std::filesystem::exists(ruta, ec)) {
+        motivo = "ese fichero no existe";
+        return false;
+    }
+    const std::string codec = codec_de(ruta);
+    if (codec.empty()) {
+        motivo = "no tiene video: una grabacion de solo audio ya esta comprimida";
+        return false;
+    }
+    const std::string fmt = formato_pixel_de(ruta);
+    // 10 bits y HDR se quedan como estan: recomprimirlos por el camino normal
+    // destruiria justo lo que alguien fue a buscar al elegirlos.
+    if (fmt.find("10") != std::string::npos || fmt.find("12") != std::string::npos) {
+        motivo = "esta grabado a mas de 8 bits y recomprimirlo perderia lo que lo hace especial";
+        return false;
+    }
+    if (codificador_para(codec).empty()) {
+        motivo = "no hay forma razonable de recomprimir " + codec + " en esta maquina";
+        return false;
+    }
+    if (!localizar("ffmpeg")) {
+        motivo = "hace falta ffmpeg";
+        return false;
+    }
+    return true;
+}
+
+ResultadoReduccion reducir_grabacion(const std::string& ruta, NivelReduccion nivel) {
+    ResultadoReduccion r;
+    if (!se_puede_reducir(ruta, r.motivo)) return r;
+
+    std::error_code ec;
+    r.bytes_antes = std::filesystem::file_size(ruta, ec);
+    const std::string codec = codec_de(ruta);
+    const std::string enc = codificador_para(codec);
+    // Los dos niveles salen de medir, no de elegir un numero redondo: 23 deja
+    // el fichero practicamente indistinguible y 28 baja bastante mas con una
+    // perdida pequeña pero real (docs/post-proceso.md).
+    const std::string crf = nivel == NivelReduccion::Maximo ? "28" : "23";
+
+    const std::string ext = extension_de(ruta);
+    const std::string temporal =
+        ruta.substr(0, ruta.size() - (ext.empty() ? 0 : ext.size() + 1)) +
+        ".reduciendo." + (ext.empty() ? std::string("mkv") : ext);
+    std::filesystem::remove(temporal, ec);
+
+    // -fps_mode passthrough: la grabacion tiene fotogramas a ritmo VARIABLE
+    // porque GSR no codifica los repetidos, y eso es media ventaja del
+    // programa. Comprobado que ffmpeg los conserva igualmente, pero pedirlo no
+    // cuesta nada y protege de que un dia deje de hacerlo.
+    // -c:a copy: el audio ya esta comprimido y recodificarlo solo perderia.
+    // El limite de ejecutar() son cinco segundos por defecto, pensados para las
+    // sondas de --check, y aqui matarian la recompresion de cualquier grabacion
+    // de mas de diez segundos: medido, eso fue lo primero que paso. El margen se
+    // calcula sobre la duracion del video, que es de lo que depende el trabajo:
+    // diez veces, con un suelo de un minuto. Sigue habiendo tope, porque un
+    // ffmpeg colgado no puede dejar el programa esperando para siempre.
+    const double segundos = duracion_de(ruta);
+    const int limite_ms =
+        static_cast<int>(std::max(60.0, segundos * 10.0) * 1000.0);
+    const auto res = ejecutar("ffmpeg", {"-v", "error", "-y", "-i", ruta,
+                                         "-c:v", enc, "-crf", crf, "-preset", "medium",
+                                         "-fps_mode", "passthrough", "-c:a", "copy",
+                                         temporal},
+                              limite_ms);
+    if (!res.ejecutado || res.codigo != 0) {
+        r.motivo = res.expirado ? "la reduccion tardo demasiado y se corto"
+                                : "no se pudo reducir: " + res.motivo;
+        std::filesystem::remove(temporal, ec);
+        return r;
+    }
+    // Igual que al reparar: lo que decide no es el codigo de salida, es que lo
+    // que sale tenga duracion.
+    if (duracion_de(temporal) <= 0.0) {
+        r.motivo = "lo reducido no se puede leer; se deja la grabacion como estaba";
+        std::filesystem::remove(temporal, ec);
+        return r;
+    }
+    const auto despues = std::filesystem::file_size(temporal, ec);
+    // Si no encoge, no se toca. Pasa con grabaciones ya muy comprimidas, y
+    // sustituir un fichero por otro igual o mayor solo añade una recompresion
+    // que nadie gana.
+    if (despues >= r.bytes_antes) {
+        r.motivo = "no encoge: esta grabacion ya estaba bien comprimida";
+        std::filesystem::remove(temporal, ec);
+        return r;
+    }
+
+    std::filesystem::rename(temporal, ruta, ec);
+    if (ec) {
+        r.motivo = "no se pudo sustituir el fichero: " + ec.message();
+        std::filesystem::remove(temporal, ec);
+        return r;
+    }
+    r.bytes_despues = despues;
+    r.hecho = true;
+    // La maquina se mide a si misma: se recuerda en que porcentaje quedo, para
+    // que la proxima vez la interfaz pueda decir lo que pasa AQUI en vez de una
+    // cifra medida en otro equipo.
+    recordar_reduccion(nivel == NivelReduccion::Maximo,
+                       static_cast<int>((despues * 100) / r.bytes_antes));
+    return r;
 }
 
 bool reparar_grabacion(const std::string& ruta, std::string& motivo) {

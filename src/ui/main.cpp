@@ -193,9 +193,17 @@ int main(int argc, char** argv) {
     // una preferencia de la bandeja, y «Avanzado» se deshabilita mientras se
     // graba, que es justo el momento en que a alguien se le ocurre que querria
     // ver el tiempo. Se recuerda entre sesiones.
-    QAction* accion_reloj = menu.addAction(QObject::tr("Enseñar el tiempo en la bandeja"));
+    // Aqui no hace falta decir «en la bandeja»: se esta leyendo en la bandeja. En
+    // la ventana si lo dice, porque alli hay que decir donde sale.
+    // Cancelar la cuenta atras. Con la ventana ya apartada, su boton «Cancelar»
+    // no esta a mano, y tres segundos son suficientes para arrepentirse.
+    QAction* accion_cancelar = menu.addAction(QObject::tr("Cancelar la cuenta atrás"));
+    accion_cancelar->setVisible(false);
+    menu.addSeparator();
+    QAction* accion_reloj = menu.addAction(QObject::tr("Mostrar el tiempo de grabación"));
     accion_reloj->setCheckable(true);
-    accion_reloj->setChecked(esr::reloj_bandeja_activo());
+    accion_reloj->setChecked(controlador != nullptr ? controlador->relojEnBandeja()
+                                                    : esr::reloj_bandeja_activo());
     menu.addSeparator();
     QAction* accion_salir = menu.addAction(QObject::tr("Salir"));
     bandeja.setContextMenu(&menu);
@@ -266,13 +274,32 @@ int main(int argc, char** argv) {
                              bandeja.showMessage(QObject::tr("Grabación guardada"), ruta,
                                                  QSystemTrayIcon::Information, 6000);
                          });
+        // Y cuando la recompresion termina, el antes y el despues. Va a la
+        // bandeja y no solo a la ventana porque esto acaba minutos despues, con
+        // la ventana probablemente ya cerrada.
+        QObject::connect(controlador, &Controlador::grabacionReducida, &bandeja,
+                         [&bandeja](const QString& texto) {
+                             bandeja.showMessage(QObject::tr("Grabación reducida"), texto,
+                                                 QSystemTrayIcon::Information, 6000);
+                         });
         // El reloj se repinta cada segundo, y solo si hay que enseñarlo. Es un
         // pixmap pequeño y una señal de DBus por segundo mientras se graba, el
         // mismo orden de trabajo que el reloj del propio panel.
-        const auto pintar_reloj = [&reloj, controlador, accion_reloj] {
+        const auto pintar_reloj = [&reloj, controlador] {
             const QString estado = controlador->estado();
             const bool pausado = estado == QStringLiteral("pausado");
-            if (!accion_reloj->isChecked() || !enCurso(estado)) {
+            // La cuenta atras manda sobre todo lo demas, y se enseña AUNQUE el
+            // reloj este apagado: con la cuenta atras la ventana se aparta al
+            // instante, asi que esto es lo unico que dice cuanto falta. Dura
+            // tres segundos y se va sola.
+            const int falta = controlador->cuentaAtras();
+            if (falta > 0) {
+                reloj.setIcon(esr::ui::iconoCuentaAtras(falta));
+                reloj.setToolTip(QObject::tr("Empieza en %1…").arg(falta));
+                if (!reloj.isVisible()) reloj.show();
+                return;
+            }
+            if (!controlador->relojEnBandeja() || !enCurso(estado)) {
                 if (reloj.isVisible()) reloj.hide();
                 return;
             }
@@ -286,12 +313,24 @@ int main(int argc, char** argv) {
             if (!reloj.isVisible()) reloj.show();
         };
         QObject::connect(controlador, &Controlador::segundosCambiados, &reloj, pintar_reloj);
-        QObject::connect(accion_reloj, &QAction::toggled, &reloj, [pintar_reloj](bool si) {
-            // Se recuerda al marcarla, no al salir: si la aplicacion se va por
-            // donde no debe, la preferencia ya esta guardada.
-            esr::recordar_reloj_bandeja(si);
-            pintar_reloj();
-        });
+        QObject::connect(controlador, &Controlador::cuentaAtrasCambiada, &reloj,
+                         [controlador, accion_cancelar, pintar_reloj] {
+                             accion_cancelar->setVisible(controlador->cuentaAtras() > 0);
+                             pintar_reloj();
+                         });
+        QObject::connect(accion_cancelar, &QAction::triggered, controlador,
+                         [controlador] { controlador->pedirCancelarCuentaAtras(); });
+        // La casilla del menu y la de «Avanzado» son la MISMA preferencia, no dos
+        // copias: las dos escriben en el controlador y las dos se enteran de lo
+        // que haga la otra. Marcarla en un sitio y verla sin marcar en el otro
+        // seria peor que tenerla en uno solo.
+        QObject::connect(accion_reloj, &QAction::toggled, controlador,
+                         [controlador](bool si) { controlador->ponerRelojEnBandeja(si); });
+        QObject::connect(controlador, &Controlador::relojEnBandejaCambiado, &reloj,
+                         [controlador, accion_reloj, pintar_reloj] {
+                             accion_reloj->setChecked(controlador->relojEnBandeja());
+                             pintar_reloj();
+                         });
 
         const auto refrescar = [&bandeja, controlador, accion_pausa, accion_parar,
                                 accion_guardar, accion_grabar, pintar_reloj] {

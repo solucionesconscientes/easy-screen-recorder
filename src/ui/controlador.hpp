@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include <map>
+
 #include <QObject>
 #include <QStringList>
 #include <QUrl>
@@ -11,6 +13,7 @@
 #include <QTimer>
 #include <qqmlregistration.h>
 
+#include "esr/configuracion.hpp"
 #include "esr/entorno.hpp"
 #include "medidor.hpp"
 
@@ -60,6 +63,13 @@ class Controlador : public QObject {
                    NOTIFY audiosAplicacionCambiados)
     // «wayland» o «x11», segun lo que diga GSR. La UI lo necesita para no
     // ofrecer el modo «content», que en Wayland sobre un monitor no hace nada.
+    // Si esta maquina tiene un microfono de verdad. De ahi sale el audio por
+    // defecto: con micro se graban los dos mezclados, sin micro solo el sistema.
+    // Pedir una entrada que no existe seria un error al arrancar por un default.
+    Q_PROPERTY(bool hayMicrofono READ hayMicrofono NOTIFY fuentesCambiadas)
+    // Si esta maquina ya demostro que su codificador HEVC no es de fiar. Se
+    // entera sola, al terminar una grabacion en hevc.
+    Q_PROPERTY(bool hevcPocoFiable READ hevcPocoFiable NOTIFY fuentesCambiadas)
     Q_PROPERTY(QString servidorGrafico READ servidorGrafico NOTIFY fuentesCambiadas)
     // El servidor de ingesta recordado, para no escribirlo cada vez. La clave
     // NO se recuerda nunca y no tiene propiedad: vive en el campo de texto y se
@@ -86,6 +96,28 @@ class Controlador : public QObject {
     Q_PROPERTY(QString atajoPausa READ atajoPausa NOTIFY hayAtajosCambiado)
     // 0 a 1. Solo se mueve mientras se esta escuchando, o sea antes de grabar.
     Q_PROPERTY(qreal nivelMicro READ nivelMicro NOTIFY nivelMicroCambiado)
+    // Si la bandeja enseña el tiempo de grabacion en un segundo icono. Es una
+    // preferencia y se recuerda entre sesiones. Vive aqui, y no solo en el menu
+    // de la bandeja donde nacio, porque ahi no la encontro nadie: el primero que
+    // la busco la busco en «Avanzado».
+    Q_PROPERTY(bool relojEnBandeja READ relojEnBandeja WRITE ponerRelojEnBandeja
+                   NOTIFY relojEnBandejaCambiado)
+    // Si hay una recompresion en marcha, y como quedo la ultima. No es un
+    // estado del grabador: se puede volver a grabar mientras ocurre, porque va
+    // en otro proceso y con prioridad baja.
+    // Lo que falta para que empiece la grabacion, o 0 si no hay cuenta atras.
+    // Lo lleva el QML, que es donde esta el reloj, y lo publica aqui para que la
+    // bandeja pueda enseñarlo: con la cuenta atras la ventana se aparta al
+    // instante y la bandeja es el unico sitio donde mirar.
+    Q_PROPERTY(int cuentaAtras READ cuentaAtras WRITE ponerCuentaAtras
+                   NOTIFY cuentaAtrasCambiada)
+    Q_PROPERTY(bool reduciendo READ reduciendo NOTIFY reduccionCambiada)
+    Q_PROPERTY(QString ultimaReduccion READ ultimaReduccion NOTIFY reduccionCambiada)
+    // En que porcentaje quedo la ultima grabacion reducida EN ESTA MAQUINA, o 0
+    // si todavia ninguna. Cuanto encoge depende del codificador de la tarjeta,
+    // asi que la unica cifra honesta es la que ha medido este equipo.
+    Q_PROPERTY(int reduccionNormal READ reduccionNormal NOTIFY reduccionCambiada)
+    Q_PROPERTY(int reduccionMaximo READ reduccionMaximo NOTIFY reduccionCambiada)
 
 public:
     explicit Controlador(QObject* padre = nullptr);
@@ -125,10 +157,41 @@ public:
     QString carpetaVideos() const;
     QString carpetaAudio() const;
     Q_INVOKABLE void elegirCarpeta(bool paraAudio, const QUrl& carpeta);
+
+    // --- Recordar lo que se elige en la ventana ---------------------------
+    //
+    // Generico a proposito: una propiedad por opcion serian veinte propiedades
+    // que no hacen nada mas que guardar un texto. La clave la pone el QML y se
+    // escribe con el prefijo «ui_» para no mezclarse con lo que guarda libesr.
+    //
+    // Lo que NO pasa por aqui, y no es un olvido: la clave de emision, que no
+    // toca el disco jamas, y la region recortada, que es de esa sesion y no una
+    // preferencia.
+    Q_INVOKABLE void recordarAjuste(const QString& clave, const QString& valor);
+    Q_INVOKABLE QString ajusteRecordado(const QString& clave,
+                                        const QString& porDefecto = {}) const;
     QString diagnostico() const { return diagnostico_; }
     QString rutaGuardada() const { return ruta_guardada_; }
     QString error() const { return error_; }
     int segundos() const { return segundos_; }
+    bool hayMicrofono() const { return hay_microfono_; }
+    // Leidas de la copia en memoria, no del disco: estas tres las pregunta el
+    // QML muchas veces al construir la ventana —una por codec de la lista, una
+    // por cada opcion que se restaura— y leer el fichero en cada una costo
+    // medido casi un segundo de arranque.
+
+    bool hevcPocoFiable() const { return hevc_poco_fiable_; }
+    int cuentaAtras() const { return cuenta_atras_; }
+    void ponerCuentaAtras(int falta);
+    // La pide la bandeja, porque con la ventana apartada su boton «Cancelar» no
+    // esta a mano. Quien la atiende es el QML, que es quien tiene el reloj.
+    Q_INVOKABLE void pedirCancelarCuentaAtras() { emit cancelarCuentaAtras(); }
+    bool reduciendo() const { return reduciendo_; }
+    QString ultimaReduccion() const { return ultima_reduccion_; }
+    int reduccionNormal() const { return reduccion_normal_; }
+    int reduccionMaximo() const { return reduccion_maximo_; }
+    bool relojEnBandeja() const { return reloj_bandeja_; }
+    void ponerRelojEnBandeja(bool si);
     QString grabacionAMedias() const { return grabacion_a_medias_; }
     // Rehace esa grabacion. Va en hilo aparte: copiar los flujos de un video
     // largo tarda, y bloquear la ventana para esto seria absurdo.
@@ -189,6 +252,11 @@ signals:
     void rutaGuardadaCambiada();
     void errorCambiado();
     void segundosCambiados();
+    void relojEnBandejaCambiado();
+    void cuentaAtrasCambiada();
+    void cancelarCuentaAtras();
+    void reduccionCambiada();
+    void grabacionReducida(const QString& texto);
     void nivelMicroCambiado();
     void grabacionAMediasCambiada();
     void hayAtajosCambiado();
@@ -218,6 +286,25 @@ private:
     QString grabacion_a_medias_;
     QString error_;
     int segundos_ = 0;
+    bool reloj_bandeja_ = esr::reloj_bandeja_activo();
+    bool hay_microfono_ = false;
+    // La configuracion, leida una vez y refrescada cuando algo la cambia. El
+    // fichero es pequeño, pero leerlo decenas de veces mientras se construye la
+    // ventana si se nota: medido, 987 ms de arranque pasaron a 1,9 s.
+    std::map<std::string, std::string> conf_;
+    bool hevc_poco_fiable_ = false;
+    int reduccion_normal_ = 0;
+    int reduccion_maximo_ = 0;
+    void refrescarConfiguracion();
+
+    int cuenta_atras_ = 0;
+    bool reduciendo_ = false;
+    QString ultima_reduccion_;
+    // Que nivel de reduccion pidio la grabacion EN MARCHA. Se apunta al
+    // empezar y no se lee del control al terminar: si alguien cambia la opcion
+    // mientras graba, lo que vale es lo que pidio cuando le dio a Grabar.
+    QString reduccion_pendiente_;
+    void reducirEnSegundoPlano(const QString& ruta);
     QTimer reloj_;
     bool audio_en_curso_ = false;
     bool hay_atajos_ = false;

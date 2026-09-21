@@ -87,9 +87,12 @@ echo "── 1/3 ventana principal"
 abrir
 disparar "$tmp/principal.png"
 
-echo "── 2/3 panel Avanzado"
-abrir --avanzado
-disparar "$tmp/avanzado.png"
+# La segunda ya no es «Avanzado»: desde la 0.9.0 las opciones salen desplegadas,
+# asi que esa captura era identica a la primera. En su lugar, el selector de
+# region, que ademas enseña algo que ninguna otra captura enseña.
+echo "── 2/3 selector de region"
+abrir --selector
+disparar "$tmp/seleccionando.png"
 
 echo "── 3/3 grabando"
 # La grabacion arranca ANTES de la ventana: asi se abre ya en ese estado y no se
@@ -115,7 +118,7 @@ tmp, destino = sys.argv[1], sys.argv[2]
 # ficha de tienda se lee como aplicacion a medio hacer.
 LIENZO = (1100, 790)
 FONDO = (220, 223, 225)
-for nombre in ("principal", "grabando", "avanzado"):
+for nombre in ("principal", "grabando", "seleccionando"):
     v = Image.open("%s/%s.png" % (tmp, nombre)).convert("RGBA")
     if v.width > LIENZO[0] or v.height > LIENZO[1]:
         raise SystemExit("la captura %s (%dx%d) no cabe en el lienzo %s" %

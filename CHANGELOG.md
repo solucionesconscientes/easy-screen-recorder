@@ -5,6 +5,287 @@ máquina de desarrollo.
 
 ## Sin publicar
 
+### La cuenta atrás se ve en la bandeja (2026-09-21)
+
+Con la cuenta atrás puesta, la ventana **se aparta al instante** y los tres
+segundos se cuentan en la bandeja, en un icono con el dígito a todo el alto.
+
+Esto deshace una decisión que estaba escrita en el propio código: contar con la
+ventana delante y apartarla al final, porque minimizar a mitad de cuenta «dejaba
+el último segundo a ciegas». Era verdad mientras la bandeja no dijera nada. Ahora
+lo dice, y además los tres segundos sirven para lo que deben servir: para que
+cuando empiece a grabar la ventana ya no esté.
+
+El «Cancelar» vivía en la ventana, que ahora no está, así que entra en el menú de
+la bandeja y solo aparece mientras cuenta. Y el dígito se enseña **aunque el
+reloj de bandeja esté apagado**: dura tres segundos y es lo único que dice cuánto
+falta.
+
+Verificado: los dígitos renderizados y mirados a 22 px, bien distintos del reloj
+de dos líneas; el dibujo de los dos iconos unificado en una función en vez de
+copiado; sin errores de QML al arrancar; ctest 12/12. El recorrido completo lo
+confirmó el titular a mano, que es la única forma: la cuenta atrás solo arranca
+desde el botón de la ventana.
+
+### Reducir el tamaño al terminar, y que la máquina se mida a sí misma (2026-09-21)
+
+**Lo que aporta este programa sobre GSR era «UI ligera, modo audio-only y
+post-proceso», y el post-proceso llevaba desde el 15 de septiembre en
+«investigado, pendiente de decisión». Ya existe.**
+
+Al terminar de grabar, si se pide, la grabación se vuelve a comprimir por
+procesador y el fichero se queda **en torno a la mitad** sin que se note. No es
+magia: un codificador por hardware tiene un presupuesto de tiempo por fotograma y
+hace lo que le da tiempo; uno por software vuelve sobre los mismos fotogramas y
+encuentra lo que la GPU no tuvo tiempo de buscar. No se tira calidad, se recupera
+el trabajo que la GPU no hizo.
+
+Dos niveles, los dos medidos (tabla completa en `docs/post-proceso.md`): «Reducir
+el tamaño» (CRF 23, queda en el 53 % con escritorio y el 55 % con movimiento,
+prácticamente indistinguible) y «Reducir al máximo» (CRF 28, 42 % y 27 %, con una
+pérdida pequeña pero real).
+
+**Mismo códec, mejor codificador.** La versión agresiva se planteó cambiando a
+HEVC y la medición lo desmintió: x264 en CRF 28 deja el fichero **más pequeño**
+que x265 en CRF 28 (27 % contra 33 %), en la mitad de tiempo y sin cambiar de
+formato. Cambiar de códec además traicionaría a quien eligió webm por la web o
+h264 porque lo abre su televisor. Así que no se cambia.
+
+**Quién se queda fuera, y por qué, todo medido:** webm, porque recomprimir vp8
+con libvpx-vp9 costó **quince veces la duración del vídeo** para dejarlo en el
+93 %; HDR y 10 bits, porque recomprimirlos destruiría justo lo que alguien fue a
+buscar; solo audio, que ya está comprimido; y av1 hasta medir SVT-AV1. hevc sí
+entra, avisando de que tarda el doble.
+
+**La interfaz no promete ningún porcentaje, y es deliberado.** El porcentaje es
+una división cuyo divisor es lo bueno que fuera el codificador de esa tarjeta: en
+una GPU moderna la grabación ya nace apretada y el margen es menor. Así que la
+ventana da el dato real al terminar, «12,4 MB → 6,3 MB», y **la máquina recuerda
+lo que le pasó a ella** para decir la próxima vez «la última vez quedó en el
+59 %». Cada equipo habla de lo suyo en vez de repetir una medición hecha en otro.
+Una cifra **por nivel**, además: al probarlo se vio que con una sola, el 39 % de
+«al máximo» se enseñaba también al elegir «reducir», y una cifra que no
+corresponde es peor que ninguna.
+
+**Y la misma idea contra el hevc poco fiable.** El grabador escribe en su log
+«Driver does not advertise encoder features» cuando el driver no declara de qué
+es capaz su codificador y ffmpeg lo conduce a ojo. Eso se lee al parar y se
+recuerda, y a partir de ahí la lista de códecs dice «tu tarjeta lo hace mal: sale
+más grande y peor que h264». No es una lista de tarjetas escrita a mano, que es
+lo que el proyecto prohíbe: es el propio equipo diciendo lo que le pasa. En una
+tarjeta que declare sus capacidades, esto no se enciende nunca.
+
+**Lo elegido en la ventana se recuerda.** Hasta ahora se guardaban cuatro cosas;
+ahora son dieciocho: fuente, formato, los dos códecs, calidad, fps, audio,
+resolución máxima, cámara con su tamaño, posición y espejo, cuenta atrás, modo
+repetición y sus segundos, caudal de emisión, guardar la emisión y qué hacer al
+terminar. **No se guardan** la clave de emisión, que no toca el disco jamás, ni
+la región recortada, que es de esa sesión. Y solo se apunta lo que se **elige**:
+abrir y cerrar el programa sin tocar nada no escribe ni una línea, comprobado.
+
+Verificado ejecutando: grabar y reducir por CLI deja 0,5 MB en 0,3 MB (59 %) y el
+fichero sigue leyéndose; el original nunca se toca hasta que el reducido existe y
+tiene duración, y si algo falla se queda intacto, con test; `ejecutar()` mataba la
+recompresión a los cinco segundos —su límite pensado para las sondas de
+`--check`— y ahora el margen se calcula sobre la duración del vídeo; y lanzando la
+ventana con una fuente recordada, arranca con ella puesta, que es el caso difícil
+porque la lista llega después de la detección.
+
+Dos cosas más de casa: la segunda captura de la ficha pasa a ser el selector de
+región, porque con las opciones ya desplegadas era idéntica a la primera; y el
+**VFR**, que no se mencionaba en ningún texto de usuario, entra en la ficha y en
+los dos README. No codificar fotogramas repetidos es media ventaja del programa y
+era un secreto.
+
+### Las opciones, a la vista y explicadas (2026-09-21)
+
+Ocho cambios pedidos por el titular después de usarla, más lo que salió al
+hacerlos. Todos empiezan en la misma raíz: **lo que está escondido no existe**.
+La casilla del reloj de bandeja se había puesto solo en el menú de la bandeja y
+el primero que la buscó la buscó en la ventana.
+
+**Se acabó el botón «Avanzado».** Las opciones salen directamente, en las dos
+columnas de siempre, y la ventana nace del tamaño que necesita. La página pasa a
+ser desplazable: sin barra, el día que el contenido no quepa —otro tipo de letra,
+otro panel, una pantalla más baja— las últimas filas se salen y no hay forma de
+llegar a ellas, que es un fallo que este formulario ya tuvo. Esto **cambia
+`CLAUDE.md:80`**, que decía lo contrario, y la línea se ha reescrito con el
+motivo: los dos clics para grabar siguen siendo dos.
+
+**Una «i» al lado de cada opción con explicación.** Los tooltips colgaban del
+propio control y eran invisibles: nada decía que hubiera algo que leer. Ahora son
+`Kirigami.ContextualHelpButton`, que es de KDE y se abre al pasar por encima y al
+pulsar. Once opciones. Comprobado que existe **en el runtime del flatpak**
+(`org.kde.Platform 6.11`) y no solo en el Kirigami del sistema, que es lo que
+decide si la aplicación instalada se rompe.
+
+**Calidad: se intentó poner las cifras y hubo que quitarlas.** «Alta» no le dice
+nada a nadie, así que las opciones pasaron a leerse «Muy alta · ~3,0 MB/min», con
+las cifras medidas aquí. Duró hasta medir los códecs: esa cifra sale de una
+grabación con **h264**, y con hevc el mismo ajuste da casi el doble. Una cifra que
+es verdad en una opción y mentira por el 80 % en la de al lado no es una cifra, y
+hacerla depender del códec sería perseguir una tabla que además cambia con cada
+GPU. Se quitan. La «i» explica lo que sí es estable: que se graba a calidad
+constante, que por eso no hay tamaño que anunciar, y que depende de lo que se
+mueva en pantalla y del códec. Detrás, por si alguien lo busca: QP equivalente a
+h264 de 35, 30, 25 y 22 (`src/recorder/video_codec.c:9-17`).
+
+**«Tamaño del vídeo» pasa a ser «Resolución máxima»**, y las opciones dicen la
+pantalla de verdad: «La de la pantalla (1366×768)». Los techos por encima de la
+pantalla **dejan de ofrecerse**: «como mucho 1080p» en una pantalla de 768 px no
+hacía absolutamente nada, y el proyecto no enseña lo que la máquina no va a usar.
+
+**Fuera «auto» del códec de vídeo.** Estaba delante y era el default, y no dice
+nada: para saber en qué se estaba grabando había que ir al log del grabador. Cada
+códec sale ahora con una línea al lado que dice lo que hay que saber para
+elegir: «h264 · lo reproduce todo, hasta un televisor viejo», «hevc · no lo abren los
+televisores antiguos; mira la "i" antes», «av1 · sin patentes; hace
+falta un equipo reciente para verlo».
+
+Y ahí salió algo que había que medir antes de escribirlo, porque el folclore dice
+lo contrario: **hevc no hace el fichero más pequeño, lo hace más grande**. Dos
+rondas intercaladas grabando lo mismo a la misma calidad dieron h264 2,44 y 2,43
+MB/min, hevc 4,55 y 4,32, vp8 2,83 y 2,84. O sea un 80 % MÁS en hevc. La causa
+está en el código de GSR: a h264 y a hevc les pasa el mismo número de calidad
+(`video_codec.c:22-24`; a vp8 lo dobla y a av1 y vp9 los multiplica por cuatro,
+porque sus escalas son otras), y con ese mismo número este codificador gasta más
+bits en hevc. Eso es más detalle, no menos tamaño. La «i» lo dice con las
+cifras. La ventana elige **h264** cuando está, que es exactamente lo que elegía
+GSR solo (`codec_select.c:449-462`). Un identificador que no conozcamos sale tal
+cual, sin descripción inventada: la lista la da la máquina y GSR puede añadir
+nombres cuando quiera.
+
+Lo que se pierde con eso, dicho: la vuelta atrás de GSR cuando la captura no cabe
+en la resolución máxima del codificador h264 de esa GPU, que es cosa de pantallas
+enormes. `libesr` y el CLI siguen aceptando `auto`.
+
+**Y midiendo esto salió un hallazgo que cambia el consejo entero: aquí hevc es
+peor que h264 en todo.** Se montó el experimento bien hecho, que es la única
+forma de saberlo: una grabación de escritorio convertida en referencia **sin
+pérdida** a 30 fps fijos, recodificada con los dos códecs a los cuatro niveles
+que la aplicación sabe pedir, y comparada contra esa referencia con SSIM y PSNR.
+Mismo material para todos, sin el ruido de que el escritorio se mueva distinto en
+cada pasada.
+
+| Nivel | h264 MB/min · SSIM | hevc MB/min · SSIM |
+|---|---|---|
+| Media (QP 35) | 0,98 · 0,97399 | 1,34 · 0,97086 |
+| Alta (QP 30) | 1,37 · 0,98942 | 1,73 · 0,98812 |
+| Muy alta (QP 25) | 1,83 · 0,99640 | 2,16 · 0,99515 |
+| Ultra (QP 22) | 2,05 · 0,99926 | 2,49 · 0,99720 |
+
+En los cuatro, hevc ocupa entre un 18 % y un 37 % más **y** se parece menos al
+original. Y no hay ningún punto donde gane: igualar la calidad de h264 en «Muy
+alta» exige hevc en «Ultra», que cuesta un 36 % más de disco por la misma pinta.
+
+La causa está en el log del propio grabador: «Driver does not advertise encoder
+features, using guessed defaults». El driver de esta GPU **no declara lo que su
+codificador HEVC sabe hacer**, así que ffmpeg lo conduce a ojo, y un codificador
+conducido a ciegas reparte mal los bits. `vainfo` lo confirma desde fuera: esta
+tarjeta solo anuncia puntos de entrada de codificación para H264 y JPEG.
+
+Con eso se cae la idea que veníamos persiguiendo, la de traducir el nivel de
+calidad por códec para que «Muy alta» significara lo mismo en todos: no hay tabla
+de equivalencia que salvar cuando un códec pierde en todos los puntos. La «i» del
+códec dice lo medido y recomienda h264 a quien no sepa cómo se porta su tarjeta.
+
+Dos tropiezos del camino, por si hay que repetirlo: el ffmpeg del anfitrión **no
+puede** codificar HEVC en esta GPU (hay que usar el del flatpak de GSR, que es el
+que usa la aplicación de verdad), y ese ffmpeg del flatpak **no puede leer** una
+referencia h264 sin pérdida, porque trae libopenh264 y solo entiende el perfil
+baseline: la referencia va en ffv1.
+
+**El audio por defecto pasa a ser los dos mezclados**, sistema y micrófono en una
+pista. Con una salvaguarda que no es opcional: solo si hay micrófono **de
+verdad**. GSR lista siempre `default_input`, que es un nombre que se inventa él, y
+la lista trae además los «monitores», que son la salida de cada altavoz. Así que
+`hay_microfono()` cuenta lo que no es ni inventado ni monitor, y sin micrófono el
+default se queda en solo sistema. Con test: el volcado real de esta máquina da
+sí, una lista fabricada sin entradas da no.
+
+**Y el vúmetro deja de escuchar solo.** Su fila vivía detrás del plegado, así que
+«escuchar cuando se ve» significaba «cuando abres Avanzado»; con el formulario
+siempre a la vista pasaba a significar **«al arrancar»**, y la aplicación habría
+encendido el piloto del micrófono nada más abrirla, sin que nadie haya pedido
+grabar. Ahora hay un botón «Probar» y el micro se abre cuando se pide.
+
+**Guardar la emisión viene marcada**, y debajo se dice dónde va a escribir y
+cuántos GB por hora son con el caudal elegido: viniendo marcada, eso deja de ser
+una elección informada y hay que decirlo a la cara. Y la casilla de emitir ya no
+dice «en vez de guardar un fichero», que desde ayer es mentira.
+
+**El reloj de bandeja se llama igual en los dos sitios**, adaptado a dónde se lee:
+«Mostrar el tiempo de grabación en la bandeja» en la ventana y «Mostrar el tiempo
+de grabación» en el menú de la bandeja, donde decir «en la bandeja» sobra.
+
+Verificado ejecutando. La ventana se ha **mirado**: a 51 unidades de rejilla de
+ancho, las dos columnas, las «i» en su sitio y sin etiquetas cortadas. Las 46 de
+antes se quedaron cortas al meter una «i» por fila y volvía a leerse «ágenes por
+segundo», que es el mismo corte que ya obligó a no igualar el ancho de las dos
+columnas. ctest 12/12, sin un aviso, `reuse lint` en verde y 126 cadenas
+traducidas, 0 sin terminar.
+
+**Y el arranque, con una corrección por el camino.** La primera medida decía que
+maquetar el formulario entero al abrir costaba unos 115 ms, y esa cifra estaba
+mal: comparaba tres pasadas contra siete tomadas en otro momento. Repetida en
+condiciones —portátil enchufado, siete pasadas de cada— sale así: la **v0.8.0 ya
+publicada** arranca en **989 ms de media** (882-1071) y con todo esto encima,
+**1061 y 1010 ms** en dos tandas. La diferencia entre las dos tandas de hoy es
+casi igual de grande que la diferencia contra la base, así que **el coste del
+rediseño no se distingue del ruido**.
+
+Lo que sí queda claro es lo otro: el contrato de `CLAUDE.md` es menos de un
+segundo y **esta máquina ya se pasaba antes de tocar nada**. No es una regresión
+de esta tanda.
+
+Lección de método, apuntada porque costó dos rodeos: con la medición a ±100 ms,
+tres pasadas no distinguen nada, y **el portátil con la batería corre a la mitad**
+(gobernador en ahorro, 1600 MHz fijos). Una tanda entera de medidas se tiró por
+eso: `--check`, que nadie había tocado, había pasado de 0,66 s a 2,0 s.
+
+### Guardar la emisión, y la casilla del reloj donde se busca (2026-09-21)
+
+**Emitir en directo puede guardar además un fichero.** Lo que sale por el cable
+se ha ido, y hasta ahora no quedaba nada. Ahora hay una casilla en el bloque de
+emisión, apagada, y al marcarla la emisión se guarda en la carpeta de vídeos.
+
+No es una segunda grabación ni un segundo proceso: el **mismo** GSR escribe el
+fichero mientras emite, así que no cuesta otra codificación ni el doble de GPU.
+Lo trae de serie desde la 6.0.0, que es nuestro mínimo: `-ro` abre la carpeta y
+la grabación se enciende por IPC con `start-replay-recording`
+(`gpu-screen-recorder.1`, «-ro» y la sección IPC). Con `-ro` a secas no graba
+nada, así que lo enciende `empezar_grabacion` en cuanto el socket responde; si el
+grabador dice que no, se para todo y se avisa, porque quien marcó «guardar» no
+puede enterarse al final de que no hay fichero.
+
+Al parar se cierra ese fichero **antes** del stop, porque su respuesta trae la
+ruta y la del stop de una emisión viene vacía; y si viene con algo, es la URL del
+servidor, que ni es un fichero ni es algo que convenga enseñar, porque lleva la
+clave pegada detrás. El fichero sale en `.flv`, que es el contenedor de la
+emisión: GSR usa el mismo para las dos salidas.
+
+En el CLI es `emitir --guardar`, y al parar imprime la ruta.
+
+**Y la casilla del reloj de la bandeja pasa a estar también en «Avanzado».** La
+puse solo en el menú de la bandeja razonando que era una preferencia de la
+bandeja; el primero que la buscó la buscó en la ventana y no la encontró. Las dos
+casillas son la misma preferencia, no dos copias: escriben en el controlador y
+cada una se entera de lo que hace la otra, así que no pueden decir cosas
+distintas.
+
+Verificado ejecutando. Emitiendo a un receptor local de ffmpeg, nunca a una
+cuenta real: por el CLI salieron las dos cosas a la vez, el fichero guardado con
+h264 1366×768 + aac y 8,03 s y la emisión recibida con 8,07 s. Por el camino de
+la interfaz, con la autoprueba: 3,25 s de fichero y 3,28 s recibidos, y el aviso
+de «grabación guardada» con la ruta dentro. En `prueba_ajustes`, que `-ro` sale
+con la carpeta, que sin carpeta no sale, y que pedir guardar en una grabacion
+normal es un error. 131 comprobaciones, 0 fallos; ctest 12/12 y sin un aviso.
+
+Un detalle que costó un rato y queda escrito: el primer intento guardó en una
+carpeta de `/tmp` y pareció que no había guardado nada. Sí había guardado, pero
+**dentro del sandbox del flatpak de GSR**, porque el `/tmp` de un flatpak es
+privado. Es la misma trampa que ya obligó a poner la sesión bajo `~/.cache`.
+
 ### El tiempo de grabación en la bandeja, si se pide (2026-09-20)
 
 Mientras se graba, la ventana está apartada a propósito. El tiempo que llevas

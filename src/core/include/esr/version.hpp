@@ -12,7 +12,7 @@
 namespace esr {
 
 // Version del propio Easy Screen Recorder. Se sincroniza con project() en CMakeLists.txt.
-inline constexpr std::string_view kVersionEsr = "0.8.0";
+inline constexpr std::string_view kVersionEsr = "0.9.0";
 
 // Numero de version de tres componentes. Es dato de maquina: para enseñar algo
 // al usuario se usa texto(), nunca los enteros sueltos.

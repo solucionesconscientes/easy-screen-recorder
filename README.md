@@ -35,6 +35,9 @@ start recording in two clicks.
 
 - **Records any monitor, a region you drag, the focused window or a camera**,
   with the encoding done on the GPU.
+- **Does not encode repeated frames**: an hour of a still screen does not weigh
+  like an hour of video. And it can **compress the recording afterwards**, by
+  CPU, without changing format.
 - **Audio-only mode**, to Opus, AAC, FLAC, WAV or MP3, without turning on video
   capture at all.
 - **Pause and resume** mid-recording, plus a **global shortcut** to start and

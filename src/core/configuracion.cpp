@@ -101,4 +101,42 @@ bool recordar_reloj_bandeja(bool activo) {
     return guardar_ajuste("reloj_bandeja", activo ? "1" : "0");
 }
 
+namespace {
+std::string clave_reduccion(bool maximo) {
+    return maximo ? "reduccion_ultima_maximo" : "reduccion_ultima_normal";
+}
+}  // namespace
+
+int reduccion_recordada(bool maximo) {
+    const auto valores = leer_configuracion();
+    const auto i = valores.find(clave_reduccion(maximo));
+    if (i == valores.end()) return 0;
+    try {
+        const int p = std::stoi(i->second);
+        // Fuera de rango es un fichero tocado a mano: se ignora en vez de
+        // enseñar un porcentaje imposible.
+        return (p > 0 && p < 100) ? p : 0;
+    } catch (const std::exception&) {
+        return 0;
+    }
+}
+
+bool recordar_reduccion(bool maximo, int porcentaje) {
+    if (porcentaje <= 0 || porcentaje >= 100) return false;
+    return guardar_ajuste(clave_reduccion(maximo), std::to_string(porcentaje));
+}
+
+bool hevc_poco_fiable() {
+    const auto valores = leer_configuracion();
+    const auto i = valores.find("hevc_poco_fiable");
+    return i != valores.end() && i->second == "1";
+}
+
+bool recordar_hevc_poco_fiable(bool si) {
+    // Solo se escribe cuando cambia: esto se comprueba al final de cada
+    // grabacion y reescribir el fichero cada vez seria trabajo para nada.
+    if (hevc_poco_fiable() == si) return true;
+    return guardar_ajuste("hevc_poco_fiable", si ? "1" : "0");
+}
+
 }  // namespace esr

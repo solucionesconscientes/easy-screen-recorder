@@ -180,6 +180,14 @@ std::vector<std::string> validar(const AjustesGrabacion& a) {
         problemas.push_back("--sin-audio y pistas de audio a la vez no tiene sentido");
     }
 
+    // Guardar aparte es cosa de emitir. En una grabacion normal ya hay fichero,
+    // y en replay el volcado se pide cuando pasa algo que merezca la pena: si
+    // ahi se guardara ademas del tiron, el modo repeticion no tendria sentido.
+    if (!a.carpeta_guardado.empty() && !es_emision(a.salida)) {
+        problemas.push_back("guardar aparte solo tiene sentido emitiendo: en una grabacion "
+                            "normal la salida ya es un fichero");
+    }
+
     // Emitir tiene sus propias reglas, y unas cuantas. Se comprueban antes que
     // las de fichero porque la mitad de esas no aplican: una URL no tiene
     // extension, ni carpeta, ni se puede reparar.
@@ -339,6 +347,12 @@ std::vector<std::string> argumentos_gsr(const AjustesGrabacion& a) {
     } else if (es_emision(a.salida)) {
         // Y emitiendo tampoco: una URL no tiene extension.
         args.insert(args.end(), {"-c", a.contenedor});
+    }
+    // La carpeta donde GSR escribe el fichero mientras emite. Solo abre la
+    // puerta: quien enciende la grabacion es el start-replay-recording que
+    // manda empezar_grabacion en cuanto el socket responde.
+    if (!a.carpeta_guardado.empty()) {
+        args.insert(args.end(), {"-ro", a.carpeta_guardado});
     }
     if (!a.modo_fotogramas.empty()) {
         args.insert(args.end(), {"-fm", a.modo_fotogramas});

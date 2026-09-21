@@ -194,6 +194,17 @@ std::string resolucion_de(std::string_view campo) {
 
 }  // namespace
 
+bool hay_microfono(const std::vector<Opcion>& dispositivos_audio) {
+    for (const auto& d : dispositivos_audio) {
+        if (d.id == "default_input" || d.id == "default_output") continue;
+        // Un monitor es la salida de un altavoz, no una entrada. PipeWire y
+        // PulseAudio los nombran igual: acabados en «.monitor».
+        if (d.id.size() >= 8 && d.id.compare(d.id.size() - 8, 8, ".monitor") == 0) continue;
+        return true;
+    }
+    return false;
+}
+
 std::vector<FuenteAmable> fuentes_amables(const std::vector<Opcion>& fuentes_captura) {
     std::vector<FuenteAmable> monitores;
     std::vector<FuenteAmable> especiales;

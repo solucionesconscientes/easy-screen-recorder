@@ -347,6 +347,15 @@ int main() {
     }
 
     // --- Emision en directo ----------------------------------------------
+    // Guardar aparte en una grabacion normal no tiene sentido: ahi la salida ya
+    // es un fichero.
+    {
+        auto a = base();
+        a.salida = "/tmp/x.mkv";
+        a.carpeta_guardado = "/home/u/Videos";
+        COMPROBAR(!validar(a).empty());
+    }
+
     // GSR ya emite: reconoce «rtmp://» en -o (args_parser.c:234) y su manual
     // trae el ejemplo de Twitch. Verificado emitiendo de verdad contra un
     // servidor local: llegaron h264 + aac a 2,16 Mbps de los 2500 pedidos.
@@ -378,6 +387,21 @@ int main() {
         COMPROBAR(bm != args.end() && *(bm + 1) == "cbr");
         const auto q = std::find(args.begin(), args.end(), "-q");
         COMPROBAR(q != args.end() && *(q + 1) == "2500");
+        // Sin carpeta no hay -ro: guardar la emision se pide, no pasa solo.
+        COMPROBAR(std::find(args.begin(), args.end(), "-ro") == args.end());
+
+        // Guardar la emision a fichero: -ro con la carpeta. Lo escribe el MISMO
+        // grabador mientras emite, asi que no hay segunda codificacion.
+        // Verificado emitiendo contra un receptor local el 2026-09-21: salieron
+        // las dos cosas a la vez, fichero de 8,03 s y emision de 8,07 s.
+        {
+            auto g = a;
+            g.carpeta_guardado = "/home/u/Videos";
+            COMPROBAR_NOTA(validar(g).empty(), validar(g).empty() ? "" : validar(g)[0]);
+            const auto args_g = argumentos_gsr(g);
+            const auto ro = std::find(args_g.begin(), args_g.end(), "-ro");
+            COMPROBAR(ro != args_g.end() && *(ro + 1) == "/home/u/Videos");
+        }
     }
     {
         // Las cuatro maneras de pedir una emision que no emitiria.

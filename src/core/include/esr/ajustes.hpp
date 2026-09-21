@@ -71,6 +71,16 @@ struct AjustesGrabacion {
     // cualquier aplicacion de videollamada.
     bool camara_espejo = true;
 
+    // Carpeta donde se guarda a fichero lo que se esta emitiendo (-ro). Vacia,
+    // que es el default, la emision no deja nada: lo que sale se ha ido.
+    //
+    // No es una segunda grabacion ni un segundo proceso: el MISMO GSR escribe el
+    // fichero mientras emite, asi que no hay una segunda codificacion ni el
+    // doble de GPU. Lo trae de serie desde la 6.0.0, que es nuestro minimo
+    // (gpu-screen-recorder.1, «-ro» y la seccion IPC), y hay que encenderlo por
+    // IPC con start-replay-recording: con -ro a secas no graba nada.
+    std::string carpeta_guardado;
+
     // Modo de fotogramas (-fm): «cfr», «vfr» o «content». Vacio deja el default
     // de GSR, que es vfr. «content» solo codifica cuando la pantalla cambia.
     std::string modo_fotogramas;

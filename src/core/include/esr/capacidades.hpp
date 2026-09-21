@@ -144,6 +144,18 @@ struct FuenteAmable {
 // agrupa: monitores, luego lo que exige decidir al empezar, luego camaras; GSR
 // las saca como le vienen y la camara caia entre «region» y «portal». Tres,
 // marca cuales necesitan enseñar su identificador para no confundirse.
+// ¿Hay un microfono de verdad en esta maquina?
+//
+// No basta con mirar si esta «default_input»: ese nombre se lo inventa GSR y
+// aparece SIEMPRE, tambien en un equipo sin ninguna entrada. Y tampoco vale
+// contar entradas a secas, porque la lista trae los «monitores», que son la
+// salida de cada altavoz y no un microfono.
+//
+// Asi que cuenta lo que no es ni un nombre inventado ni un monitor. Con la lista
+// de esta maquina (docs/gsr-capabilities.txt) queda
+// «alsa_input.pci-0000_00_1f.3.analog-stereo», que es el microfono del portatil.
+bool hay_microfono(const std::vector<Opcion>& dispositivos_audio);
+
 std::vector<FuenteAmable> fuentes_amables(const std::vector<Opcion>& fuentes_captura);
 
 // El nombre que el kernel le da a una camara V4L2, listo para enseñarselo a

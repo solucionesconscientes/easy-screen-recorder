@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include <filesystem>
 #include "esr/grabacion.hpp"
 
 #include <sys/socket.h>
@@ -156,11 +157,36 @@ void sesion() {
     COMPROBAR(s.dir.rfind("/tmp/", 0) != 0);
 }
 
+// Reducir: lo que se puede comprobar sin un video de verdad delante es a QUIEN
+// dice que no, que es donde estan las decisiones. Lo que si encoge se verifico
+// grabando y reduciendo con el CLI (docs/post-proceso.md).
+void reducir() {
+    std::string motivo;
+    COMPROBAR(!se_puede_reducir("/no/existe/de/ninguna/manera.mkv", motivo));
+    COMPROBAR(motivo.find("no existe") != std::string::npos);
+
+    // Un fichero que existe pero no es video: ffprobe no encuentra pista de
+    // video y se rechaza sin intentar nada.
+    const std::string vacio = "/tmp/esr-prueba-reducir.mkv";
+    { std::ofstream f(vacio); f << "esto no es un video\n"; }
+    motivo.clear();
+    COMPROBAR(!se_puede_reducir(vacio, motivo));
+    COMPROBAR(!motivo.empty());
+    // Y sobre eso, reducir tampoco toca nada ni deja restos.
+    const auto r = reducir_grabacion(vacio, NivelReduccion::Normal);
+    COMPROBAR(!r.hecho);
+    COMPROBAR(!r.motivo.empty());
+    COMPROBAR(std::filesystem::exists(vacio));
+    COMPROBAR(!std::filesystem::exists("/tmp/esr-prueba-reducir.reduciendo.mkv"));
+    std::filesystem::remove(vacio);
+}
+
 }  // namespace
 
 int main() {
     diagnosticos();
     cliente_ipc();
     sesion();
+    reducir();
     return prueba::resumen("prueba_grabacion");
 }

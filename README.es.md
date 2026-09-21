@@ -35,6 +35,9 @@ la GPU y empiezas a grabar en dos clics.
 
 - **Graba cualquier monitor, una región que eliges arrastrando, la ventana en
   foco o una cámara**, con la codificación en la GPU.
+- **No codifica fotogramas repetidos**: una hora de pantalla quieta no pesa como
+  una hora de vídeo. Y al terminar puede **recomprimir la grabación** por
+  procesador, sin cambiar de formato.
 - **Modo de solo audio**, a Opus, AAC, FLAC, WAV o MP3, sin encender siquiera la captura de
   vídeo.
 - **Pausa y reanuda** a media grabación, y un **atajo global** para empezar y
