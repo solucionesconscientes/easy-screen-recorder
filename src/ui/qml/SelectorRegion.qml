@@ -6,6 +6,9 @@
 // se arrastra el recorte. Soltar NO elige: deja el recorte ajustable, se
 // mueve por dentro y se estira por los bordes. Enter graba; Esc cancela. La
 // referencia es el selector de Spectacle: sin botones, sin dialogos.
+//
+// El tamaño tambien se escribe. Arrastrando sale un recorte a ojo, y quien
+// graba para algo con medidas fijas necesita 1280x720, no 1277x719.
 import QtQuick
 import es.solucionesconscientes.esr
 
@@ -31,6 +34,20 @@ Window {
     property real recorteAlto: 0
     readonly property bool hayRecorte: recorteAncho >= minimo && recorteAlto >= minimo
 
+    // Pixeles de video por cada pixel de esta ventana. El recorte va en
+    // pixeles logicos, que es lo que espera -region, y GSR los multiplica por
+    // la escala del monitor (capture_setup.c:81 y :213-218 de su 6.0.0). Lo
+    // que se escribe y lo que se enseña es el tamaño del video, porque ese es
+    // el numero que se busca. Con escala 1 coinciden; con otra esta SIN
+    // VERIFICAR, como el resto del selector (ESTADO.md).
+    readonly property real escala: Screen.devicePixelRatio
+    readonly property int anchoVideo: Math.round(recorteAncho * escala)
+    readonly property int altoVideo: Math.round(recorteAlto * escala)
+
+    // Lo que hay que decir junto al campo del tamaño: que se ajusto a la
+    // pantalla, o que no se entendio lo escrito.
+    property string aviso: ""
+
     flags: Qt.FramelessWindowHint
     color: "transparent"
 
@@ -40,7 +57,11 @@ Window {
         recorteAncho = 0
         recorteAlto = 0
         zona.accion = ""
-        zona.forceActiveFocus()
+        campo.text = ""
+        aviso = ""
+        // El foco vive en el campo desde el principio: asi basta con empezar
+        // a escribir, sin buscar donde hacer clic.
+        campo.forceActiveFocus()
     }
 
     // Enter confirma, y con eso arranca la grabacion. Antes confirmaba soltar
@@ -62,6 +83,60 @@ Window {
     function cancelar() {
         selector.visible = false
         selector.cancelada()
+    }
+
+    // «1280x720», con espacios o sin ellos, y tambien con × o *. La × es la
+    // que enseña el rotulo del marco, y quien copia lo que ve no deberia
+    // tropezar con ella.
+    function leerTamano(texto) {
+        var m = /^\s*(\d+)\s*[xX×*\s]\s*(\d+)\s*$/.exec(texto)
+        return m ? { ancho: parseInt(m[1], 10), alto: parseInt(m[2], 10) } : null
+    }
+
+    // El recorte al tamaño escrito, en pixeles de video. Sin recorte sale
+    // centrado en la pantalla. Con uno ya puesto crece desde SU centro, porque
+    // quien escribe despues de arrastrar esta afinando ese encuadre y no otro.
+    function ponerTamano(ancho, alto) {
+        var w = Math.max(minimo, ancho / escala)
+        var h = Math.max(minimo, alto / escala)
+        // Lo que no cabe se ajusta y se dice, igual que al arrastrar: GSR
+        // recortaria en silencio lo que se saliera.
+        var cabe = w <= selector.width && h <= selector.height
+        w = Math.min(w, selector.width)
+        h = Math.min(h, selector.height)
+        var cx = hayRecorte ? recorteX + recorteAncho / 2 : selector.width / 2
+        var cy = hayRecorte ? recorteY + recorteAlto / 2 : selector.height / 2
+        recorteX = Math.max(0, Math.min(selector.width - w, Math.round(cx - w / 2)))
+        recorteY = Math.max(0, Math.min(selector.height - h, Math.round(cy - h / 2)))
+        recorteAncho = w
+        recorteAlto = h
+        sincronizarCampo()
+        if (!cabe) aviso = qsTr("Ajustado al tamaño de la pantalla.")
+    }
+
+    // El campo enseña el tamaño del recorte, tambien el arrastrado, y lo deja
+    // seleccionado: lo siguiente que se escriba lo sustituye en vez de
+    // añadirse detras.
+    function sincronizarCampo() {
+        campo.text = hayRecorte ? anchoVideo + "x" + altoVideo : ""
+        campo.selectAll()
+        aviso = ""
+    }
+
+    // Enter con lo escrito igual al recorte que ya hay graba, como Enter en
+    // cualquier otro momento. Por eso tras escribir un tamaño el primer Enter
+    // lo pone y el segundo graba, y quien arrastro sin tocar el campo graba al
+    // primero.
+    function enterEnCampo() {
+        var texto = campo.text.trim()
+        var t = leerTamano(texto)
+        if (texto === "" || (t && hayRecorte && t.ancho === anchoVideo && t.alto === altoVideo)) {
+            confirmar()
+        } else if (t) {
+            ponerTamano(t.ancho, t.alto)
+        } else {
+            aviso = qsTr("Escribe el ancho y el alto, por ejemplo 1280x720.")
+        }
     }
 
     // El velo, en CUATRO trozos alrededor del recorte y no uno encima de todo.
@@ -103,24 +178,106 @@ Window {
     // el recorte se ve tal cual y el rotulo puede caer sobre cualquier cosa.
     // Blanco sobre blanco no se lee.
     Rectangle {
+        // Por encima de «zona», que tapa la ventana entera: si no, el clic en
+        // el campo empezaria un recorte. El resto de la pastilla deja pasar el
+        // raton, porque un Rectangle no lo recoge.
+        z: 1
         anchors.horizontalCenter: parent.horizontalCenter
         y: parent.height / 8
-        width: rotulo.implicitWidth + 24
-        height: rotulo.implicitHeight + 12
+        width: pastilla.implicitWidth + 24
+        height: pastilla.implicitHeight + 16
         radius: 6
         color: "#c8000000"
-        visible: zona.accion === ""
+        // Se desvanece al arrastrar en vez de ocultarse. Oculto, el campo
+        // perderia el foco y con el las teclas: Enter dejaria de grabar.
+        opacity: zona.accion === "" ? 1 : 0
 
-        Text {
-            id: rotulo
+        Column {
+            id: pastilla
             anchors.centerIn: parent
-            // Dos rotulos, porque las teclas que valen no son las mismas antes
-            // y despues de tener recorte: sin recorte, Enter no hace nada.
-            text: selector.hayRecorte
-                  ? qsTr("Enter graba. Arrastra dentro para mover, los bordes para ajustar. Esc cancela.")
-                  : qsTr("Arrastra para elegir la región. Esc cancela.")
-            color: "white"
-            font.pixelSize: 18
+            spacing: 8
+
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                // Dos rotulos, porque las teclas que valen no son las mismas
+                // antes y despues de tener recorte: sin recorte, Enter no graba.
+                text: selector.hayRecorte
+                      ? qsTr("Enter graba. Arrastra dentro para mover, los bordes para ajustar. Esc cancela.")
+                      : qsTr("Arrastra para elegir la región. Esc cancela.")
+                color: "white"
+                font.pixelSize: 18
+            }
+
+            Row {
+                anchors.horizontalCenter: parent.horizontalCenter
+                spacing: 8
+
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: selector.hayRecorte ? qsTr("Tamaño:") : qsTr("O escribe su tamaño:")
+                    color: "white"
+                    font.pixelSize: 18
+                }
+
+                // Blanco al 60 %: sobre la pastilla da 5,43 de contraste en el
+                // peor caso, con la pastilla encima de blanco, y 7,37 encima de
+                // negro. AA pide 4,5.
+                Rectangle {
+                    width: Math.max(campo.contentWidth, ejemplo.implicitWidth) + 16
+                    height: campo.implicitHeight + 8
+                    radius: 4
+                    color: "transparent"
+                    border.color: "#99ffffff"
+                    border.width: 1
+
+                    TextInput {
+                        id: campo
+                        anchors.fill: parent
+                        anchors.leftMargin: 8
+                        anchors.rightMargin: 8
+                        verticalAlignment: TextInput.AlignVCenter
+                        color: "white"
+                        // Seleccion en video inverso y no con el resaltado del
+                        // sistema: blanco sobre el azul de Breeze da 2,49, y
+                        // el campo pasa seleccionado casi todo el rato.
+                        selectionColor: "white"
+                        selectedTextColor: "black"
+                        font.pixelSize: 18
+                        selectByMouse: true
+                        maximumLength: 15
+                        // Solo lo que puede formar un tamaño. Una letra no
+                        // llega a entrar, que es mejor que explicar despues
+                        // por que no vale.
+                        validator: RegularExpressionValidator {
+                            regularExpression: /[0-9xX×* ]*/
+                        }
+                        onTextEdited: selector.aviso = ""
+
+                        // Las teclas viven aqui porque el foco no sale de aqui
+                        // mientras el selector esta abierto.
+                        Keys.onEscapePressed: selector.cancelar()
+                        Keys.onReturnPressed: selector.enterEnCampo()
+                        Keys.onEnterPressed: selector.enterEnCampo()
+
+                        Text {
+                            id: ejemplo
+                            anchors.verticalCenter: parent.verticalCenter
+                            visible: campo.text === ""
+                            text: qsTr("ancho x alto")
+                            color: "#99ffffff"
+                            font.pixelSize: 18
+                        }
+                    }
+                }
+
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    visible: selector.aviso !== ""
+                    text: selector.aviso
+                    color: "white"
+                    font.pixelSize: 18
+                }
+            }
         }
     }
 
@@ -144,7 +301,8 @@ Window {
             anchors.bottomMargin: 4
             color: "white"
             font.pixelSize: 14
-            text: Math.round(marco.width) + "×" + Math.round(marco.height)
+            // El del video, el mismo numero que el campo.
+            text: selector.anchoVideo + "×" + selector.altoVideo
         }
     }
 
@@ -152,7 +310,6 @@ Window {
         id: zona
         anchors.fill: parent
         hoverEnabled: true
-        focus: true
 
         // Que se esta arrastrando: "" nada, "nueva", "mover" o "borde".
         property string accion: ""
@@ -267,10 +424,7 @@ Window {
                 selector.recorteAlto = 0
             }
             accion = ""
+            selector.sincronizarCampo()
         }
-
-        Keys.onEscapePressed: selector.cancelar()
-        Keys.onReturnPressed: selector.confirmar()
-        Keys.onEnterPressed: selector.confirmar()
     }
 }

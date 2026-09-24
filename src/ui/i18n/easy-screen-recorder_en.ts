@@ -1105,14 +1105,39 @@ The video is inside, but it is missing its closing header and many players will 
 <context>
     <name>SelectorRegion</name>
     <message>
-        <location filename="../qml/SelectorRegion.qml" line="120"/>
+        <location filename="../qml/SelectorRegion.qml" line="114"/>
+        <source>Ajustado al tamaño de la pantalla.</source>
+        <translation>Fitted to the screen size.</translation>
+    </message>
+    <message>
+        <location filename="../qml/SelectorRegion.qml" line="138"/>
+        <source>Escribe el ancho y el alto, por ejemplo 1280x720.</source>
+        <translation>Type the width and height, for example 1280x720.</translation>
+    </message>
+    <message>
+        <location filename="../qml/SelectorRegion.qml" line="205"/>
         <source>Enter graba. Arrastra dentro para mover, los bordes para ajustar. Esc cancela.</source>
         <translation>Enter records. Drag inside to move it, the edges to adjust it. Esc cancels.</translation>
     </message>
     <message>
-        <location filename="../qml/SelectorRegion.qml" line="121"/>
+        <location filename="../qml/SelectorRegion.qml" line="206"/>
         <source>Arrastra para elegir la región. Esc cancela.</source>
         <translation>Drag to pick the region. Esc cancels.</translation>
+    </message>
+    <message>
+        <location filename="../qml/SelectorRegion.qml" line="217"/>
+        <source>Tamaño:</source>
+        <translation>Size:</translation>
+    </message>
+    <message>
+        <location filename="../qml/SelectorRegion.qml" line="217"/>
+        <source>O escribe su tamaño:</source>
+        <translation>Or type its size:</translation>
+    </message>
+    <message>
+        <location filename="../qml/SelectorRegion.qml" line="266"/>
+        <source>ancho x alto</source>
+        <translation>width x height</translation>
     </message>
 </context>
 <context>

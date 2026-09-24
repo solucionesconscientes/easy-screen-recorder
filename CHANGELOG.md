@@ -3,6 +3,44 @@
 Formato: una entrada por tanda, con lo verificado. Las fechas son de la
 máquina de desarrollo.
 
+## Sin publicar
+
+### El tamaño de la región también se escribe (2026-09-24)
+
+Arrastrando sale un recorte a ojo: 1277x719 cuando hacía falta 1280x720. Ahora
+el selector trae un campo debajo del rótulo, con el foco puesto desde que se
+abre. Se escribe `500x700`, Enter, y el recorte aparece centrado en la pantalla
+con ese tamaño. Se mueve y se estira como uno arrastrado, y el segundo Enter
+graba. Si ya había un recorte, crece desde su centro, porque quien escribe
+después de arrastrar está afinando ese encuadre.
+
+El campo enseña siempre el tamaño actual, también mientras se ajusta con el
+ratón, y lo deja seleccionado para que lo siguiente que se escriba lo sustituya.
+Entiende `500x700`, `500 x 700`, `500×700` y `500*700`; una letra no llega a
+entrar. Lo que no cabe se ajusta a la pantalla y lo dice. La selección va en
+vídeo inverso y no con el azul del sistema, que con texto blanco da 2,49.
+
+El número es el del vídeo. GSR recibe la región en píxeles lógicos y la
+multiplica por la escala del monitor (`capture_setup.c:81` y `:213-218` de su
+6.0.0), así que el campo divide por esa escala antes de dibujar el recorte.
+
+Medido con el CLI y GSR 6.1.2, el de flatpak: pedido 500x700, ffprobe dice
+500x700; pedido 501x301, dice **502x302**. Con números impares el vídeo sale un
+píxel más grande.
+
+Verificado con un arnés de QtQuick.Test que carga el QML real en una pantalla
+virtual de 1366x768 y le manda ratón y teclado. Vive fuera del repositorio,
+como el del ajuste del recorte. Escribir 500x700 y Enter deja el recorte en
+(433,34) sin grabar, y el segundo Enter emite `500x700+433+34`; arrastrar y
+Enter sigue grabando al primero; el campo sigue al arrastre; clic en el campo
+no empieza recorte y el resto de la pastilla sí; Esc cancela también a mitad
+de arrastre. 19 casos a escala 1 y uno a 1,25, donde 500x700 da
+`400x560+483+104`. Compila sin un aviso, `ctest` 12/12, `reuse lint` en verde y
+224 cadenas traducidas.
+
+Sin verificar: escribir sobre el compositor real, y la escala distinta de 1
+contra GSR, como el resto del selector.
+
 ## 0.10.0 (2026-09-21)
 
 ### La ventana, rehecha entera (2026-09-21)
