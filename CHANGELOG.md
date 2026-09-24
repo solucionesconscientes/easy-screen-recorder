@@ -3,7 +3,7 @@
 Formato: una entrada por tanda, con lo verificado. Las fechas son de la
 máquina de desarrollo.
 
-## Sin publicar
+## 0.11.0 (2026-09-24)
 
 ### El tamaño de la región también se escribe (2026-09-24)
 
@@ -38,8 +38,10 @@ de arrastre. 19 casos a escala 1 y uno a 1,25, donde 500x700 da
 `400x560+483+104`. Compila sin un aviso, `ctest` 12/12, `reuse lint` en verde y
 224 cadenas traducidas.
 
-Sin verificar: escribir sobre el compositor real, y la escala distinta de 1
-contra GSR, como el resto del selector.
+Comprobado a mano por el titular el mismo día, sobre KWin y con la
+compilación de esta versión: escribir el tamaño, mover el recorte y grabar.
+Sigue sin verificar la escala distinta de 1 contra GSR, como el resto del
+selector.
 
 ## 0.10.0 (2026-09-21)
 

@@ -142,6 +142,21 @@ SPDX-License-Identifier: CC0-1.0
   <content_rating type="oars-1.1"/>
 
   <releases>
+    <release version="0.11.0" date="2026-09-24" type="development">
+      <description>
+        <p>The size of a region can now be typed. Dragging gives you a region
+        by eye, 1277x719 when you needed 1280x720. Type 500x700 and press Enter:
+        the region appears in the middle of the screen at that size, and you can
+        still move it and resize it with the mouse. Enter again records. The
+        number is the size of the video, also on screens with scaling.</p>
+        <p xml:lang="es">El tamaño de la región ahora también se escribe.
+        Arrastrando sale una región a ojo, 1277x719 cuando hacía falta 1280x720.
+        Escribe 500x700 y pulsa Enter: la región aparece en el centro de la
+        pantalla con ese tamaño, y se sigue moviendo y estirando con el ratón.
+        Otro Enter graba. El número es el tamaño del vídeo, también en pantallas
+        con escala.</p>
+      </description>
+    </release>
     <release version="0.10.0" date="2026-09-21" type="development">
       <description>
         <p>The window was rebuilt. It used to be 1114x866 on a 1366x768 screen,
