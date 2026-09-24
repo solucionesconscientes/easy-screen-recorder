@@ -197,7 +197,7 @@ distribuidores de GSR y asumimos sus obligaciones como tal.
 
 ### GSR se consulta fuera del repositorio
 
-La copia de referencia vive en `~/Desktop/app-audio/referencia/gpu-screen-recorder/`,
+La copia de referencia vive en `~/Documentos/PROJECTES/app-audio/referencia/gpu-screen-recorder/`,
 **fuera del repositorio**, y es de solo lectura. No está versionada, no lo ha
 estado nunca y `third_party/` sigue en `.gitignore` como red. Se lee para
 entender el protocolo y se citan `fichero:línea` como referencia; no se copia

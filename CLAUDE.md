@@ -63,9 +63,9 @@ escribas ni una línea hasta leer `docs/gsr-audio-only.md`.
   del 2026-09-15 encontro nueve lineas de C suyas en `docs/gsr-ipc.md` y
   `docs/gsr-audio-only.md` y se reescribieron como prosa.
 - Modificar nada dentro de la copia de referencia de GSR, que vive en
-  `~/Desktop/app-audio/referencia/gpu-screen-recorder/`, **fuera del
-  repositorio**. Es GPL-3.0 de terceros, solo lectura, y no se compila como
-  parte nuestra.
+  `~/Documentos/PROJECTES/app-audio/referencia/gpu-screen-recorder/`,
+  **fuera del repositorio**. Es GPL-3.0 de terceros, solo lectura, y no se
+  compila como parte nuestra.
 - Hardcodear listas de códecs, dispositivos o resoluciones. Todo se detecta en
   runtime, en la máquina del usuario.
 - Cambiar de backend sin consultar al titular.

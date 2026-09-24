@@ -1,7 +1,7 @@
 # GSR de referencia: GPL-3.0 de terceros. Vive FUERA del repo, en
-# ~/Desktop/app-audio/referencia/gpu-screen-recorder/. Esta linea se queda como
-# red por si alguien vuelve a dejar una copia aqui dentro: el repo no
-# redistribuye GSR ni su codigo.
+# ~/Documentos/PROJECTES/app-audio/referencia/gpu-screen-recorder/. Esta
+# linea se queda como red por si alguien vuelve a dejar una copia aqui
+# dentro: el repo no redistribuye GSR ni su codigo.
 third_party/
 
 # Notas internas: encargo, estado y prompts de trabajo. No son documentacion
