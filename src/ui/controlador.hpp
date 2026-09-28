@@ -94,6 +94,7 @@ class Controlador : public QObject {
     // pedimos: el usuario puede haberlos cambiado.
     Q_PROPERTY(QString atajoGrabar READ atajoGrabar NOTIFY hayAtajosCambiado)
     Q_PROPERTY(QString atajoPausa READ atajoPausa NOTIFY hayAtajosCambiado)
+    Q_PROPERTY(QString atajoGuardar READ atajoGuardar NOTIFY hayAtajosCambiado)
     // 0 a 1. Solo se mueve mientras se esta escuchando, o sea antes de grabar.
     Q_PROPERTY(qreal nivelMicro READ nivelMicro NOTIFY nivelMicroCambiado)
     // Si la bandeja enseña el tiempo de grabacion en un segundo icono. Es una
@@ -232,7 +233,9 @@ public:
     bool hayAtajos() const { return hay_atajos_; }
     QString atajoGrabar() const { return atajo_grabar_; }
     QString atajoPausa() const { return atajo_pausa_; }
-    void ponerAtajos(bool hay, const QString& grabar, const QString& pausa);
+    QString atajoGuardar() const { return atajo_guardar_; }
+    void ponerAtajos(bool hay, const QString& grabar, const QString& pausa,
+                     const QString& guardar);
     qreal nivelMicro() const;
     // Enciende o apaga el vumetro. Lo llama el QML: escucha solo cuando el
     // control esta a la vista y no hay grabacion, que es cuando sirve.
@@ -256,12 +259,15 @@ public:
     // Lo ausente cae al default del proyecto.
     Q_INVOKABLE void grabar(const QString& fuente, const QVariantMap& opciones);
     // Lo que dispara el atajo global: sin grabacion empieza una del primer
-    // monitor con los defaults; con una en marcha, la para. Sin estados
-    // intermedios: pulsado en «arrancando» o «guardando» no hace nada.
+    // monitor con los defaults; con una en marcha, la para, TAMBIEN en
+    // repeticion, donde parar es terminar sin escribir nada. Guardar lo ultimo
+    // tiene su propio atajo (guardarReplay). Sin estados intermedios: pulsado
+    // en «arrancando» o «guardando» no hace nada.
     Q_INVOKABLE void alternarGrabacion();
-    // Vuelca el buffer de replay a un fichero y sigue grabando. La respuesta
-    // trae la ruta y tarda lo que tarde en escribirse, asi que va en hilo
-    // aparte igual que parar().
+    // Vuelca el buffer de replay a un fichero y sigue grabando. Solo en
+    // repeticion; en cualquier otro estado no hace nada. La respuesta trae la
+    // ruta y tarda lo que tarde en escribirse, asi que va en hilo aparte igual
+    // que parar().
     // Pausa si esta grabando, reanuda si esta en pausa, y no hace nada en el
     // resto de estados. Lo dispara el atajo global, que es la unica via de
     // pausar sin que la ventana aparezca en el video que se esta grabando.
@@ -352,5 +358,6 @@ private:
     bool hay_atajos_ = false;
     QString atajo_grabar_;
     QString atajo_pausa_;
+    QString atajo_guardar_;
     Medidor medidor_;
 };

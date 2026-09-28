@@ -5,6 +5,50 @@ máquina de desarrollo.
 
 ## Sin publicar
 
+### Los mismos verbos en la ventana, en la bandeja y en los atajos (2026-09-29)
+
+Con «Modo repetición» marcado, cualquier grabación de pantalla guardaba en
+memoria y no en el disco, y las tres superficies contaban cosas distintas: la
+ventana solo ofrecía «Guardar lo último» y no tenía con qué terminar; la
+bandeja sí tenía «Terminar»; y el atajo de grabar/parar guardaba en vez de
+parar. Quien no sabía que estaba en repetición pulsaba «parar» y la grabación
+seguía. Medido en esta máquina: una sesión de repetición de región llevaba
+siete horas viva, con 931 MB de buffer en RAM, porque no había forma de
+terminarla desde la ventana ni desde el teclado.
+
+Ahora cada verbo es uno, se llama igual y va en el mismo orden en los tres
+sitios. Lo que cambia con el estado es qué verbos hay, nunca lo que significan:
+
+| Estado | Verbos |
+|---|---|
+| Grabando pantalla | Pausa · Parar y guardar · Descartar |
+| Grabando audio | Parar y guardar · Descartar |
+| Repetición | Guardar lo último · Terminar |
+| Emitiendo | Terminar |
+
+- La ventana en repetición tiene «Terminar» donde en normal va «Descartar».
+- El atajo de grabar/parar para siempre, también en repetición. «Guardar lo
+  último» tiene atajo propio (se pide Meta+Shift+S, Meta+Alt+S o Meta+Ctrl+S;
+  en esta máquina quedó Meta+Ctrl+S porque las otras dos estaban ocupadas) y
+  fuera de repetición no hace nada.
+- El botón de la cabecera dice «Grabar en repetición» cuando la casilla está
+  marcada: el modo se ve en el sitio que siempre está a la vista.
+- La bandeja dice «Descartar», igual que la ventana, y «Guardar lo último»
+  lleva su atajo entre paréntesis como ya lo llevaba «Grabar la pantalla».
+- Terminar una repetición ya no anuncia «Grabación guardada» con la ruta en
+  blanco ni borra de la ventana la ruta de lo último que sí se guardó: el
+  `stop` de GSR en repetición responde sin ruta (`docs/gsr-ipc.md`).
+
+Verificado sobre esa sesión viva, con los atajos disparados por DBus
+(`invokeShortcut`), que es el mismo camino que una pulsación: «guardar lo
+último» dejó `Replay_2026-09-29_01-07-16.mkv` en un segundo (449 MB, vp8
+664x482, 6885 s según ffprobe) y la repetición siguió; «grabar/parar» la
+terminó: GSR desapareció y el CLI pasó a «sin grabacion». KGlobalAccel devuelve
+las cuatro acciones con tecla. La app arranca sin una línea en stderr. Compila
+sin avisos, `ctest` 12/12, 227 cadenas traducidas y ninguna sin traducir. Sin
+verificar: el aspecto de la ventana tras terminar, porque la pantalla estaba
+apagada al hacer la captura.
+
 ### La región se recuerda y la ventana se aparta antes de elegirla (2026-09-28)
 
 Dos cambios en el selector de región, los dos por el mismo motivo: quien graba

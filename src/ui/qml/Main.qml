@@ -552,9 +552,16 @@ Kirigami.ApplicationWindow {
                     // rechaza la conexion y el usuario solo ve que no pasa nada.
                     enabled: !raiz.ocupado && String(fuente.currentValue) !== ""
                              && (!raiz.emitiendo || claveEmision.text.trim() !== "")
+                    // Con repeticion puesta lo dice AQUI, en el boton que siempre
+                    // esta a la vista. La casilla se recuerda entre sesiones y
+                    // cambia lo que hace «Grabar»: guardar en memoria en vez de
+                    // en el disco. Decirlo solo en el titulo plegable de su
+                    // tarjeta no bastaba: se pulsaba «Grabar», luego «parar», y
+                    // la grabacion seguia sin que se supiera por que.
                     text: Controlador.estado === "arrancando" ? qsTr("Arrancando…")
                         : Controlador.estado === "guardando" ? qsTr("Guardando…")
                         : raiz.emitiendo ? qsTr("Emitir en directo")
+                        : replay.checked ? qsTr("Grabar en repetición")
                         : qsTr("Grabar")
                     onClicked: {
                         // «region» es el identificador de GSR, no texto visible:
@@ -1602,6 +1609,9 @@ Kirigami.ApplicationWindow {
                                      + (Controlador.atajoPausa !== ""
                                         ? " · " + qsTr("%1 pausa y reanuda").arg(Controlador.atajoPausa)
                                         : "")
+                                     + (Controlador.atajoGuardar !== ""
+                                        ? " · " + qsTr("%1 guarda lo último en repetición").arg(Controlador.atajoGuardar)
+                                        : "")
                                      + ". " + qsTr("Funcionan con la ventana cerrada o minimizada. " +
                                                    "Se cambian en Preferencias del sistema, en " +
                                                    "Atajos de teclado.")
@@ -1902,22 +1912,34 @@ Kirigami.ApplicationWindow {
                         }
                     }
                     QQC2.Button {
-                        // En repeticion no hay fichero que tirar, y emitiendo
-                        // tampoco: lo que salio por el cable ya no vuelve.
-                        visible: Controlador.estado !== "replay"
-                                 && Controlador.estado !== "emitiendo"
+                        // El verbo que tira lo que hay. Grabando es «Descartar»:
+                        // hay un fichero. En repeticion es «Terminar»: no hay
+                        // fichero, solo un buffer en memoria que se pierde al
+                        // parar. Hasta el 2026-09-29 en repeticion no habia
+                        // boton, y la unica salida era el menu de la bandeja.
+                        // Emitiendo no hay nada: lo que salio por el cable ya
+                        // no vuelve, y el principal ya es «Terminar».
+                        id: botonSecundarioGrabando
+                        readonly property bool esTerminar: Controlador.estado === "replay"
+                        visible: Controlador.estado !== "emitiendo"
                         Layout.preferredHeight: Sistema.r34 + Sistema.r5
                         flat: true
-                        text: qsTr("Descartar")
+                        text: esTerminar ? qsTr("Terminar") : qsTr("Descartar")
                         // En rojo y sin marco: destruye algo, asi que se lee
                         // distinto del resto sin gritar como un boton lleno.
                         contentItem: QQC2.Label {
-                            text: qsTr("Descartar")
+                            text: botonSecundarioGrabando.text
                             color: Sistema.grabando
                             horizontalAlignment: Text.AlignHCenter
                             verticalAlignment: Text.AlignVCenter
                         }
                         onClicked: {
+                            // Terminar no pregunta: en repeticion no se pierde
+                            // nada que no se supiera ya que no estaba guardado.
+                            if (botonSecundarioGrabando.esTerminar) {
+                                Controlador.parar()
+                                return
+                            }
                             // Bajo diez segundos no se pregunta: eso es «me he
                             // equivocado al empezar», y una confirmacion ahi
                             // estorba mas que protege. Por encima si, porque

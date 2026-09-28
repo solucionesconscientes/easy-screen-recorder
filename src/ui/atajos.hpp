@@ -9,7 +9,9 @@
 
 class Controlador;
 
-// Atajo global de grabar/parar, via el DBus de org.kde.kglobalaccel.
+// Atajos globales, via el DBus de org.kde.kglobalaccel: grabar/parar, pausa,
+// descartar y guardar lo ultimo. Cada uno es UN verbo, el mismo en todos los
+// modos; lo que cambia con el modo es que verbos hay, nunca lo que significan.
 //
 // Se habla el protocolo directamente en vez de enlazar KGlobalAccel: son dos
 // llamadas y una señal, y asi no entra una dependencia de compilacion por
@@ -31,6 +33,7 @@ public:
     // nuestro cuando el suyo es otro es peor que no anunciar nada.
     QString atajoGrabar() const { return atajo_grabar_; }
     QString atajoPausa() const { return atajo_pausa_; }
+    QString atajoGuardar() const { return atajo_guardar_; }
 
 private slots:
     void alPulsar(const QString& componente, const QString& accion, qlonglong instante);
@@ -40,4 +43,5 @@ private:
     bool registrado_ = false;
     QString atajo_grabar_;
     QString atajo_pausa_;
+    QString atajo_guardar_;
 };

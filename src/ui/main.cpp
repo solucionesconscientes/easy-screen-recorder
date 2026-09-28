@@ -191,7 +191,9 @@ int main(int argc, char** argv) {
     // Tirar lo grabado desde la bandeja. Con la ventana apartada, esta es la
     // via: por debajo de diez segundos tira directamente y por encima saca la
     // ventana con la confirmacion, que lo decide el controlador.
-    QAction* accion_descartar = menu.addAction(QObject::tr("Descartar sin guardar"));
+    // Se llama igual que en la ventana: es el mismo verbo, y un nombre distinto
+    // en cada sitio hacia pensar que eran dos cosas.
+    QAction* accion_descartar = menu.addAction(QObject::tr("Descartar"));
     menu.addSeparator();
     // La opcion vive AQUI y no en «Avanzado» de la ventana por dos razones: es
     // una preferencia de la bandeja, y «Avanzado» se deshabilita mientras se
@@ -358,6 +360,10 @@ int main(int argc, char** argv) {
                                        ? QObject::tr("Grabar la pantalla")
                                        : QObject::tr("Grabar la pantalla (%1)").arg(atajo));
             accion_guardar->setVisible(es_replay);
+            const QString atajo_guardar = controlador->atajoGuardar();
+            accion_guardar->setText(atajo_guardar.isEmpty()
+                                        ? QObject::tr("Guardar lo último")
+                                        : QObject::tr("Guardar lo último (%1)").arg(atajo_guardar));
             bandeja.setIcon(iconoBandeja(grabando));
             bandeja.setToolTip(grabando ? QObject::tr("Easy Screen Recorder: grabando")
                                         : QStringLiteral("Easy Screen Recorder"));
@@ -392,7 +398,8 @@ int main(int argc, char** argv) {
     AtajosGlobales atajos(controlador);
     // La interfaz solo anuncia los atajos si se han registrado de verdad.
     if (controlador != nullptr) {
-        controlador->ponerAtajos(atajos.registrado(), atajos.atajoGrabar(), atajos.atajoPausa());
+        controlador->ponerAtajos(atajos.registrado(), atajos.atajoGrabar(), atajos.atajoPausa(),
+                                 atajos.atajoGuardar());
     }
 
     return app.exec();

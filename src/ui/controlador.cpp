@@ -557,14 +557,14 @@ void Controlador::grabar(const QString& fuente, const QVariantMap& opciones) {
 }
 
 void Controlador::alternarGrabacion() {
-    if (estado_ == QStringLiteral("replay")) {
-        // En replay el atajo GUARDA, no para: es lo que uno quiere del «se me ha
-        // escapado eso, salvalo». Terminar se hace desde la ventana.
-        guardarReplay();
-        return;
-    }
+    // En repeticion tambien PARA. Hasta el 2026-09-29 aqui guardaba lo ultimo
+    // y seguia, con la idea de que «terminar se hace desde la ventana»; pero la
+    // ventana no tenia con que, y el mismo atajo hacia una cosa u otra segun
+    // un modo que no se veia. Ahora guardar tiene su tecla (guardarReplay) y
+    // esta es siempre la de parar.
     if (estado_ == QStringLiteral("grabando") || estado_ == QStringLiteral("pausado") ||
-        estado_ == QStringLiteral("grabandoAudio") || estado_ == QStringLiteral("emitiendo")) {
+        estado_ == QStringLiteral("grabandoAudio") || estado_ == QStringLiteral("emitiendo") ||
+        estado_ == QStringLiteral("replay")) {
         parar();
         return;
     }
@@ -590,10 +590,12 @@ void Controlador::alternarGrabacion() {
     }
 }
 
-void Controlador::ponerAtajos(bool hay, const QString& grabar, const QString& pausa) {
+void Controlador::ponerAtajos(bool hay, const QString& grabar, const QString& pausa,
+                              const QString& guardar) {
     hay_atajos_ = hay;
     atajo_grabar_ = grabar;
     atajo_pausa_ = pausa;
+    atajo_guardar_ = guardar;
     emit hayAtajosCambiado();
 }
 
@@ -838,6 +840,10 @@ void Controlador::alternarPausa() {
 }
 
 void Controlador::guardarReplay() {
+    // Fuera de repeticion no hay buffer que volcar. Lo dispara un atajo global,
+    // que se puede pulsar en cualquier momento, y callar es mejor que un error
+    // por una tecla que ahi no toca.
+    if (estado_ != QStringLiteral("replay")) return;
     ponerError({});
     // No se cambia de estado ni se para el reloj: el replay SIGUE. Esto no es
     // terminar, es llevarse una copia de lo que hay en el buffer.
@@ -920,15 +926,22 @@ void Controlador::parar() {
                     ponerEstado(QStringLiteral("listo"));
                     return;
                 }
-                ruta_guardada_ = texto;
-                emit rutaGuardadaCambiada();
                 // Al parar, libesr puede haber apuntado que el codificador HEVC
                 // de esta maquina no es de fiar: se relee para que la lista de
                 // codecs lo diga sin esperar al proximo arranque.
                 refrescarConfiguracion();
                 emit fuentesCambiadas();
-                posprocesarEnSegundoPlano(texto);
-                emit grabacionGuardada(texto);
+                // Sin ruta no se guardo nada: es el «Terminar» de la repeticion,
+                // cuyo stop responde sin data (docs/gsr-ipc.md). Anunciar ahi
+                // «Grabacion guardada» con la ruta en blanco era mentir, y
+                // ademas borraba de la ventana la ruta de lo ultimo que SI se
+                // guardo con «Guardar lo ultimo».
+                if (!texto.isEmpty()) {
+                    ruta_guardada_ = texto;
+                    emit rutaGuardadaCambiada();
+                    posprocesarEnSegundoPlano(texto);
+                    emit grabacionGuardada(texto);
+                }
                 ponerEstado(QStringLiteral("listo"));
             });
     vigilante->setFuture(QtConcurrent::run([era_audio]() -> QPair<bool, QString> {

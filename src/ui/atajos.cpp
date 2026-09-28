@@ -47,6 +47,20 @@ const QStringList kAccionDescartar = {
     QStringLiteral("Tirar la grabación sin guardarla"),
 };
 
+// Y el de guardar lo ultimo, que es el gesto central de la repeticion: «se me
+// ha escapado eso, salvalo», con la ventana apartada y las manos en otra cosa.
+//
+// Hasta el 2026-09-29 no tenia tecla propia y se le colgo al de grabar/parar,
+// que en repeticion guardaba en vez de parar. El mismo atajo significaba dos
+// verbos segun el modo, y quien no sabia que estaba en repeticion pulsaba
+// «parar» y la grabacion seguia. Ahora cada tecla es un verbo.
+const QStringList kAccionGuardar = {
+    QStringLiteral("easy-screen-recorder"),
+    QStringLiteral("guardar_ultimo"),
+    QStringLiteral("Easy Screen Recorder"),
+    QStringLiteral("Guardar lo último de la repetición"),
+};
+
 // SetPresent: activa el atajo ademas de apuntarlo. Respeta lo que el usuario
 // tuviera guardado, porque no lleva NoAutoloading.
 constexpr uint kActivarAtajo = 2;
@@ -150,6 +164,9 @@ AtajosGlobales::AtajosGlobales(Controlador* controlador, QObject* padre)
     registrar(kAccionDescartar, {QStringLiteral("Meta+Shift+X"),
                                  QStringLiteral("Meta+Alt+X"),
                                  QStringLiteral("Meta+Ctrl+X")});
+    registrar(kAccionGuardar, {QStringLiteral("Meta+Shift+S"),
+                               QStringLiteral("Meta+Alt+S"),
+                               QStringLiteral("Meta+Ctrl+S")});
 
     // Y se pregunta cual ha quedado. No se da por hecho el que acabamos de
     // pedir: si el usuario ya lo habia cambiado, KDE conserva el suyo y es ese
@@ -164,6 +181,7 @@ AtajosGlobales::AtajosGlobales(Controlador* controlador, QObject* padre)
     };
     atajo_grabar_ = leerAtajo(kAccionGrabarParar);
     atajo_pausa_ = leerAtajo(kAccionPausa);
+    atajo_guardar_ = leerAtajo(kAccionGuardar);
 
     const bool conectado = QDBusConnection::sessionBus().connect(
         QStringLiteral("org.kde.kglobalaccel"), caminoComponente(kAccionGrabarParar.at(0)),
@@ -183,4 +201,5 @@ void AtajosGlobales::alPulsar(const QString& componente, const QString& accion,
     if (accion == QStringLiteral("grabar_parar")) controlador_->alternarGrabacion();
     if (accion == QStringLiteral("pausar_reanudar")) controlador_->alternarPausa();
     if (accion == QStringLiteral("descartar")) controlador_->pedirDescartar();
+    if (accion == QStringLiteral("guardar_ultimo")) controlador_->guardarReplay();
 }
