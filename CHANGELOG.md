@@ -3,6 +3,48 @@
 Formato: una entrada por tanda, con lo verificado. Las fechas son de la
 máquina de desarrollo.
 
+## Sin publicar
+
+### La región se recuerda y la ventana se aparta antes de elegirla (2026-09-28)
+
+Dos cambios en el selector de región, los dos por el mismo motivo: quien graba
+una región suele grabar la misma, y cada vez había que volver a encuadrarla.
+
+La ventana se minimiza ANTES de abrir el selector, y no después de confirmar.
+El velo deja ver el escritorio tal cual, y con la ventana delante lo primero
+que se encuadraba era ella. Esc la devuelve; Enter graba sin esperar a que se
+aparte, porque ya no está. El compositor desvanece el selector al cerrarse, así
+que entre Enter y el arranque se espera el mismo margen que ya se esperaba a la
+ventana (350 ms, `margenApartarse`), o el velo saldría en los primeros
+fotogramas.
+
+La región de la última vez viene puesta. Se guarda como `ui_region` al
+confirmar, y el selector se abre con ese recorte ya dibujado, el campo con su
+tamaño y el rótulo de «Enter graba». Sigue siendo ajustable: se mueve, se
+estira, y arrastrar fuera de él empieza otro. Lo que no cabe se ajusta a la
+pantalla y lo dice; lo que cae fuera entra; lo que no se entiende se ignora.
+Hasta ahora la región era «de esa sesión y no una preferencia» (comentario en
+`controlador.hpp`), y el uso dijo lo contrario.
+
+Un detalle medido y no supuesto: en Wayland, `visibility` ya dice FullScreen
+cuando la ventana del selector sigue con el tamaño que Qt le dio por defecto
+(500x500 en KWin con Qt 6.10.2, con qmltestrunner, 2026-09-28). Por eso la
+región recordada se recoloca cada vez que la ventana cambia de tamaño, y se
+parte del texto guardado en cada pasada.
+
+Verificado con un arnés de QtQuick.Test sobre el QML real, fuera del
+repositorio como los anteriores: nueve casos. En la sesión real de KWin:
+sin región previa no hay recorte; con `500x300+100+50` el recorte queda en
+(100,50) de 500x300; `9999x9999+0+0` se ajusta a la pantalla y avisa;
+`500x300+1300+700` entra en (866,468) en 1366x768; un texto inválido no pone
+nada; arrastrar fuera del recorte previo empieza otro y Enter emite el nuevo;
+Esc cancela; escribir un tamaño suelta la previa. En offscreen (800x600),
+Enter con la región previa emite exactamente `500x300+100+50`. Además, con
+una ventana madre minimizada en KWin, una hija a pantalla completa se muestra,
+recibe el foco y la madre no aparece en la captura de pantalla; `show()` la
+devuelve. Compila sin un aviso, `ctest` 12/12, `reuse lint` en verde. Sin
+cadenas nuevas que traducir.
+
 ## 0.11.0 (2026-09-24)
 
 ### El tamaño de la región también se escribe (2026-09-24)

@@ -442,7 +442,23 @@ Kirigami.ApplicationWindow {
 
     SelectorRegion {
         id: selectorRegion
-        onElegida: function(region) { raiz.empezarCon(region) }
+        onElegida: function(region) {
+            // Se recuerda para la proxima vez: el selector se abrira con este
+            // mismo recorte puesto y bastara con Enter.
+            Controlador.recordarAjuste("region", region)
+            // El selector acaba de esconderse y el compositor lo desvanece con
+            // su animacion: se espera el mismo margen que a la ventana al
+            // apartarse, o el velo saldria en los primeros fotogramas.
+            raiz.regionPendiente = region
+            margenSelector.start()
+        }
+        // La ventana se aparto para abrirlo; sin grabacion, vuelve.
+        onCancelada: raiz.volver()
+    }
+    Timer {
+        id: margenSelector
+        interval: margenApartarse.interval
+        onTriggered: raiz.empezarCon(raiz.regionPendiente)
     }
 
     // Arnes de capturas: sin inyeccion de entrada no hay clic que abra estos
@@ -545,7 +561,14 @@ Kirigami.ApplicationWindow {
                         // por eso se compara con currentValue y sigue valiendo en
                         // cualquier idioma.
                         if (String(fuente.currentValue) === "region") {
-                            selectorRegion.abrir()
+                            // La ventana se aparta ANTES de abrir el selector.
+                            // El velo deja ver el escritorio tal cual, y con
+                            // la ventana delante lo primero que se encuadraba
+                            // era ella. De paso, al confirmar ya no hay que
+                            // esperar a que se aparte.
+                            raiz.apartarseYArrancar(function() {
+                                selectorRegion.abrir(Controlador.ajusteRecordado("region", ""))
+                            })
                         } else {
                             raiz.empezarCon("")
                         }

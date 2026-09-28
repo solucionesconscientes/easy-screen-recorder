@@ -9,6 +9,10 @@
 //
 // El tamaño tambien se escribe. Arrastrando sale un recorte a ojo, y quien
 // graba para algo con medidas fijas necesita 1280x720, no 1277x719.
+//
+// Y la region de la ultima vez viene puesta. Quien graba una region suele
+// grabar la misma, y volver a arrastrarla cada vez era el paso que sobraba:
+// ahora se abre con ella, ajustable como siempre, y Enter graba.
 import QtQuick
 import es.solucionesconscientes.esr
 
@@ -48,10 +52,16 @@ Window {
     // pantalla, o que no se entendio lo escrito.
     property string aviso: ""
 
+    // La region de la ultima vez, en el formato que emite confirmar. Se
+    // conserva como texto mientras haga falta recolocarla, y se suelta en
+    // cuanto se arrastra o se escribe otra: a partir de ahi manda el usuario.
+    property string regionPrevia: ""
+
     flags: Qt.FramelessWindowHint
     color: "transparent"
 
-    function abrir() {
+    // Con la region de la ultima vez ya puesta, si se pasa una.
+    function abrir(regionPrevia) {
         visibility = Window.FullScreen
         visible = true
         recorteAncho = 0
@@ -62,7 +72,41 @@ Window {
         // El foco vive en el campo desde el principio: asi basta con empezar
         // a escribir, sin buscar donde hacer clic.
         campo.forceActiveFocus()
+        selector.regionPrevia = regionPrevia ? String(regionPrevia) : ""
+        colocarRegionPrevia()
     }
+
+    // Coloca la region recordada. Se llama al abrir y otra vez cada vez que
+    // la ventana cambia de tamaño, porque la primera vez que se abre aun no
+    // mide la pantalla: en Wayland `visibility` ya dice FullScreen cuando la
+    // ventana sigue con el tamaño que Qt le dio por defecto (medido con
+    // qmltestrunner en KWin, 2026-09-28: 500x500 con FullScreen puesto). Se
+    // parte del texto en cada pasada, y no del recorte anterior, para que la
+    // segunda no arrastre el ajuste de la primera.
+    function colocarRegionPrevia() {
+        if (regionPrevia === "" || selector.width <= 0 || selector.height <= 0) return
+        var m = /^(\d+)x(\d+)([+-]\d+)([+-]\d+)$/.exec(regionPrevia)
+        if (!m) { regionPrevia = ""; return }
+        var w = parseInt(m[1], 10)
+        var h = parseInt(m[2], 10)
+        // De vuelta a coordenadas de esta ventana: confirmar les sumo el
+        // origen del monitor.
+        var x = parseInt(m[3], 10) - selector.screen.virtualX
+        var y = parseInt(m[4], 10) - selector.screen.virtualY
+        // Lo que no cabe —otra pantalla, otro monitor— se ajusta y se dice,
+        // igual que al escribir un tamaño.
+        var cabe = w <= selector.width && h <= selector.height
+        w = Math.max(minimo, Math.min(w, selector.width))
+        h = Math.max(minimo, Math.min(h, selector.height))
+        recorteX = Math.max(0, Math.min(selector.width - w, x))
+        recorteY = Math.max(0, Math.min(selector.height - h, y))
+        recorteAncho = w
+        recorteAlto = h
+        sincronizarCampo()
+        if (!cabe) aviso = qsTr("Ajustado al tamaño de la pantalla.")
+    }
+    onWidthChanged: colocarRegionPrevia()
+    onHeightChanged: colocarRegionPrevia()
 
     // Enter confirma, y con eso arranca la grabacion. Antes confirmaba soltar
     // el raton, y eso daba un solo intento: un recorte torcido obligaba a
@@ -97,6 +141,7 @@ Window {
     // centrado en la pantalla. Con uno ya puesto crece desde SU centro, porque
     // quien escribe despues de arrastrar esta afinando ese encuadre y no otro.
     function ponerTamano(ancho, alto) {
+        regionPrevia = ""
         var w = Math.max(minimo, ancho / escala)
         var h = Math.max(minimo, alto / escala)
         // Lo que no cabe se ajusta y se dice, igual que al arrastrar: GSR
@@ -361,6 +406,7 @@ Window {
         }
 
         onPressed: function(raton) {
+            selector.regionPrevia = ""
             var c = bordesEn(raton.x, raton.y)
             if (c !== 0) {
                 accion = "borde"

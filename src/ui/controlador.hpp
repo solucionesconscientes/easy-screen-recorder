@@ -175,8 +175,13 @@ public:
     // escribe con el prefijo «ui_» para no mezclarse con lo que guarda libesr.
     //
     // Lo que NO pasa por aqui, y no es un olvido: la clave de emision, que no
-    // toca el disco jamas, y la region recortada, que es de esa sesion y no una
-    // preferencia.
+    // toca el disco jamas.
+    //
+    // La region recortada SI pasa desde el 2026-09-28, como «ui_region». Hasta
+    // entonces se tenia por «de esa sesion y no una preferencia», y el uso dijo
+    // lo contrario: quien graba una region suele grabar la misma, y volver a
+    // arrastrarla cada vez era el paso que sobraba. El selector la pone al
+    // abrirse y sigue siendo ajustable.
     Q_INVOKABLE void recordarAjuste(const QString& clave, const QString& valor);
     Q_INVOKABLE QString ajusteRecordado(const QString& clave,
                                         const QString& porDefecto = {}) const;
