@@ -3,7 +3,7 @@
 Formato: una entrada por tanda, con lo verificado. Las fechas son de la
 máquina de desarrollo.
 
-## Sin publicar
+## 0.12.0 (2026-09-29)
 
 ### La prueba de la tarjeta acaba en un informe, y los atajos se explican (2026-09-29)
 

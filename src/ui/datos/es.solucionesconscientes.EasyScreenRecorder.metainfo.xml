@@ -142,6 +142,30 @@ SPDX-License-Identifier: CC0-1.0
   <content_rating type="oars-1.1"/>
 
   <releases>
+    <release version="0.12.0" date="2026-09-29" type="development">
+      <description>
+        <p>The region you dragged last time comes back already in place the
+        next time, adjustable as always, and the window steps aside before the
+        selector opens so it never ends up in the frame. The same verbs
+        everywhere: the window, the tray menu and the global shortcuts offer
+        the same actions with the same names, and replay mode can now be
+        finished from the window and from the keyboard, with its own shortcut
+        to save the last bit. The shortcuts are explained in the window. And
+        the card test now records a probe with every codec the card offers and
+        ends in a report with a format and a codec for each purpose, with the
+        measured figures, that you can apply with one click.</p>
+        <p xml:lang="es">La región que arrastraste la última vez vuelve ya
+        puesta la siguiente, ajustable como siempre, y la ventana se aparta
+        antes de abrir el selector para no salir nunca en el encuadre. Los
+        mismos verbos en todas partes: la ventana, el menú de la bandeja y los
+        atajos globales ofrecen las mismas acciones con los mismos nombres, y la
+        repetición ya se termina desde la ventana y desde el teclado, con atajo
+        propio para guardar lo último. Los atajos se explican en la ventana. Y
+        la prueba de la tarjeta graba una sonda con cada códec que ofrece y
+        acaba en un informe con un formato y un códec para cada cosa, con las
+        cifras medidas, que se aplica con un clic.</p>
+      </description>
+    </release>
     <release version="0.11.0" date="2026-09-24" type="development">
       <description>
         <p>The size of a region can now be typed. Dragging gives you a region
