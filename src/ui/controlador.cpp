@@ -111,6 +111,31 @@ Controlador::Controlador(QObject* padre) : QObject(padre), medidor_(this) {
 // porque el clic no se puede automatizar sin inyeccion de entrada y este
 // camino (hilos + señales) no se verifica compilando.
 void Controlador::autoprueba(const QString& fuente) {
+    // ESR_AUTOPRUEBA=codecs: la prueba de la tarjeta por el mismo camino que el
+    // boton, con ESR_AUTOPRUEBA_CODEC y ESR_AUTOPRUEBA_CONTENEDOR como lo que
+    // tendria puesto la ventana. Imprime el informe, un parrafo por linea, y
+    // sale. Existe por lo mismo que el resto: el texto se arma con cifras
+    // medidas y eso no se verifica compilando.
+    if (fuente == QStringLiteral("codecs")) {
+        connect(this, &Controlador::informeCodecsListo, this, [this] {
+            for (const QString& linea : informe_codecs_) {
+                std::printf("informe: %s\n", linea.toUtf8().constData());
+            }
+            std::printf("recomendado: %s en %s\n", codec_recomendado_.toUtf8().constData(),
+                        contenedor_recomendado_.toUtf8().constData());
+            QCoreApplication::exit(0);
+        });
+        connect(this, &Controlador::veredictoCambiado, this, [this] {
+            if (comprobando_codecs_ || !informe_codecs_.isEmpty() || veredicto_codecs_.isEmpty()) {
+                return;
+            }
+            std::fprintf(stderr, "autoprueba fallo: %s\n", veredicto_codecs_.toUtf8().constData());
+            QCoreApplication::exit(1);
+        });
+        comprobarCodecs(QString::fromUtf8(qgetenv("ESR_AUTOPRUEBA_CODEC")),
+                        QString::fromUtf8(qgetenv("ESR_AUTOPRUEBA_CONTENEDOR")));
+        return;
+    }
     connect(this, &Controlador::grabacionGuardada, this, [](const QString& ruta) {
         std::printf("autoprueba guardo: %s\n", ruta.toUtf8().constData());
         QCoreApplication::exit(0);
@@ -591,11 +616,12 @@ void Controlador::alternarGrabacion() {
 }
 
 void Controlador::ponerAtajos(bool hay, const QString& grabar, const QString& pausa,
-                              const QString& guardar) {
+                              const QString& guardar, const QString& descartar) {
     hay_atajos_ = hay;
     atajo_grabar_ = grabar;
     atajo_pausa_ = pausa;
     atajo_guardar_ = guardar;
+    atajo_descartar_ = descartar;
     emit hayAtajosCambiado();
 }
 
@@ -688,7 +714,7 @@ void Controlador::descartar() {
     }));
 }
 
-void Controlador::comprobarCodecs() {
+void Controlador::comprobarCodecs(const QString& codecActual, const QString& contenedor) {
     if (comprobando_codecs_) return;
     if (primer_monitor_.empty()) {
         ponerError(tr("no encuentro un monitor con el que hacer la prueba"));
@@ -696,44 +722,140 @@ void Controlador::comprobarCodecs() {
     }
     comprobando_codecs_ = true;
     veredicto_codecs_.clear();
+    informe_codecs_.clear();
+    codec_recomendado_.clear();
+    contenedor_recomendado_.clear();
     emit veredictoCambiado();
 
     std::vector<std::string> codecs;
     for (const QString& c : codecs_video_) codecs.push_back(c.toStdString());
     const std::string fuente = primer_monitor_;
+    const std::string actual = codecActual.toStdString();
 
     auto* vigilante = new QFutureWatcher<esr::VeredictoCodecs>(this);
     connect(vigilante, &QFutureWatcher<esr::VeredictoCodecs>::finished, this,
-            [this, vigilante] {
+            [this, vigilante, contenedor] {
                 const auto v = vigilante->result();
                 vigilante->deleteLater();
                 comprobando_codecs_ = false;
                 if (!v.probado) {
                     veredicto_codecs_ = QString::fromStdString(v.motivo);
-                } else if (!v.hevc_ofrecido) {
-                    veredicto_codecs_ = tr("Tu tarjeta solo codifica h264, que es el que la "
-                                           "ventana usa por defecto. Nada que cambiar.");
-                } else if (v.hevc_a_ojo || v.bytes_por_s_hevc > v.bytes_por_s_h264 * 1.05) {
-                    // La cifra va delante del consejo: es lo que lo sostiene.
-                    veredicto_codecs_ =
-                        tr("Grabando lo mismo: h264 %1 kB/s, hevc %2 kB/s. En tu tarjeta h264 "
-                           "es mejor elección.")
-                            .arg(static_cast<int>(v.bytes_por_s_h264 / 1024.0))
-                            .arg(static_cast<int>(v.bytes_por_s_hevc / 1024.0));
-                } else {
-                    veredicto_codecs_ =
-                        tr("Grabando lo mismo: h264 %1 kB/s, hevc %2 kB/s. Tu tarjeta maneja "
-                           "bien hevc.")
-                            .arg(static_cast<int>(v.bytes_por_s_h264 / 1024.0))
-                            .arg(static_cast<int>(v.bytes_por_s_hevc / 1024.0));
+                    refrescarConfiguracion();
+                    emit veredictoCambiado();
+                    return;
                 }
+                armarInformeCodecs(v, contenedor);
                 refrescarConfiguracion();
                 emit veredictoCambiado();
                 emit fuentesCambiadas();  // la lista de codecs puede cambiar de nota
+                emit informeCodecsListo();
             });
-    vigilante->setFuture(QtConcurrent::run([fuente, codecs] {
-        return esr::comprobar_codecs(fuente, esr::sesion_por_defecto(), codecs);
+    vigilante->setFuture(QtConcurrent::run([fuente, codecs, actual] {
+        return esr::comprobar_codecs(fuente, esr::sesion_por_defecto(), codecs, actual);
     }));
+}
+
+// El informe: un parrafo por recomendacion, cada uno con la cifra que lo
+// sostiene delante del consejo. Solo lo que se midio o la maquina dijo; la
+// calidad, los fps y la resolucion no se han medido y no se opina de ellos.
+void Controlador::armarInformeCodecs(const esr::VeredictoCodecs& v, const QString& contenedor) {
+    const auto r = esr::recomendar_codec(v);
+    const auto kb = [](double bytes_por_s) { return static_cast<int>(bytes_por_s / 1024.0); };
+    codec_recomendado_ = QString::fromStdString(r.codec);
+    informe_codecs_.clear();
+
+    // 1. El codec, con lo medido.
+    if (!v.hevc_ofrecido) {
+        informe_codecs_ << tr("Códec: h264, a %1 kB/s. Tu tarjeta no ofrece hevc, así que no "
+                              "hay nada que comparar; h264 lo reproduce todo.")
+                               .arg(kb(v.bytes_por_s_h264));
+    } else if (v.hevc_a_ojo) {
+        informe_codecs_ << tr("Códec: h264. Grabando lo mismo, h264 %1 kB/s y hevc %2 kB/s, y "
+                              "el driver de tu tarjeta no declara de qué es capaz su hevc: "
+                              "sale a ojo, más grande y con menos detalle.")
+                               .arg(kb(v.bytes_por_s_h264))
+                               .arg(kb(v.bytes_por_s_hevc));
+    } else if (r.codec == "hevc") {
+        informe_codecs_ << tr("Códec: hevc. Grabando lo mismo, h264 %1 kB/s y hevc %2 kB/s: "
+                              "un %3 % menos. Tu tarjeta lo maneja bien. Ojo: un reproductor "
+                              "viejo puede no abrirlo; h264 lo abre todo.")
+                               .arg(kb(v.bytes_por_s_h264))
+                               .arg(kb(v.bytes_por_s_hevc))
+                               .arg(-r.hevc_frente_a_h264_pct);
+    } else if (r.hevc_frente_a_h264_pct > 0) {
+        informe_codecs_ << tr("Códec: h264. Grabando lo mismo, h264 %1 kB/s y hevc %2 kB/s: "
+                              "en tu tarjeta hevc sale un %3 % más grande.")
+                               .arg(kb(v.bytes_por_s_h264))
+                               .arg(kb(v.bytes_por_s_hevc))
+                               .arg(r.hevc_frente_a_h264_pct);
+    } else {
+        informe_codecs_ << tr("Códec: h264. Grabando lo mismo, h264 %1 kB/s y hevc %2 kB/s: "
+                              "casi igual, y h264 lo reproduce todo.")
+                               .arg(kb(v.bytes_por_s_h264))
+                               .arg(kb(v.bytes_por_s_hevc));
+    }
+
+    // 2. El codec que tiene puesto, si es otro.
+    const QString actual = QString::fromStdString(v.codec_actual);
+    if (!actual.isEmpty()) {
+        if (v.bytes_por_s_actual <= 0.0) {
+            informe_codecs_ << tr("Tu %1: no se pudo grabar la prueba con él.").arg(actual);
+        } else if (r.actual_frente_a_recomendado_pct > 0) {
+            informe_codecs_ << tr("Tu %1: %2 kB/s, un %3 % más grande que %4.")
+                                   .arg(actual)
+                                   .arg(kb(v.bytes_por_s_actual))
+                                   .arg(r.actual_frente_a_recomendado_pct)
+                                   .arg(codec_recomendado_);
+        } else if (r.actual_frente_a_recomendado_pct < 0) {
+            informe_codecs_ << tr("Tu %1: %2 kB/s, un %3 % más pequeño que %4. Se queda como "
+                                  "está; solo cambia si necesitas que lo abra cualquier cosa.")
+                                   .arg(actual)
+                                   .arg(kb(v.bytes_por_s_actual))
+                                   .arg(-r.actual_frente_a_recomendado_pct)
+                                   .arg(codec_recomendado_);
+            // Un codec que sale mas pequeño no se pisa: la recomendacion es
+            // dejarlo.
+            codec_recomendado_ = actual;
+        } else {
+            informe_codecs_ << tr("Tu %1: %2 kB/s, lo mismo que %3.")
+                                   .arg(actual)
+                                   .arg(kb(v.bytes_por_s_actual))
+                                   .arg(codec_recomendado_);
+        }
+    }
+
+    // 3. El formato: si el recomendado no cabe en el puesto, mkv, que ademas
+    // aguanta un corte de luz (es lo que dice su explicacion en la ventana).
+    contenedor_recomendado_ = contenedor;
+    if (!contenedor.isEmpty()) {
+        const QStringList caben = codecsVideoPara(contenedor, codecs_video_);
+        if (!caben.contains(codec_recomendado_)) {
+            contenedor_recomendado_ = QStringLiteral("mkv");
+            informe_codecs_ << tr("Formato: mkv. Un .%1 no admite %2; mkv sí, y además aguanta "
+                                  "un corte de luz sin perder lo grabado.")
+                                   .arg(contenedor, codec_recomendado_);
+        } else {
+            informe_codecs_ << tr("Formato: %1, que admite %2.").arg(contenedor, codec_recomendado_);
+        }
+    }
+
+    // 4. Lo que ocupa, con el ritmo medido del codec recomendado.
+    const double bytes_por_s = codec_recomendado_ == QStringLiteral("hevc") ? v.bytes_por_s_hevc
+                               : codec_recomendado_ == actual                ? v.bytes_por_s_actual
+                                                                              : v.bytes_por_s_h264;
+    if (bytes_por_s > 0.0) {
+        const double mb_min = bytes_por_s * 60.0 / (1024.0 * 1024.0);
+        const double gb_hora = bytes_por_s * 3600.0 / (1024.0 * 1024.0 * 1024.0);
+        informe_codecs_ << tr("Tamaño: con %1 y la pantalla como estaba durante la prueba, unos "
+                              "%2 MB por minuto, %3 GB por hora. Con vídeo o un juego en "
+                              "pantalla será más.")
+                               .arg(codec_recomendado_)
+                               .arg(QLocale().toString(mb_min, 'f', 1))
+                               .arg(QLocale().toString(gb_hora, 'f', 2));
+    }
+
+    // Y el resumen corto, para el aviso de la ventana.
+    veredicto_codecs_ = informe_codecs_.first();
 }
 
 void Controlador::posprocesarEnSegundoPlano(const QString& ruta) {

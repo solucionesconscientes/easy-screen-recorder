@@ -12,6 +12,7 @@
 #include <charconv>
 #include <array>
 #include <chrono>
+#include <cmath>
 #include <cstdlib>
 #include <ctime>
 #include <filesystem>
@@ -691,7 +692,8 @@ double sondear_codec(const std::string& fuente, const std::string& codec,
 }  // namespace
 
 VeredictoCodecs comprobar_codecs(const std::string& fuente, const SesionGrabacion& sesion,
-                                 const std::vector<std::string>& codecs_disponibles) {
+                                 const std::vector<std::string>& codecs_disponibles,
+                                 const std::string& codec_actual) {
     VeredictoCodecs v;
     if (grabacion_en_marcha(sesion)) {
         v.motivo = "hay una grabacion en marcha: esta prueba graba, asi que espera a que acabe";
@@ -722,6 +724,16 @@ VeredictoCodecs comprobar_codecs(const std::string& fuente, const SesionGrabacio
         std::filesystem::remove(base + "-hevc.mkv", ec);
     }
     std::filesystem::remove(base + "-h264.mkv", ec);
+    // La tercera sonda, solo si hace falta: quien tiene puesto vp8 quiere saber
+    // que le cuesta vp8, no una comparacion entre dos que no usa.
+    if (!codec_actual.empty() && codec_actual != "h264" && codec_actual != "hevc" &&
+        std::find(codecs_disponibles.begin(), codecs_disponibles.end(), codec_actual) !=
+            codecs_disponibles.end()) {
+        v.codec_actual = codec_actual;
+        v.bytes_por_s_actual =
+            sondear_codec(fuente, codec_actual, sesion, base + "-" + codec_actual + ".mkv");
+        std::filesystem::remove(base + "-" + codec_actual + ".mkv", ec);
+    }
     // Lo que se aprende se recuerda, igual que cuando se descubre grabando.
     if (v.hevc_ofrecido && (v.hevc_a_ojo || (v.bytes_por_s_hevc > v.bytes_por_s_h264 * 1.05))) {
         recordar_hevc_poco_fiable(true);
@@ -730,6 +742,24 @@ VeredictoCodecs comprobar_codecs(const std::string& fuente, const SesionGrabacio
     }
     v.probado = true;
     return v;
+}
+
+Recomendacion recomendar_codec(const VeredictoCodecs& v) {
+    Recomendacion r;
+    r.codec = "h264";
+    const auto pct = [](double a, double b) {
+        if (a <= 0.0 || b <= 0.0) return 0;
+        return static_cast<int>(std::lround((a - b) / b * 100.0));
+    };
+    if (v.hevc_ofrecido && v.bytes_por_s_hevc > 0.0) {
+        r.hevc_frente_a_h264_pct = pct(v.bytes_por_s_hevc, v.bytes_por_s_h264);
+        if (!v.hevc_a_ojo && v.bytes_por_s_hevc <= v.bytes_por_s_h264 * 0.95) r.codec = "hevc";
+    }
+    if (!v.codec_actual.empty() && v.bytes_por_s_actual > 0.0) {
+        const double recomendado = r.codec == "hevc" ? v.bytes_por_s_hevc : v.bytes_por_s_h264;
+        r.actual_frente_a_recomendado_pct = pct(v.bytes_por_s_actual, recomendado);
+    }
+    return r;
 }
 
 bool recortar_grabacion(const std::string& ruta, double quitar_del_principio,

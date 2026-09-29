@@ -424,6 +424,50 @@ Kirigami.ApplicationWindow {
         ]
     }
 
+    // El informe de la prueba de la tarjeta. Un dialogo y no solo el aviso de
+    // arriba: la prueba se pide desde media ventana mas abajo, y el aviso caia
+    // fuera de la vista. Ademas ahora son varias recomendaciones, y «Aplicar»
+    // las pone sin tener que buscar cada desplegable.
+    Kirigami.PromptDialog {
+        id: informeTarjeta
+        title: qsTr("Lo que dice tu tarjeta")
+        subtitle: Controlador.informeCodecs.join("\n\n")
+        standardButtons: Kirigami.Dialog.NoButton
+        customFooterActions: [
+            Kirigami.Action {
+                text: qsTr("Aplicar lo recomendado")
+                icon.name: "dialog-ok-apply"
+                onTriggered: {
+                    raiz.aplicarRecomendaciones()
+                    informeTarjeta.close()
+                }
+            },
+            Kirigami.Action {
+                text: qsTr("Dejarlo como está")
+                icon.name: "dialog-cancel"
+                onTriggered: informeTarjeta.close()
+            }
+        ]
+    }
+    Connections {
+        target: Controlador
+        function onInformeCodecsListo() { informeTarjeta.open() }
+    }
+    // Pone el formato primero: la lista de codecs depende de el, y con el
+    // orden al reves el codec se elegiria en una lista que luego cambia.
+    function aplicarRecomendaciones() {
+        var f = contenedor.find(Controlador.contenedorRecomendado)
+        if (f >= 0 && f !== contenedor.currentIndex) {
+            contenedor.currentIndex = f
+            raiz.recordar("formato", contenedor.currentValue)
+        }
+        var c = codecVideo.indexOfValue(Controlador.codecRecomendado)
+        if (c >= 0) {
+            codecVideo.currentIndex = c
+            raiz.recordar("codecVideo", Controlador.codecRecomendado)
+        }
+    }
+
     FileDialog {
         id: dialogoGuion
         title: qsTr("¿Qué programa se ejecuta al guardar?")
@@ -1279,9 +1323,11 @@ Kirigami.ApplicationWindow {
                         text: Controlador.comprobandoCodecs ? qsTr("Probando…")
                                                             : qsTr("Probar mi tarjeta")
                         description: qsTr("Que una tarjeta ofrezca un códec no dice que lo haga " +
-                                          "bien. Graba unos segundos con cada uno y te dice cuál " +
-                                          "te conviene. Tarda diez segundos y no deja nada.")
-                        onClicked: Controlador.comprobarCodecs()
+                                          "bien. Graba unos segundos con cada uno y al acabar te " +
+                                          "dice qué códec, qué formato y cuánto ocupará. Tarda " +
+                                          "unos diez segundos y no deja nada.")
+                        onClicked: Controlador.comprobarCodecs(String(codecVideo.currentValue),
+                                                               contenedor.currentText)
                     }
                     FormCard.FormDelegateSeparator {}
                     FilaAjuste {
@@ -1605,16 +1651,31 @@ Kirigami.ApplicationWindow {
                         // codigo muerto.
                         visible: Controlador.hayAtajos
                         text: qsTr("Atajos de teclado")
-                        description: qsTr("%1 graba y para").arg(Controlador.atajoGrabar)
-                                     + (Controlador.atajoPausa !== ""
-                                        ? " · " + qsTr("%1 pausa y reanuda").arg(Controlador.atajoPausa)
-                                        : "")
-                                     + (Controlador.atajoGuardar !== ""
-                                        ? " · " + qsTr("%1 guarda lo último en repetición").arg(Controlador.atajoGuardar)
-                                        : "")
-                                     + ". " + qsTr("Funcionan con la ventana cerrada o minimizada. " +
-                                                   "Se cambian en Preferencias del sistema, en " +
-                                                   "Atajos de teclado.")
+                        // Cada atajo con lo que hace en cada modo, y no solo su
+                        // nombre: hasta el 2026-09-29 decia «graba y para» y
+                        // en repeticion hacia otra cosa. Cada tecla es un verbo
+                        // y aqui se explica el verbo entero.
+                        description: {
+                            var p = []
+                            p.push(qsTr("%1: sin nada en marcha, graba el primer monitor con " +
+                                        "los ajustes por defecto. Grabando, para y guarda. En " +
+                                        "repetición, termina.").arg(Controlador.atajoGrabar))
+                            if (Controlador.atajoPausa !== "")
+                                p.push(qsTr("%1: pausa y reanuda. No en audio, repetición ni " +
+                                            "emisión, que no se pausan.").arg(Controlador.atajoPausa))
+                            if (Controlador.atajoDescartar !== "")
+                                p.push(qsTr("%1: descarta lo grabado. Por debajo de diez segundos " +
+                                            "sin preguntar; por encima saca la ventana y " +
+                                            "pregunta.").arg(Controlador.atajoDescartar))
+                            if (Controlador.atajoGuardar !== "")
+                                p.push(qsTr("%1: en repetición, guarda lo último en un fichero " +
+                                            "y sigue.").arg(Controlador.atajoGuardar))
+                            p.push(qsTr("Funcionan con la ventana cerrada o minimizada, y lo " +
+                                        "mismo se puede hacer desde el menú del icono de la " +
+                                        "bandeja. Se cambian en Preferencias del sistema, en " +
+                                        "Atajos de teclado, buscando Easy Screen Recorder."))
+                            return p.join("\n")
+                        }
                     }
                 }
 

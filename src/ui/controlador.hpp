@@ -14,6 +14,7 @@
 #include <qqmlregistration.h>
 
 #include "esr/configuracion.hpp"
+#include "esr/grabacion.hpp"
 #include "esr/entorno.hpp"
 #include "medidor.hpp"
 
@@ -95,6 +96,7 @@ class Controlador : public QObject {
     Q_PROPERTY(QString atajoGrabar READ atajoGrabar NOTIFY hayAtajosCambiado)
     Q_PROPERTY(QString atajoPausa READ atajoPausa NOTIFY hayAtajosCambiado)
     Q_PROPERTY(QString atajoGuardar READ atajoGuardar NOTIFY hayAtajosCambiado)
+    Q_PROPERTY(QString atajoDescartar READ atajoDescartar NOTIFY hayAtajosCambiado)
     // 0 a 1. Solo se mueve mientras se esta escuchando, o sea antes de grabar.
     Q_PROPERTY(qreal nivelMicro READ nivelMicro NOTIFY nivelMicroCambiado)
     // Si la bandeja enseña el tiempo de grabacion en un segundo icono. Es una
@@ -122,6 +124,14 @@ class Controlador : public QObject {
     // La comprobacion de la tarjeta: graba unas sondas y dice si su hevc sirve.
     Q_PROPERTY(bool comprobandoCodecs READ comprobandoCodecs NOTIFY veredictoCambiado)
     Q_PROPERTY(QString veredictoCodecs READ veredictoCodecs NOTIFY veredictoCambiado)
+    // El informe entero, un parrafo por recomendacion, y lo que «Aplicar» pone.
+    // Hasta el 2026-09-29 la prueba acababa en UNA frase sobre hevc, en un
+    // aviso pequeño lejos del boton: quien la pedia se quedaba sin saber que
+    // hacer con lo medido. Ahora acaba en un dialogo con todo lo que se puede
+    // decir con lo medido y nada mas.
+    Q_PROPERTY(QStringList informeCodecs READ informeCodecs NOTIFY veredictoCambiado)
+    Q_PROPERTY(QString codecRecomendado READ codecRecomendado NOTIFY veredictoCambiado)
+    Q_PROPERTY(QString contenedorRecomendado READ contenedorRecomendado NOTIFY veredictoCambiado)
     Q_PROPERTY(bool reduciendo READ reduciendo NOTIFY reduccionCambiada)
     Q_PROPERTY(QString ultimaReduccion READ ultimaReduccion NOTIFY reduccionCambiada)
     // En que porcentaje quedo la ultima grabacion reducida EN ESTA MAQUINA, o 0
@@ -202,6 +212,9 @@ public:
     int mbPorMinuto() const { return mb_por_minuto_; }
     bool comprobandoCodecs() const { return comprobando_codecs_; }
     QString veredictoCodecs() const { return veredicto_codecs_; }
+    QStringList informeCodecs() const { return informe_codecs_; }
+    QString codecRecomendado() const { return codec_recomendado_; }
+    QString contenedorRecomendado() const { return contenedor_recomendado_; }
     // Para la grabacion y BORRA el fichero. Irreversible: quien llama ya ha
     // preguntado.
     Q_INVOKABLE void descartar();
@@ -211,8 +224,11 @@ public:
     // que borra diez minutos de trabajo sin preguntar es una trampa.
     Q_INVOKABLE void pedirDescartar();
     // Graba unas sondas de tres segundos con cada codec y dice cual conviene en
-    // ESTA tarjeta. Tarda unos diez segundos.
-    Q_INVOKABLE void comprobarCodecs();
+    // ESTA tarjeta. Tarda unos diez segundos, trece si el codec puesto es otro,
+    // porque ese tambien se sondea. El contenedor sirve para decir si el codec
+    // recomendado cabe en el.
+    Q_INVOKABLE void comprobarCodecs(const QString& codecActual = {},
+                                     const QString& contenedor = {});
     void ponerCuentaAtras(int falta);
     // La pide la bandeja, porque con la ventana apartada su boton «Cancelar» no
     // esta a mano. Quien la atiende es el QML, que es quien tiene el reloj.
@@ -234,8 +250,9 @@ public:
     QString atajoGrabar() const { return atajo_grabar_; }
     QString atajoPausa() const { return atajo_pausa_; }
     QString atajoGuardar() const { return atajo_guardar_; }
+    QString atajoDescartar() const { return atajo_descartar_; }
     void ponerAtajos(bool hay, const QString& grabar, const QString& pausa,
-                     const QString& guardar);
+                     const QString& guardar, const QString& descartar);
     qreal nivelMicro() const;
     // Enciende o apaga el vumetro. Lo llama el QML: escucha solo cuando el
     // control esta a la vista y no hay grabacion, que es cuando sirve.
@@ -291,6 +308,10 @@ signals:
     void relojEnBandejaCambiado();
     void cuentaAtrasCambiada();
     void veredictoCambiado();
+    // Solo cuando la prueba termino bien y hay informe que enseñar: el QML abre
+    // el dialogo con esto, no con veredictoCambiado, que tambien salta al
+    // empezar y al fallar.
+    void informeCodecsListo();
     void grabacionDescartada();
     void confirmarDescartePedido();
     void cancelarCuentaAtras();
@@ -335,11 +356,15 @@ private:
     int reduccion_normal_ = 0;
     int reduccion_maximo_ = 0;
     void refrescarConfiguracion();
+    void armarInformeCodecs(const esr::VeredictoCodecs& v, const QString& contenedor);
 
     int cuenta_atras_ = 0;
     int mb_por_minuto_ = 0;
     bool comprobando_codecs_ = false;
     QString veredicto_codecs_;
+    QStringList informe_codecs_;
+    QString codec_recomendado_;
+    QString contenedor_recomendado_;
     std::string primer_monitor_;
     // Lo que hay que quitar de cada punta al terminar. Como con la reduccion,
     // se apunta al empezar: si alguien cambia el numero mientras graba, manda
@@ -359,5 +384,6 @@ private:
     QString atajo_grabar_;
     QString atajo_pausa_;
     QString atajo_guardar_;
+    QString atajo_descartar_;
     Medidor medidor_;
 };

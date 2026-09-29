@@ -372,7 +372,16 @@ int main(int argc, char** argv) {
             // (docs/emision.md). Igual que en la ventana, en ninguno de los tres
             // se ofrece.
             accion_pausa->setVisible(grabando && !audio && !es_replay && !emitiendo);
-            accion_pausa->setText(pausado ? QObject::tr("Reanudar") : QObject::tr("Pausa"));
+            // Con su atajo, como los demas: el menu es donde se descubren.
+            const QString atajo_pausa = controlador->atajoPausa();
+            const QString texto_pausa = pausado ? QObject::tr("Reanudar") : QObject::tr("Pausa");
+            accion_pausa->setText(atajo_pausa.isEmpty()
+                                      ? texto_pausa
+                                      : QStringLiteral("%1 (%2)").arg(texto_pausa, atajo_pausa));
+            const QString atajo_descartar = controlador->atajoDescartar();
+            accion_descartar->setText(atajo_descartar.isEmpty()
+                                          ? QObject::tr("Descartar")
+                                          : QObject::tr("Descartar (%1)").arg(atajo_descartar));
             // En repeticion y emitiendo, parar no guarda nada: el texto tiene que
             // decirlo, y lo dice igual que el boton de la ventana.
             accion_parar->setVisible(grabando);
@@ -399,7 +408,7 @@ int main(int argc, char** argv) {
     // La interfaz solo anuncia los atajos si se han registrado de verdad.
     if (controlador != nullptr) {
         controlador->ponerAtajos(atajos.registrado(), atajos.atajoGrabar(), atajos.atajoPausa(),
-                                 atajos.atajoGuardar());
+                                 atajos.atajoGuardar(), atajos.atajoDescartar());
     }
 
     return app.exec();

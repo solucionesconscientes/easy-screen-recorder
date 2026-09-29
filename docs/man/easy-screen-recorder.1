@@ -52,11 +52,28 @@ enseña el punto de grabación. Pulsarlo muestra u oculta la ventana.
 Al empezar a grabar la pantalla, la ventana se aparta para no salir en el vídeo,
 y vuelve sola al guardar. Cerrar la ventana con una grabación en marcha la manda
 a la bandeja; sin nada en marcha, cierra la aplicación.
-.SH ATAJO GLOBAL
-Se registra en KGlobalAccel, así que se configura en
+.SH ATAJOS GLOBALES
+Se registran en KGlobalAccel, así que se configuran en
 .I Preferencias del sistema \(-> Atajos
-como cualquier otro. Empieza y para la grabación sin tener que ir a la ventana.
-Fuera de KDE Plasma no se registra y no pasa nada.
+como cualquier otro, y funcionan con la ventana cerrada o minimizada. Cada
+tecla es un verbo, el mismo en todos los modos; el modo decide qué verbos hay.
+Las teclas de serie son las primeras libres de estas:
+.TP
+.B Meta+Mayús+R \(or Meta+Alt+R \(or Meta+Mayús+G \(or Meta+Ctrl+G
+Sin nada en marcha, graba el primer monitor con los ajustes por defecto.
+Grabando, para y guarda. En repetición, termina.
+.TP
+.B Meta+Mayús+P \(or Meta+Alt+P \(or Meta+Ctrl+P
+Pausa y reanuda. No en audio, repetición ni emisión.
+.TP
+.B Meta+Mayús+X \(or Meta+Alt+X \(or Meta+Ctrl+X
+Descarta lo grabado. Por debajo de diez segundos sin preguntar; por encima
+saca la ventana y pregunta.
+.TP
+.B Meta+Mayús+S \(or Meta+Alt+S \(or Meta+Ctrl+S
+En repetición, guarda lo último en un fichero y sigue.
+.PP
+Fuera de KDE Plasma no se registran y no pasa nada.
 .SH FICHEROS
 .TP
 .I ~/.config/easy-screen-recorder/easy-screen-recorder.conf

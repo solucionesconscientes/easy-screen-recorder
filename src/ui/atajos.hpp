@@ -34,6 +34,7 @@ public:
     QString atajoGrabar() const { return atajo_grabar_; }
     QString atajoPausa() const { return atajo_pausa_; }
     QString atajoGuardar() const { return atajo_guardar_; }
+    QString atajoDescartar() const { return atajo_descartar_; }
 
 private slots:
     void alPulsar(const QString& componente, const QString& accion, qlonglong instante);
@@ -44,4 +45,5 @@ private:
     QString atajo_grabar_;
     QString atajo_pausa_;
     QString atajo_guardar_;
+    QString atajo_descartar_;
 };

@@ -40,8 +40,9 @@ start recording in two clicks.
   CPU, without changing format.
 - **Audio-only mode**, to Opus, AAC, FLAC, WAV or MP3, without turning on video
   capture at all.
-- **Pause and resume** mid-recording, plus a **global shortcut** to start and
-  stop without leaving what you are doing.
+- **Pause and resume** mid-recording, plus **global shortcuts** to start and
+  stop, pause, discard and save the last bit without leaving what you are
+  doing. The window explains each one.
 - **Picks the audio device for you** — system audio, your microphone, or
   several tracks at once — and **remembers where your recordings go**.
 - **Tells you what is missing before you press record**, instead of failing

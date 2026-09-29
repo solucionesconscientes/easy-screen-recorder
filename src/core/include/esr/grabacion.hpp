@@ -169,14 +169,39 @@ struct VeredictoCodecs {
     bool hevc_a_ojo = false;       // ...pero su driver no declara sus capacidades
     double bytes_por_s_h264 = 0.0;
     double bytes_por_s_hevc = 0.0;
+    // El codec que tenia puesto quien pidio la prueba, si no es ninguno de los
+    // dos de arriba: se sondea tambien, para poder decirle cuanto le cuesta
+    // frente al recomendado en vez de hablarle de dos que no usa. Vacio si no
+    // se paso o no hizo falta; bytes a -1 si se pidio y no se pudo grabar.
+    std::string codec_actual;
+    double bytes_por_s_actual = 0.0;
     std::string motivo;            // por que no se pudo probar
 };
 
 // «fuente» es la misma que se le pasaria a una grabacion normal (un monitor).
 // No graba audio: la prueba es del codificador de video y abrir el microfono
-// para esto seria de mal gusto.
+// para esto seria de mal gusto. «codec_actual» añade una sonda mas si no es
+// h264 ni hevc y la maquina lo ofrece.
 VeredictoCodecs comprobar_codecs(const std::string& fuente, const SesionGrabacion& sesion,
-                                 const std::vector<std::string>& codecs_disponibles);
+                                 const std::vector<std::string>& codecs_disponibles,
+                                 const std::string& codec_actual = {});
+
+// Lo que se recomienda a la vista de un veredicto. Es una funcion pura,
+// separada de la medicion, para que la regla se pueda probar sin GSR.
+//
+// La regla: h264 salvo que hevc ahorre de verdad. h264 lo reproduce todo, y
+// un hevc que sale igual de grande solo aporta reproductores que no lo abren.
+// «De verdad» es al menos un 5 % menos, que es el mismo margen que usa la
+// medicion para decir que hevc sale mas grande.
+struct Recomendacion {
+    std::string codec;                  // «h264» o «hevc»
+    // Tamaño de hevc frente a h264, en por ciento: -30 es un 30 % mas pequeño,
+    // +20 un 20 % mas grande. 0 si no se midio hevc.
+    int hevc_frente_a_h264_pct = 0;
+    // Lo mismo para el codec actual frente al recomendado. 0 si no se midio.
+    int actual_frente_a_recomendado_pct = 0;
+};
+Recomendacion recomendar_codec(const VeredictoCodecs& v);
 
 // Lee ese instante. 0 si no hay grabacion o no se puede leer.
 long inicio_grabacion(const std::string& ruta_inicio);

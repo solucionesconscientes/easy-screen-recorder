@@ -47,7 +47,8 @@ void uso() {
         "  easy-screen-recorder-cli recortar FICHERO   quita segundos del principio y del final\n"
         "                              sin recodificar: --quitar-inicio N --quitar-final N\n"
         "  easy-screen-recorder-cli comprobar-codecs   graba unas sondas y dice si el hevc de\n"
-        "                              esta tarjeta sirve o es peor que h264\n"
+        "                              esta tarjeta sirve o es peor que h264. Con\n"
+        "                              --codec C sondea tambien ese y lo compara\n"
         "                              menos, sin cambiar de codec. Con --maximo aprieta\n"
         "                              mas, perdiendo algo de calidad\n"
         "  easy-screen-recorder-cli pausar             pausa la grabacion en marcha\n"
@@ -700,8 +701,10 @@ int recortar(const std::vector<std::string_view>& args) {
 // algo. Graba unas sondas de tres segundos y las borra.
 int comprobar_codecs_cli(const std::vector<std::string_view>& args) {
     std::string fuente;
+    std::string codec_actual;
     for (std::size_t i = 1; i < args.size(); ++i) {
         if (args[i] == "--fuente" && i + 1 < args.size()) fuente = std::string(args[++i]);
+        if (args[i] == "--codec" && i + 1 < args.size()) codec_actual = std::string(args[++i]);
     }
     const auto entorno = esr::detectar();
     const auto codecs = esr::codecs_video_ofrecibles(entorno.capacidades.info);
@@ -715,7 +718,7 @@ int comprobar_codecs_cli(const std::vector<std::string_view>& args) {
         return kFallo;
     }
     std::printf("probando en %s: unos diez segundos, grabando y borrando…\n", fuente.c_str());
-    const auto v = esr::comprobar_codecs(fuente, esr::sesion_por_defecto(), codecs);
+    const auto v = esr::comprobar_codecs(fuente, esr::sesion_por_defecto(), codecs, codec_actual);
     if (!v.probado) {
         std::fprintf(stderr, "%s\n", v.motivo.c_str());
         return kFallo;
@@ -723,14 +726,30 @@ int comprobar_codecs_cli(const std::vector<std::string_view>& args) {
     std::printf("  h264: %.0f kB/s\n", v.bytes_por_s_h264 / 1024.0);
     if (!v.hevc_ofrecido) {
         std::printf("  hevc: esta tarjeta no lo ofrece\n");
-        return 0;
-    }
-    std::printf("  hevc: %.0f kB/s%s\n", v.bytes_por_s_hevc / 1024.0,
-                v.hevc_a_ojo ? "  (su driver NO declara lo que sabe hacer)" : "");
-    if (v.hevc_a_ojo || v.bytes_por_s_hevc > v.bytes_por_s_h264 * 1.05) {
-        std::printf("\nEn esta tarjeta, h264 es mejor eleccion que hevc.\n");
     } else {
-        std::printf("\nEn esta tarjeta hevc se porta bien.\n");
+        std::printf("  hevc: %.0f kB/s%s\n", v.bytes_por_s_hevc / 1024.0,
+                    v.hevc_a_ojo ? "  (su driver NO declara lo que sabe hacer)" : "");
+    }
+    if (!v.codec_actual.empty()) {
+        if (v.bytes_por_s_actual > 0.0) {
+            std::printf("  %s: %.0f kB/s\n", v.codec_actual.c_str(), v.bytes_por_s_actual / 1024.0);
+        } else {
+            std::printf("  %s: no se pudo grabar la prueba\n", v.codec_actual.c_str());
+        }
+    }
+    // La misma regla que la ventana, no otra: esr::recomendar_codec.
+    const auto r = esr::recomendar_codec(v);
+    std::printf("\nEn esta tarjeta conviene %s", r.codec.c_str());
+    if (v.hevc_ofrecido && v.bytes_por_s_hevc > 0.0) {
+        std::printf(": hevc sale un %d %% %s que h264", std::abs(r.hevc_frente_a_h264_pct),
+                    r.hevc_frente_a_h264_pct < 0 ? "mas pequeño" : "mas grande");
+    }
+    std::printf(".\n");
+    if (r.actual_frente_a_recomendado_pct != 0) {
+        std::printf("Tu %s sale un %d %% %s que %s.\n", v.codec_actual.c_str(),
+                    std::abs(r.actual_frente_a_recomendado_pct),
+                    r.actual_frente_a_recomendado_pct > 0 ? "mas grande" : "mas pequeño",
+                    r.codec.c_str());
     }
     return 0;
 }

@@ -40,8 +40,9 @@ la GPU y empiezas a grabar en dos clics.
   procesador, sin cambiar de formato.
 - **Modo de solo audio**, a Opus, AAC, FLAC, WAV o MP3, sin encender siquiera la captura de
   vídeo.
-- **Pausa y reanuda** a media grabación, y un **atajo global** para empezar y
-  parar sin salir de lo que estás haciendo.
+- **Pausa y reanuda** a media grabación, y **atajos globales** para empezar y
+  parar, pausar, descartar y guardar lo último sin salir de lo que estás
+  haciendo. La ventana explica cada uno.
 - **Elige el dispositivo de audio por ti** —el audio del sistema, el micrófono o varias
   pistas a la vez— y **recuerda dónde van tus grabaciones**.
 - **Te dice qué falta antes de darle a grabar**, en vez de fallar a mitad:

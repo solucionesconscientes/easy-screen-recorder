@@ -182,6 +182,7 @@ AtajosGlobales::AtajosGlobales(Controlador* controlador, QObject* padre)
     atajo_grabar_ = leerAtajo(kAccionGrabarParar);
     atajo_pausa_ = leerAtajo(kAccionPausa);
     atajo_guardar_ = leerAtajo(kAccionGuardar);
+    atajo_descartar_ = leerAtajo(kAccionDescartar);
 
     const bool conectado = QDBusConnection::sessionBus().connect(
         QStringLiteral("org.kde.kglobalaccel"), caminoComponente(kAccionGrabarParar.at(0)),

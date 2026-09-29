@@ -239,5 +239,44 @@ int main() {
     sesion();
     reducir();
     recortar_y_espacio();
+    // --- recomendar_codec: la regla, sin GSR ---
+    {
+        VeredictoCodecs v;
+        v.probado = true;
+        v.bytes_por_s_h264 = 1000.0;
+        // Sin hevc: h264 y sin cifras que comparar.
+        auto r = recomendar_codec(v);
+        COMPROBAR(r.codec == "h264");
+        COMPROBAR(r.hevc_frente_a_h264_pct == 0);
+        // hevc un 30 % mas pequeño: hevc.
+        v.hevc_ofrecido = true;
+        v.bytes_por_s_hevc = 700.0;
+        r = recomendar_codec(v);
+        COMPROBAR(r.codec == "hevc");
+        COMPROBAR_NOTA(r.hevc_frente_a_h264_pct == -30, std::to_string(r.hevc_frente_a_h264_pct));
+        // El mismo ahorro, pero el driver no declara lo que sabe: h264.
+        v.hevc_a_ojo = true;
+        r = recomendar_codec(v);
+        COMPROBAR(r.codec == "h264");
+        v.hevc_a_ojo = false;
+        // hevc solo un 3 % mas pequeño: no vale la pena, h264.
+        v.bytes_por_s_hevc = 970.0;
+        COMPROBAR(recomendar_codec(v).codec == "h264");
+        // hevc un 20 % mas grande: h264, y la cifra lo dice.
+        v.bytes_por_s_hevc = 1200.0;
+        r = recomendar_codec(v);
+        COMPROBAR(r.codec == "h264");
+        COMPROBAR(r.hevc_frente_a_h264_pct == 20);
+        // El codec actual (vp8) sale un 50 % mas grande que el recomendado.
+        v.codec_actual = "vp8";
+        v.bytes_por_s_actual = 1500.0;
+        r = recomendar_codec(v);
+        COMPROBAR_NOTA(r.actual_frente_a_recomendado_pct == 50,
+                       std::to_string(r.actual_frente_a_recomendado_pct));
+        // Y si esa sonda fallo (-1), no se dice nada de el.
+        v.bytes_por_s_actual = -1.0;
+        COMPROBAR(recomendar_codec(v).actual_frente_a_recomendado_pct == 0);
+    }
+
     return prueba::resumen("prueba_grabacion");
 }
