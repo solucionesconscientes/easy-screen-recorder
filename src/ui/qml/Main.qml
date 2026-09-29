@@ -431,14 +431,85 @@ Kirigami.ApplicationWindow {
     Kirigami.PromptDialog {
         id: informeTarjeta
         title: qsTr("Lo que dice tu tarjeta")
-        subtitle: Controlador.informeCodecs.join("\n\n")
+        preferredWidth: Kirigami.Units.gridUnit * 30
         standardButtons: Kirigami.Dialog.NoButton
+        // El uso marcado. Al abrir se marca el que coincide con lo puesto, si
+        // alguno, y si no «largo», que es el de la grabacion de cada dia.
+        property string usoElegido: "largo"
+        function tituloDeUso(uso) {
+            return uso === "compartir" ? qsTr("Compartir, editar o subir a una página")
+                 : uso === "web" ? qsTr("Publicar para el navegador")
+                 : uso === "pequeno" ? qsTr("Que ocupe lo menos posible")
+                 : qsTr("Grabaciones largas o que no puedan perderse")
+        }
+        ColumnLayout {
+            spacing: Kirigami.Units.largeSpacing
+            QQC2.Label {
+                Layout.fillWidth: true
+                wrapMode: Text.WordWrap
+                text: Controlador.informeCodecs.length > 0 ? Controlador.informeCodecs[0] : ""
+            }
+            QQC2.Label {
+                Layout.fillWidth: true
+                wrapMode: Text.WordWrap
+                visible: Controlador.informeCodecs.length > 2
+                text: Controlador.informeCodecs.length > 2 ? Controlador.informeCodecs[1] : ""
+            }
+            QQC2.Label {
+                Layout.fillWidth: true
+                text: qsTr("Un formato y un códec para cada cosa:")
+                font.bold: true
+            }
+            Repeater {
+                model: Controlador.usosRecomendados
+                delegate: QQC2.RadioButton {
+                    id: opcionUso
+                    required property var modelData
+                    Layout.fillWidth: true
+                    readonly property bool hay: modelData.codec !== ""
+                    enabled: hay
+                    checked: informeTarjeta.usoElegido === modelData.uso
+                    onToggled: if (checked) informeTarjeta.usoElegido = modelData.uso
+                    text: informeTarjeta.tituloDeUso(modelData.uso) + "\n"
+                          + (hay
+                             ? modelData.contenedor + " + " + modelData.codec + " · "
+                               + qsTr("%1 kB/s, %2 MB por minuto")
+                                     .arg(modelData.kbPorS)
+                                     .arg(Number(modelData.mbPorMin).toLocaleString(Qt.locale(), "f", 1))
+                               + (modelData.codec !== "h264" && modelData.ahorroPct !== 0
+                                  ? " · " + (modelData.ahorroPct < 0
+                                             ? qsTr("un %1 % menos que h264").arg(-modelData.ahorroPct)
+                                             : qsTr("un %1 % más que h264").arg(modelData.ahorroPct))
+                                  : "")
+                               + " · " + raiz.etiquetaCodec(modelData.codec).replace(modelData.codec + " · ", "")
+                             : modelData.contenedor + ": "
+                               + qsTr("tu tarjeta no ofrece ningún códec que quepa en él"))
+                    // Dos lineas y con salto: la de arriba dice para que, la
+                    // de abajo que poner y lo que cuesta.
+                    contentItem: QQC2.Label {
+                        leftPadding: opcionUso.indicator.width + opcionUso.spacing
+                        text: opcionUso.text
+                        wrapMode: Text.WordWrap
+                        color: opcionUso.enabled ? Kirigami.Theme.textColor
+                                                 : Kirigami.Theme.disabledTextColor
+                    }
+                }
+            }
+            QQC2.Label {
+                Layout.fillWidth: true
+                wrapMode: Text.WordWrap
+                font: Kirigami.Theme.smallFont
+                color: raiz.colorExplicacion
+                text: Controlador.informeCodecs.length > 0
+                      ? Controlador.informeCodecs[Controlador.informeCodecs.length - 1] : ""
+            }
+        }
         customFooterActions: [
             Kirigami.Action {
-                text: qsTr("Aplicar lo recomendado")
+                text: qsTr("Aplicar el marcado")
                 icon.name: "dialog-ok-apply"
                 onTriggered: {
-                    raiz.aplicarRecomendaciones()
+                    raiz.aplicarUso(informeTarjeta.usoElegido)
                     informeTarjeta.close()
                 }
             },
@@ -451,20 +522,38 @@ Kirigami.ApplicationWindow {
     }
     Connections {
         target: Controlador
-        function onInformeCodecsListo() { informeTarjeta.open() }
-    }
-    // Pone el formato primero: la lista de codecs depende de el, y con el
-    // orden al reves el codec se elegiria en una lista que luego cambia.
-    function aplicarRecomendaciones() {
-        var f = contenedor.find(Controlador.contenedorRecomendado)
-        if (f >= 0 && f !== contenedor.currentIndex) {
-            contenedor.currentIndex = f
-            raiz.recordar("formato", contenedor.currentValue)
+        function onInformeCodecsListo() {
+            // Marcado de entrada: el uso que coincide con lo que hay puesto,
+            // para que «Aplicar» sin tocar nada no cambie nada.
+            var elegido = "largo"
+            var usos = Controlador.usosRecomendados
+            for (var i = 0; i < usos.length; i++) {
+                if (usos[i].contenedor === contenedor.currentText
+                        && usos[i].codec === String(codecVideo.currentValue)) {
+                    elegido = usos[i].uso
+                    break
+                }
+            }
+            informeTarjeta.usoElegido = elegido
+            informeTarjeta.open()
         }
-        var c = codecVideo.indexOfValue(Controlador.codecRecomendado)
-        if (c >= 0) {
-            codecVideo.currentIndex = c
-            raiz.recordar("codecVideo", Controlador.codecRecomendado)
+    }
+    // Recuerda el codec ANTES de tocar el formato: la lista de codecs depende
+    // del formato y, al cambiar, vuelve a poner el codec recordado. Con el
+    // orden al reves el codec se elegia en una lista que luego cambiaba.
+    function aplicarUso(uso) {
+        var usos = Controlador.usosRecomendados
+        for (var i = 0; i < usos.length; i++) {
+            if (usos[i].uso !== uso || usos[i].codec === "") continue
+            raiz.recordar("codecVideo", usos[i].codec)
+            var f = contenedor.find(usos[i].contenedor)
+            if (f >= 0 && f !== contenedor.currentIndex) {
+                contenedor.currentIndex = f
+                raiz.recordar("formato", contenedor.currentValue)
+            }
+            var c = codecVideo.indexOfValue(usos[i].codec)
+            if (c >= 0) codecVideo.currentIndex = c
+            return
         }
     }
 
@@ -1324,8 +1413,8 @@ Kirigami.ApplicationWindow {
                                                             : qsTr("Probar mi tarjeta")
                         description: qsTr("Que una tarjeta ofrezca un códec no dice que lo haga " +
                                           "bien. Graba unos segundos con cada uno y al acabar te " +
-                                          "dice qué códec, qué formato y cuánto ocupará. Tarda " +
-                                          "unos diez segundos y no deja nada.")
+                                          "dice qué formato y qué códec para cada cosa, y cuánto " +
+                                          "ocupa. Unos cuatro segundos por códec, y no deja nada.")
                         onClicked: Controlador.comprobarCodecs(String(codecVideo.currentValue),
                                                                contenedor.currentText)
                     }

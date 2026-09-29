@@ -124,14 +124,14 @@ class Controlador : public QObject {
     // La comprobacion de la tarjeta: graba unas sondas y dice si su hevc sirve.
     Q_PROPERTY(bool comprobandoCodecs READ comprobandoCodecs NOTIFY veredictoCambiado)
     Q_PROPERTY(QString veredictoCodecs READ veredictoCodecs NOTIFY veredictoCambiado)
-    // El informe entero, un parrafo por recomendacion, y lo que «Aplicar» pone.
-    // Hasta el 2026-09-29 la prueba acababa en UNA frase sobre hevc, en un
-    // aviso pequeño lejos del boton: quien la pedia se quedaba sin saber que
-    // hacer con lo medido. Ahora acaba en un dialogo con todo lo que se puede
-    // decir con lo medido y nada mas.
+    // El informe entero. Hasta el 2026-09-29 la prueba acababa en UNA frase
+    // sobre hevc, en un aviso pequeño lejos del boton: quien la pedia se
+    // quedaba sin saber que hacer con lo medido. Ahora acaba en un dialogo
+    // con lo medido (informeCodecs, un parrafo por linea) y un formato y un
+    // codec para cada uso (usosRecomendados: mapas con uso, contenedor,
+    // codec, kbPorS, mbPorMin y ahorroPct frente a h264), a elegir y aplicar.
     Q_PROPERTY(QStringList informeCodecs READ informeCodecs NOTIFY veredictoCambiado)
-    Q_PROPERTY(QString codecRecomendado READ codecRecomendado NOTIFY veredictoCambiado)
-    Q_PROPERTY(QString contenedorRecomendado READ contenedorRecomendado NOTIFY veredictoCambiado)
+    Q_PROPERTY(QVariantList usosRecomendados READ usosRecomendados NOTIFY veredictoCambiado)
     Q_PROPERTY(bool reduciendo READ reduciendo NOTIFY reduccionCambiada)
     Q_PROPERTY(QString ultimaReduccion READ ultimaReduccion NOTIFY reduccionCambiada)
     // En que porcentaje quedo la ultima grabacion reducida EN ESTA MAQUINA, o 0
@@ -213,8 +213,7 @@ public:
     bool comprobandoCodecs() const { return comprobando_codecs_; }
     QString veredictoCodecs() const { return veredicto_codecs_; }
     QStringList informeCodecs() const { return informe_codecs_; }
-    QString codecRecomendado() const { return codec_recomendado_; }
-    QString contenedorRecomendado() const { return contenedor_recomendado_; }
+    QVariantList usosRecomendados() const { return usos_recomendados_; }
     // Para la grabacion y BORRA el fichero. Irreversible: quien llama ya ha
     // preguntado.
     Q_INVOKABLE void descartar();
@@ -223,10 +222,9 @@ public:
     // equivocado al empezar», y por encima PIDE CONFIRMACION, porque un atajo
     // que borra diez minutos de trabajo sin preguntar es una trampa.
     Q_INVOKABLE void pedirDescartar();
-    // Graba unas sondas de tres segundos con cada codec y dice cual conviene en
-    // ESTA tarjeta. Tarda unos diez segundos, trece si el codec puesto es otro,
-    // porque ese tambien se sondea. El contenedor sirve para decir si el codec
-    // recomendado cabe en el.
+    // Graba una sonda de tres segundos con cada codec base que ofrezca ESTA
+    // tarjeta y arma el informe. Unos cuatro segundos por codec. Lo puesto
+    // (codec y contenedor) sirve para decir si casa con lo medido.
     Q_INVOKABLE void comprobarCodecs(const QString& codecActual = {},
                                      const QString& contenedor = {});
     void ponerCuentaAtras(int falta);
@@ -363,8 +361,7 @@ private:
     bool comprobando_codecs_ = false;
     QString veredicto_codecs_;
     QStringList informe_codecs_;
-    QString codec_recomendado_;
-    QString contenedor_recomendado_;
+    QVariantList usos_recomendados_;
     std::string primer_monitor_;
     // Lo que hay que quitar de cada punta al terminar. Como con la reduccion,
     // se apunta al empezar: si alguien cambia el numero mientras graba, manda

@@ -46,9 +46,9 @@ void uso() {
         "  easy-screen-recorder-cli descartar          para la grabacion y BORRA el fichero\n"
         "  easy-screen-recorder-cli recortar FICHERO   quita segundos del principio y del final\n"
         "                              sin recodificar: --quitar-inicio N --quitar-final N\n"
-        "  easy-screen-recorder-cli comprobar-codecs   graba unas sondas y dice si el hevc de\n"
-        "                              esta tarjeta sirve o es peor que h264. Con\n"
-        "                              --codec C sondea tambien ese y lo compara\n"
+        "  easy-screen-recorder-cli comprobar-codecs   graba una sonda con cada codec de esta\n"
+        "                              tarjeta y dice que formato y que codec para\n"
+        "                              cada cosa. Con --codec C sondea tambien ese\n"
         "                              menos, sin cambiar de codec. Con --maximo aprieta\n"
         "                              mas, perdiendo algo de calidad\n"
         "  easy-screen-recorder-cli pausar             pausa la grabacion en marcha\n"
@@ -723,21 +723,31 @@ int comprobar_codecs_cli(const std::vector<std::string_view>& args) {
         std::fprintf(stderr, "%s\n", v.motivo.c_str());
         return kFallo;
     }
-    std::printf("  h264: %.0f kB/s\n", v.bytes_por_s_h264 / 1024.0);
-    if (!v.hevc_ofrecido) {
-        std::printf("  hevc: esta tarjeta no lo ofrece\n");
-    } else {
-        std::printf("  hevc: %.0f kB/s%s\n", v.bytes_por_s_hevc / 1024.0,
-                    v.hevc_a_ojo ? "  (su driver NO declara lo que sabe hacer)" : "");
-    }
-    if (!v.codec_actual.empty()) {
-        if (v.bytes_por_s_actual > 0.0) {
-            std::printf("  %s: %.0f kB/s\n", v.codec_actual.c_str(), v.bytes_por_s_actual / 1024.0);
+    for (const auto& m : v.medidas) {
+        if (m.bytes_por_s > 0.0) {
+            std::printf("  %s: %.0f kB/s%s\n", m.codec.c_str(), m.bytes_por_s / 1024.0,
+                        m.a_ojo ? "  (su driver NO declara lo que sabe hacer)" : "");
         } else {
-            std::printf("  %s: no se pudo grabar la prueba\n", v.codec_actual.c_str());
+            std::printf("  %s: no se pudo grabar la prueba\n", m.codec.c_str());
         }
     }
-    // La misma regla que la ventana, no otra: esr::recomendar_codec.
+    if (!v.hevc_ofrecido) std::printf("  hevc: esta tarjeta no lo ofrece\n");
+    // Las mismas reglas que la ventana, no otras: esr::recomendar_por_uso y
+    // esr::recomendar_codec.
+    std::printf("\nPara cada cosa:\n");
+    for (const auto& u : esr::recomendar_por_uso(v)) {
+        const char* titulo = u.uso == "compartir" ? "compartir, editar o subir a una pagina"
+                             : u.uso == "web"     ? "publicar para el navegador"
+                             : u.uso == "pequeno" ? "que ocupe lo menos posible"
+                                                  : "grabaciones largas o que no puedan perderse";
+        if (u.codec.empty()) {
+            std::printf("  %-44s %s: esta tarjeta no ofrece ninguno que quepa\n", titulo,
+                        u.contenedor.c_str());
+        } else {
+            std::printf("  %-44s %s + %s (%.0f kB/s)\n", titulo, u.contenedor.c_str(),
+                        u.codec.c_str(), u.bytes_por_s / 1024.0);
+        }
+    }
     const auto r = esr::recomendar_codec(v);
     std::printf("\nEn esta tarjeta conviene %s", r.codec.c_str());
     if (v.hevc_ofrecido && v.bytes_por_s_hevc > 0.0) {

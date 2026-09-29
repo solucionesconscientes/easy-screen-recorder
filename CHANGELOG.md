@@ -7,35 +7,42 @@ máquina de desarrollo.
 
 ### La prueba de la tarjeta acaba en un informe, y los atajos se explican (2026-09-29)
 
-**La prueba de la tarjeta.** Hasta ahora acababa en una frase sobre hevc, en un
-aviso pequeño lejos del botón que la pedía: quien la pedía se quedaba sin saber
-qué hacer con lo medido. Ahora acaba en un diálogo, «Lo que dice tu tarjeta»,
-con una recomendación por párrafo y la cifra que la sostiene delante de cada
-consejo, y un botón «Aplicar lo recomendado» que pone el códec y el formato sin
-buscar los desplegables. Solo dice lo que se midió o la máquina declaró: la
-calidad, los fps y la resolución no se han medido y no se opina de ellos.
+**La prueba de la tarjeta.** Hasta ahora sondeaba h264 y hevc y acababa en
+una frase sobre hevc, en un aviso pequeño lejos del botón que la pedía: quien
+la pedía se quedaba sin saber qué hacer con lo medido. Ahora sondea cada códec
+base que ofrece la tarjeta (h264, y hevc, av1, vp8 y vp9 si los hay; las
+variantes hdr, 10bit y vulkan no, que son el mismo codificador con otro
+perfil) y acaba en un diálogo, «Lo que dice tu tarjeta», con lo medido códec a
+códec, aviso si lo puesto no casa, y **un formato con su códec para cada
+cosa**, a elegir con un botón «Aplicar el marcado»:
 
-- Códec: h264 salvo que hevc ahorre de verdad, al menos un 5 %, y su driver
-  declare sus capacidades. h264 lo reproduce todo; un hevc igual de grande solo
-  aporta reproductores que no lo abren. La regla es una función pura del
-  núcleo, `recomendar_codec`, con test propio (ocho comprobaciones).
-- El códec que se tiene puesto, si no es h264 ni hevc, también se sondea, y el
-  informe dice cuánto le cuesta frente al recomendado. Si sale más pequeño, se
-  respeta: la recomendación es dejarlo.
-- Formato: si el recomendado no cabe en el puesto, mkv, que además aguanta un
-  corte de luz.
-- Tamaño: MB por minuto y GB por hora al ritmo medido, dicho con su
-  condición: la pantalla como estaba durante la prueba.
+| Para | Formato | Códec |
+|---|---|---|
+| Compartir, editar o subir a una página | mp4 | h264, que lo reproduce todo; sin él, el menor que quepa |
+| Publicar para el navegador | webm | el menor de vp8, vp9 y av1 |
+| Que ocupe lo menos posible | mkv | el menor de todos |
+| Grabaciones largas o que no puedan perderse | mkv | h264, o hevc si ahorra al menos un 5 % con driver fiable |
 
-El CLI aplica la misma regla y admite `--codec C` para sondear también ese.
-Medido en esta máquina (Intel HD 520, GSR 6.1.2, 2026-09-29): h264 78-83 kB/s,
-hevc 98-108 kB/s con el driver sin declarar sus capacidades, vp8 66-70 kB/s.
-Recomienda h264; con vp8 puesto, lo respeta por salir un 15-18 % más pequeño y
-manda de mp4 a mkv porque mp4 no admite vp8. El informe se verificó con cifras
-reales por un modo nuevo del arnés, `ESR_AUTOPRUEBA=codecs`, que imprime el
-informe y sale, en dos configuraciones (vp8 en mp4; h264 en mkv). Dos fallos
-que salieron ahí y no compilando: «%%» se imprimía literal, porque `arg()` no
-lo escapa, y el decimal iba con punto; ahora va por `QLocale`.
+Cada opción lleva kB/s, MB por minuto, lo que ahorra frente a h264 y la nota
+del códec que ya enseña el desplegable. Un hevc «a ojo», cuyo driver no
+declara sus capacidades, no se recomienda para nada. Un uso sin códec que
+quepa lo dice. Al abrir queda marcado el uso que coincide con lo puesto, para
+que aplicar sin tocar nada no cambie nada. Solo dice lo que se midió o la
+máquina declaró: la calidad, los fps y la resolución no se han medido y no se
+opina de ellos. Las reglas son dos funciones puras del núcleo,
+`recomendar_por_uso` y `recomendar_codec`, con test propio (26
+comprobaciones).
+
+El CLI aplica las mismas reglas: `comprobar-codecs` sondea todos y lista los
+cuatro usos. Medido en esta máquina (Intel HD 520, GSR 6.1.2, 2026-09-29,
+tres sondas en 12,2 s): h264 62-83 kB/s, hevc 98-133 kB/s con el driver sin
+declarar sus capacidades, vp8 63-70 kB/s; las cifras bailan porque la
+pantalla no está quieta. Con vp8 en mp4 el informe avisa de que mp4 no admite
+vp8 y ofrece mp4 + h264, webm + vp8, mkv + vp8 y mkv + h264. El informe se
+verificó con cifras reales por un modo nuevo del arnés,
+`ESR_AUTOPRUEBA=codecs`, que imprime el informe y sale. Dos fallos que
+salieron ahí y no compilando: «%%» se imprimía literal, porque `arg()` no lo
+escapa, y el decimal iba con punto; ahora va por `QLocale`.
 
 **Los atajos, explicados.** La fila «Atajos de teclado» decía «graba y para»
 y en repetición hacía otra cosa. Ahora explica cada tecla con lo que hace en
@@ -45,7 +52,7 @@ de la bandeja y dónde se cambian. La bandeja enseña el atajo de pausa y el de
 descartar como ya enseñaba los otros dos. La página de manual lista los cuatro
 con sus teclas de serie, y los README pasan de «un atajo global» a los cuatro.
 
-Compila sin un aviso, `ctest` 12/12, `reuse lint` en verde, 241 cadenas
+Compila sin un aviso, `ctest` 12/12, `reuse lint` en verde, 249 cadenas
 traducidas y ninguna sin traducir. La app arranca sin una línea en stderr.
 Sin verificar: el diálogo en pantalla, porque no hay inyección de entrada; su
 texto es exactamente el que imprime el arnés.

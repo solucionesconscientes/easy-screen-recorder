@@ -710,29 +710,52 @@ VeredictoCodecs comprobar_codecs(const std::string& fuente, const SesionGrabacio
 
     std::error_code ec;
     const std::string base = sesion.dir + "/sonda";
-    v.bytes_por_s_h264 = sondear_codec(fuente, "h264", sesion, base + "-h264.mkv");
-    if (v.bytes_por_s_h264 < 0.0) {
-        v.motivo = "no se pudo grabar la prueba con h264";
-        std::filesystem::remove(base + "-h264.mkv", ec);
-        return v;
-    }
-    if (v.hevc_ofrecido) {
-        v.bytes_por_s_hevc = sondear_codec(fuente, "hevc", sesion, base + "-hevc.mkv");
+    const auto sondear = [&](const std::string& codec) {
+        MedidaCodec m;
+        m.codec = codec;
+        const std::string fichero = base + "-" + codec + ".mkv";
+        m.bytes_por_s = sondear_codec(fuente, codec, sesion, fichero);
         // El aviso del driver se lee del log de ESTA sonda, que es la ultima
         // que escribio. Es la señal decisiva: lo demas son indicios.
-        v.hevc_a_ojo = anota_hevc_poco_fiable(sesion.ruta_log);
-        std::filesystem::remove(base + "-hevc.mkv", ec);
+        if (codec == "hevc") m.a_ojo = anota_hevc_poco_fiable(sesion.ruta_log);
+        std::filesystem::remove(fichero, ec);
+        v.medidas.push_back(m);
+        return m.bytes_por_s;
+    };
+    const auto ofrecido = [&](std::string_view codec) {
+        return std::find(codecs_disponibles.begin(), codecs_disponibles.end(), codec) !=
+               codecs_disponibles.end();
+    };
+    const auto ya_medido = [&](std::string_view codec) {
+        return std::any_of(v.medidas.begin(), v.medidas.end(),
+                           [codec](const MedidaCodec& m) { return m.codec == codec; });
+    };
+
+    v.bytes_por_s_h264 = sondear("h264");
+    if (v.bytes_por_s_h264 < 0.0) {
+        v.motivo = "no se pudo grabar la prueba con h264";
+        return v;
     }
-    std::filesystem::remove(base + "-h264.mkv", ec);
-    // La tercera sonda, solo si hace falta: quien tiene puesto vp8 quiere saber
-    // que le cuesta vp8, no una comparacion entre dos que no usa.
-    if (!codec_actual.empty() && codec_actual != "h264" && codec_actual != "hevc" &&
-        std::find(codecs_disponibles.begin(), codecs_disponibles.end(), codec_actual) !=
-            codecs_disponibles.end()) {
+    // Los codecs base, cada uno si la maquina lo ofrece. Un formato distinto
+    // pide un codec distinto (webm no admite h264), asi que para decir «el
+    // mejor para cada formato» hay que medirlos todos, no solo hevc.
+    for (const char* codec : {"hevc", "av1", "vp8", "vp9"}) {
+        if (ofrecido(codec)) sondear(codec);
+    }
+    // Y el que tenia puesto quien pregunta, si es una variante que no se ha
+    // sondeado: quien graba en hevc_10bit quiere saber lo que cuesta ESO.
+    if (!codec_actual.empty() && ofrecido(codec_actual)) {
         v.codec_actual = codec_actual;
-        v.bytes_por_s_actual =
-            sondear_codec(fuente, codec_actual, sesion, base + "-" + codec_actual + ".mkv");
-        std::filesystem::remove(base + "-" + codec_actual + ".mkv", ec);
+        if (!ya_medido(codec_actual)) sondear(codec_actual);
+        for (const auto& m : v.medidas) {
+            if (m.codec == codec_actual) v.bytes_por_s_actual = m.bytes_por_s;
+        }
+    }
+    for (const auto& m : v.medidas) {
+        if (m.codec == "hevc") {
+            v.bytes_por_s_hevc = m.bytes_por_s;
+            v.hevc_a_ojo = m.a_ojo;
+        }
     }
     // Lo que se aprende se recuerda, igual que cuando se descubre grabando.
     if (v.hevc_ofrecido && (v.hevc_a_ojo || (v.bytes_por_s_hevc > v.bytes_por_s_h264 * 1.05))) {
@@ -742,6 +765,52 @@ VeredictoCodecs comprobar_codecs(const std::string& fuente, const SesionGrabacio
     }
     v.probado = true;
     return v;
+}
+
+std::vector<RecomendacionUso> recomendar_por_uso(const VeredictoCodecs& v) {
+    // Solo lo que grabo y cuyo driver sabe lo que hace.
+    std::vector<MedidaCodec> validas;
+    for (const auto& m : v.medidas) {
+        if (m.bytes_por_s > 0.0 && !m.a_ojo) validas.push_back(m);
+    }
+    const auto buscar = [&](std::string_view codec) -> const MedidaCodec* {
+        for (const auto& m : validas) {
+            if (m.codec == codec) return &m;
+        }
+        return nullptr;
+    };
+    const auto menor_para = [&](std::string_view contenedor) -> const MedidaCodec* {
+        const MedidaCodec* mejor = nullptr;
+        for (const auto& m : validas) {
+            if (codecs_video_para(contenedor, {m.codec}).empty()) continue;
+            if (mejor == nullptr || m.bytes_por_s < mejor->bytes_por_s) mejor = &m;
+        }
+        return mejor;
+    };
+    const auto poner = [](RecomendacionUso& r, const MedidaCodec* m) {
+        if (m == nullptr) return;
+        r.codec = m->codec;
+        r.bytes_por_s = m->bytes_por_s;
+    };
+
+    std::vector<RecomendacionUso> lista;
+    RecomendacionUso compartir{"compartir", "mp4", "", 0.0};
+    const MedidaCodec* h264 = buscar("h264");
+    poner(compartir, h264 != nullptr ? h264 : menor_para("mp4"));
+    lista.push_back(compartir);
+
+    RecomendacionUso web{"web", "webm", "", 0.0};
+    poner(web, menor_para("webm"));
+    lista.push_back(web);
+
+    RecomendacionUso pequeno{"pequeno", "mkv", "", 0.0};
+    poner(pequeno, menor_para("mkv"));
+    lista.push_back(pequeno);
+
+    RecomendacionUso largo{"largo", "mkv", "", 0.0};
+    poner(largo, buscar(recomendar_codec(v).codec));
+    lista.push_back(largo);
+    return lista;
 }
 
 Recomendacion recomendar_codec(const VeredictoCodecs& v) {

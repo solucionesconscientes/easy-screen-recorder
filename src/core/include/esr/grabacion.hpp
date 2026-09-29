@@ -163,28 +163,60 @@ std::string descartar_grabacion(const SesionGrabacion& sesion, std::string& moti
 // Hasta ahora eso se descubria despues, leyendo el log al parar. Esto lo
 // averigua ANTES, grabando unos segundos con cada codec y comparando. Tarda
 // unos diez segundos y graba a un temporal que se borra.
+// Lo que salio de sondear un codec.
+struct MedidaCodec {
+    std::string codec;
+    double bytes_por_s = -1.0;  // -1: no se pudo grabar con el
+    bool a_ojo = false;         // su driver no declara sus capacidades (hevc)
+};
+
 struct VeredictoCodecs {
     bool probado = false;
     bool hevc_ofrecido = false;    // la maquina dice tenerlo
     bool hevc_a_ojo = false;       // ...pero su driver no declara sus capacidades
     double bytes_por_s_h264 = 0.0;
     double bytes_por_s_hevc = 0.0;
-    // El codec que tenia puesto quien pidio la prueba, si no es ninguno de los
-    // dos de arriba: se sondea tambien, para poder decirle cuanto le cuesta
-    // frente al recomendado en vez de hablarle de dos que no usa. Vacio si no
-    // se paso o no hizo falta; bytes a -1 si se pidio y no se pudo grabar.
+    // TODO lo sondeado, en el orden en que se sondeo: h264 primero, que es la
+    // vara de medir, luego cada codec base que ofrezca la maquina (hevc, av1,
+    // vp8, vp9) y por ultimo el que tenia puesto quien pidio la prueba si es
+    // otro. Las variantes (hdr, 10bit, vulkan) no se sondean solas: son el
+    // mismo codificador con otro perfil. Los campos de arriba son un resumen
+    // de esto y se conservan por los sitios que ya los leian.
+    std::vector<MedidaCodec> medidas;
+    // El codec que tenia puesto quien pidio la prueba, tal cual se paso.
     std::string codec_actual;
-    double bytes_por_s_actual = 0.0;
-    std::string motivo;            // por que no se pudo probar
+    double bytes_por_s_actual = 0.0;  // lo medido para el; -1 si no se pudo
+    std::string motivo;               // por que no se pudo probar
 };
 
 // «fuente» es la misma que se le pasaria a una grabacion normal (un monitor).
 // No graba audio: la prueba es del codificador de video y abrir el microfono
-// para esto seria de mal gusto. «codec_actual» añade una sonda mas si no es
-// h264 ni hevc y la maquina lo ofrece.
+// para esto seria de mal gusto. Cada sonda cuesta unos cuatro segundos
+// (medido: tres sondas, 12,2 s, 2026-09-29).
 VeredictoCodecs comprobar_codecs(const std::string& fuente, const SesionGrabacion& sesion,
                                  const std::vector<std::string>& codecs_disponibles,
                                  const std::string& codec_actual = {});
+
+// Un formato y un codec para cada cosa que se suele querer de una grabacion.
+// Funcion pura, sobre lo medido y las reglas de que codec cabe en que formato
+// (ajustes.hpp), para que se pueda probar sin GSR. Los usos, en este orden:
+//
+//   compartir  mp4 + h264: mp4 es el que entienden mas editores y paginas, y
+//              h264 lo reproduce todo. Sin h264, el menor que quepa en mp4.
+//   web        webm + el menor de los que webm admite (vp8, vp9, av1).
+//   pequeno    mkv, que lo admite todo, + el menor de todos.
+//   largo      mkv, que aguanta un corte de luz, + el codec de recomendar_codec.
+//
+// Solo cuentan las sondas que grabaron y cuyo driver declara sus capacidades:
+// un hevc a ojo sale mas grande y con menos detalle, y no se recomienda para
+// nada. Un uso sin codec (vacio) es que la tarjeta no ofrece ninguno que quepa.
+struct RecomendacionUso {
+    std::string uso;         // «compartir», «web», «pequeno» o «largo»
+    std::string contenedor;  // «mp4», «webm» o «mkv»
+    std::string codec;       // vacio si no hay ninguno que quepa
+    double bytes_por_s = 0.0;
+};
+std::vector<RecomendacionUso> recomendar_por_uso(const VeredictoCodecs& v);
 
 // Lo que se recomienda a la vista de un veredicto. Es una funcion pura,
 // separada de la medicion, para que la regla se pueda probar sin GSR.

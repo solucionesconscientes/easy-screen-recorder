@@ -6,6 +6,7 @@
 
 #include <QCoreApplication>
 #include <QLocale>
+#include <cmath>
 #include <QtConcurrent/QtConcurrent>
 
 #include <cstdio>
@@ -121,8 +122,17 @@ void Controlador::autoprueba(const QString& fuente) {
             for (const QString& linea : informe_codecs_) {
                 std::printf("informe: %s\n", linea.toUtf8().constData());
             }
-            std::printf("recomendado: %s en %s\n", codec_recomendado_.toUtf8().constData(),
-                        contenedor_recomendado_.toUtf8().constData());
+            for (const QVariant& fila : usos_recomendados_) {
+                const QVariantMap u = fila.toMap();
+                std::printf("uso: %s = %s + %s (%d kB/s, %.1f MB/min, %+d %% frente a h264)\n",
+                            u.value(QStringLiteral("uso")).toString().toUtf8().constData(),
+                            u.value(QStringLiteral("contenedor")).toString().toUtf8().constData(),
+                            u.value(QStringLiteral("codec")).toString().toUtf8().constData(),
+                            u.value(QStringLiteral("kbPorS")).toInt(),
+                            u.value(QStringLiteral("mbPorMin")).toDouble(),
+                            u.value(QStringLiteral("ahorroPct")).toInt());
+            }
+            std::printf("veredicto: %s\n", veredicto_codecs_.toUtf8().constData());
             QCoreApplication::exit(0);
         });
         connect(this, &Controlador::veredictoCambiado, this, [this] {
@@ -723,8 +733,7 @@ void Controlador::comprobarCodecs(const QString& codecActual, const QString& con
     comprobando_codecs_ = true;
     veredicto_codecs_.clear();
     informe_codecs_.clear();
-    codec_recomendado_.clear();
-    contenedor_recomendado_.clear();
+    usos_recomendados_.clear();
     emit veredictoCambiado();
 
     std::vector<std::string> codecs;
@@ -755,107 +764,85 @@ void Controlador::comprobarCodecs(const QString& codecActual, const QString& con
     }));
 }
 
-// El informe: un parrafo por recomendacion, cada uno con la cifra que lo
-// sostiene delante del consejo. Solo lo que se midio o la maquina dijo; la
-// calidad, los fps y la resolucion no se han medido y no se opina de ellos.
+// El informe: lo medido, lo que hay puesto, y un formato con su codec para
+// cada uso, con la cifra que lo sostiene. Solo lo que se midio o la maquina
+// dijo; la calidad, los fps y la resolucion no se han medido y no se opina.
 void Controlador::armarInformeCodecs(const esr::VeredictoCodecs& v, const QString& contenedor) {
-    const auto r = esr::recomendar_codec(v);
     const auto kb = [](double bytes_por_s) { return static_cast<int>(bytes_por_s / 1024.0); };
-    codec_recomendado_ = QString::fromStdString(r.codec);
     informe_codecs_.clear();
+    usos_recomendados_.clear();
 
-    // 1. El codec, con lo medido.
-    if (!v.hevc_ofrecido) {
-        informe_codecs_ << tr("Códec: h264, a %1 kB/s. Tu tarjeta no ofrece hevc, así que no "
-                              "hay nada que comparar; h264 lo reproduce todo.")
-                               .arg(kb(v.bytes_por_s_h264));
-    } else if (v.hevc_a_ojo) {
-        informe_codecs_ << tr("Códec: h264. Grabando lo mismo, h264 %1 kB/s y hevc %2 kB/s, y "
-                              "el driver de tu tarjeta no declara de qué es capaz su hevc: "
-                              "sale a ojo, más grande y con menos detalle.")
-                               .arg(kb(v.bytes_por_s_h264))
-                               .arg(kb(v.bytes_por_s_hevc));
-    } else if (r.codec == "hevc") {
-        informe_codecs_ << tr("Códec: hevc. Grabando lo mismo, h264 %1 kB/s y hevc %2 kB/s: "
-                              "un %3 % menos. Tu tarjeta lo maneja bien. Ojo: un reproductor "
-                              "viejo puede no abrirlo; h264 lo abre todo.")
-                               .arg(kb(v.bytes_por_s_h264))
-                               .arg(kb(v.bytes_por_s_hevc))
-                               .arg(-r.hevc_frente_a_h264_pct);
-    } else if (r.hevc_frente_a_h264_pct > 0) {
-        informe_codecs_ << tr("Códec: h264. Grabando lo mismo, h264 %1 kB/s y hevc %2 kB/s: "
-                              "en tu tarjeta hevc sale un %3 % más grande.")
-                               .arg(kb(v.bytes_por_s_h264))
-                               .arg(kb(v.bytes_por_s_hevc))
-                               .arg(r.hevc_frente_a_h264_pct);
-    } else {
-        informe_codecs_ << tr("Códec: h264. Grabando lo mismo, h264 %1 kB/s y hevc %2 kB/s: "
-                              "casi igual, y h264 lo reproduce todo.")
-                               .arg(kb(v.bytes_por_s_h264))
-                               .arg(kb(v.bytes_por_s_hevc));
+    // 1. Lo medido, codec a codec.
+    QStringList medido;
+    for (const auto& m : v.medidas) {
+        const QString nombre = QString::fromStdString(m.codec);
+        if (m.bytes_por_s <= 0.0) {
+            medido << tr("%1 no pudo grabar").arg(nombre);
+        } else if (m.a_ojo) {
+            medido << tr("%1 %2 kB/s, a ojo: su driver no declara de qué es capaz y sale "
+                         "más grande y con menos detalle")
+                          .arg(nombre)
+                          .arg(kb(m.bytes_por_s));
+        } else {
+            medido << QStringLiteral("%1 %2 kB/s").arg(nombre).arg(kb(m.bytes_por_s));
+        }
     }
+    informe_codecs_ << tr("Grabando lo mismo con cada códec: %1.").arg(medido.join(QStringLiteral(" · ")));
 
-    // 2. El codec que tiene puesto, si es otro.
+    // 2. Lo que hay puesto, si no casa con lo medido.
     const QString actual = QString::fromStdString(v.codec_actual);
-    if (!actual.isEmpty()) {
-        if (v.bytes_por_s_actual <= 0.0) {
-            informe_codecs_ << tr("Tu %1: no se pudo grabar la prueba con él.").arg(actual);
-        } else if (r.actual_frente_a_recomendado_pct > 0) {
-            informe_codecs_ << tr("Tu %1: %2 kB/s, un %3 % más grande que %4.")
-                                   .arg(actual)
-                                   .arg(kb(v.bytes_por_s_actual))
-                                   .arg(r.actual_frente_a_recomendado_pct)
-                                   .arg(codec_recomendado_);
-        } else if (r.actual_frente_a_recomendado_pct < 0) {
-            informe_codecs_ << tr("Tu %1: %2 kB/s, un %3 % más pequeño que %4. Se queda como "
-                                  "está; solo cambia si necesitas que lo abra cualquier cosa.")
-                                   .arg(actual)
-                                   .arg(kb(v.bytes_por_s_actual))
-                                   .arg(-r.actual_frente_a_recomendado_pct)
-                                   .arg(codec_recomendado_);
-            // Un codec que sale mas pequeño no se pisa: la recomendacion es
-            // dejarlo.
-            codec_recomendado_ = actual;
-        } else {
-            informe_codecs_ << tr("Tu %1: %2 kB/s, lo mismo que %3.")
-                                   .arg(actual)
-                                   .arg(kb(v.bytes_por_s_actual))
-                                   .arg(codec_recomendado_);
+    if (!actual.isEmpty() && !contenedor.isEmpty()) {
+        if (!codecsVideoPara(contenedor, codecs_video_).contains(actual)) {
+            informe_codecs_ << tr("Tienes %1 en %2, y un .%2 no admite %1: elige algo de abajo.")
+                                   .arg(actual, contenedor);
+        } else if (actual == QStringLiteral("hevc") && v.hevc_a_ojo) {
+            informe_codecs_ << tr("Tienes hevc en %1, y en tu tarjeta sale a ojo: elige algo de "
+                                  "abajo.")
+                                   .arg(contenedor);
         }
     }
 
-    // 3. El formato: si el recomendado no cabe en el puesto, mkv, que ademas
-    // aguanta un corte de luz (es lo que dice su explicacion en la ventana).
-    contenedor_recomendado_ = contenedor;
-    if (!contenedor.isEmpty()) {
-        const QStringList caben = codecsVideoPara(contenedor, codecs_video_);
-        if (!caben.contains(codec_recomendado_)) {
-            contenedor_recomendado_ = QStringLiteral("mkv");
-            informe_codecs_ << tr("Formato: mkv. Un .%1 no admite %2; mkv sí, y además aguanta "
-                                  "un corte de luz sin perder lo grabado.")
-                                   .arg(contenedor, codec_recomendado_);
-        } else {
-            informe_codecs_ << tr("Formato: %1, que admite %2.").arg(contenedor, codec_recomendado_);
-        }
+    // 3. Un formato y un codec para cada uso.
+    for (const auto& u : esr::recomendar_por_uso(v)) {
+        QVariantMap fila;
+        fila[QStringLiteral("uso")] = QString::fromStdString(u.uso);
+        fila[QStringLiteral("contenedor")] = QString::fromStdString(u.contenedor);
+        fila[QStringLiteral("codec")] = QString::fromStdString(u.codec);
+        fila[QStringLiteral("kbPorS")] = kb(u.bytes_por_s);
+        fila[QStringLiteral("mbPorMin")] = u.bytes_por_s * 60.0 / (1024.0 * 1024.0);
+        // Frente a h264, que es la vara de medir: negativo es mas pequeño.
+        fila[QStringLiteral("ahorroPct")] =
+            (u.bytes_por_s > 0.0 && v.bytes_por_s_h264 > 0.0)
+                ? static_cast<int>(std::lround((u.bytes_por_s - v.bytes_por_s_h264) /
+                                               v.bytes_por_s_h264 * 100.0))
+                : 0;
+        usos_recomendados_ << fila;
     }
 
-    // 4. Lo que ocupa, con el ritmo medido del codec recomendado.
-    const double bytes_por_s = codec_recomendado_ == QStringLiteral("hevc") ? v.bytes_por_s_hevc
-                               : codec_recomendado_ == actual                ? v.bytes_por_s_actual
-                                                                              : v.bytes_por_s_h264;
-    if (bytes_por_s > 0.0) {
-        const double mb_min = bytes_por_s * 60.0 / (1024.0 * 1024.0);
-        const double gb_hora = bytes_por_s * 3600.0 / (1024.0 * 1024.0 * 1024.0);
-        informe_codecs_ << tr("Tamaño: con %1 y la pantalla como estaba durante la prueba, unos "
-                              "%2 MB por minuto, %3 GB por hora. Con vídeo o un juego en "
-                              "pantalla será más.")
-                               .arg(codec_recomendado_)
-                               .arg(QLocale().toString(mb_min, 'f', 1))
-                               .arg(QLocale().toString(gb_hora, 'f', 2));
-    }
+    // 4. La condicion de las cifras y lo que distingue a cada formato, que es
+    // lo mismo que dice la ventana junto al desplegable del formato.
+    informe_codecs_ << tr("Las cifras son con la pantalla como estaba durante la prueba; con "
+                          "vídeo o un juego será más. mkv aguanta un corte de luz sin perder lo "
+                          "grabado; mp4 es el que entienden más editores y páginas; webm es el "
+                          "del navegador.");
 
-    // Y el resumen corto, para el aviso de la ventana.
-    veredicto_codecs_ = informe_codecs_.first();
+    // Y el resumen corto, para el aviso de la ventana: el veredicto de siempre.
+    const auto r = esr::recomendar_codec(v);
+    if (!v.hevc_ofrecido || v.bytes_por_s_hevc <= 0.0) {
+        veredicto_codecs_ = tr("Tu tarjeta codifica en h264 a %1 kB/s. El informe dice qué "
+                               "formato y qué códec para cada cosa.")
+                                .arg(kb(v.bytes_por_s_h264));
+    } else if (r.codec == QStringLiteral("hevc")) {
+        veredicto_codecs_ = tr("Tu tarjeta maneja bien hevc: un %1 % menos que h264. El "
+                               "informe dice qué formato y qué códec para cada cosa.")
+                                .arg(-r.hevc_frente_a_h264_pct);
+    } else {
+        veredicto_codecs_ = tr("En tu tarjeta conviene h264: hevc sale %1. El informe dice qué "
+                               "formato y qué códec para cada cosa.")
+                                .arg(v.hevc_a_ojo ? tr("a ojo")
+                                                  : tr("un %1 % más grande")
+                                                        .arg(r.hevc_frente_a_h264_pct));
+    }
 }
 
 void Controlador::posprocesarEnSegundoPlano(const QString& ruta) {

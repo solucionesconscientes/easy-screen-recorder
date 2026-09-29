@@ -278,5 +278,54 @@ int main() {
         COMPROBAR(recomendar_codec(v).actual_frente_a_recomendado_pct == 0);
     }
 
+    // --- recomendar_por_uso: un formato y un codec para cada cosa ---
+    {
+        const auto uso = [](const std::vector<RecomendacionUso>& l, std::string_view nombre) {
+            for (const auto& r : l) {
+                if (r.uso == nombre) return r;
+            }
+            return RecomendacionUso{};
+        };
+        VeredictoCodecs v;
+        v.probado = true;
+        v.hevc_ofrecido = true;
+        v.bytes_por_s_h264 = 1000.0;
+        v.bytes_por_s_hevc = 700.0;
+        v.medidas = {{"h264", 1000.0, false}, {"hevc", 700.0, false},
+                     {"vp8", 900.0, false}, {"av1", 500.0, false}};
+        auto l = recomendar_por_uso(v);
+        COMPROBAR(l.size() == 4);
+        // Compartir: mp4 y h264 aunque no sea el menor, porque lo abre todo.
+        COMPROBAR(uso(l, "compartir").contenedor == "mp4");
+        COMPROBAR(uso(l, "compartir").codec == "h264");
+        // Web: webm y el menor de los que caben (av1 500 < vp8 900).
+        COMPROBAR(uso(l, "web").contenedor == "webm");
+        COMPROBAR_NOTA(uso(l, "web").codec == "av1", uso(l, "web").codec);
+        // Pequeño: mkv y el menor de todos.
+        COMPROBAR(uso(l, "pequeno").contenedor == "mkv");
+        COMPROBAR(uso(l, "pequeno").codec == "av1");
+        COMPROBAR(uso(l, "pequeno").bytes_por_s == 500.0);
+        // Largo: mkv y lo que diga recomendar_codec (hevc ahorra un 30 %).
+        COMPROBAR(uso(l, "largo").contenedor == "mkv");
+        COMPROBAR(uso(l, "largo").codec == "hevc");
+
+        // Un hevc a ojo no vale para nada, ni para «pequeño» aunque sea el menor.
+        v.medidas = {{"h264", 1000.0, false}, {"hevc", 400.0, true}};
+        v.bytes_por_s_hevc = 400.0;
+        v.hevc_a_ojo = true;
+        l = recomendar_por_uso(v);
+        COMPROBAR(uso(l, "pequeno").codec == "h264");
+        COMPROBAR(uso(l, "largo").codec == "h264");
+        // Sin vp8, vp9 ni av1 no hay nada que quepa en webm: codec vacio.
+        COMPROBAR(uso(l, "web").codec.empty());
+        COMPROBAR(uso(l, "web").contenedor == "webm");
+
+        // Una sonda que fallo (-1) no cuenta.
+        v.medidas = {{"h264", 1000.0, false}, {"vp8", -1.0, false}};
+        l = recomendar_por_uso(v);
+        COMPROBAR(uso(l, "web").codec.empty());
+        COMPROBAR(uso(l, "compartir").codec == "h264");
+    }
+
     return prueba::resumen("prueba_grabacion");
 }
