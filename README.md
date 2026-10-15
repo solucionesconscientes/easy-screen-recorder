@@ -9,97 +9,98 @@ SPDX-License-Identifier: GPL-3.0-or-later
 </p>
 
 <p align="center">
-  <a href="README.md"><strong>English</strong></a> ·
-  <a href="README.es.md">Castellano</a>
+  <a href="README.md"><strong>Castellano</strong></a> ·
+  <a href="README.en.md">English</a>
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/license-GPL--3.0--or--later-blue" alt="GPL-3.0-or-later">
-  <img src="https://img.shields.io/badge/platform-Linux%20%C2%B7%20Wayland%20%26%20X11-1d99f3" alt="Linux · Wayland and X11">
+  <img src="https://img.shields.io/badge/licencia-GPL--3.0--or--later-blue" alt="GPL-3.0-or-later">
+  <img src="https://img.shields.io/badge/plataforma-Linux%20%C2%B7%20Wayland%20y%20X11-1d99f3" alt="Linux · Wayland y X11">
   <img src="https://img.shields.io/badge/C%2B%2B-20-da4453" alt="C++20">
 </p>
 
 ---
 
-<!-- TODO: demo GIF. See docs/screenshots/README.md for how to record it. -->
+<!-- TODO: GIF de demostración. Cómo grabarlo: docs/screenshots/README.md -->
 <p align="center">
-  <em>Demo GIF coming soon — <code>docs/screenshots/demo.gif</code></em>
+  <em>GIF de demostración pendiente — <code>docs/screenshots/demo.gif</code></em>
 </p>
 
-## What it does
+## Qué hace
 
-Recording your screen on Wayland is usually one of two things: a tool that
-re-encodes on the CPU and turns your laptop into a heater, or a command line
-with fifteen flags. This is the missing layer — capture stays on the GPU and you
-start recording in two clicks.
+Grabar la pantalla en Wayland suele ser una de dos cosas: una herramienta que
+recodifica en la CPU y convierte el portátil en una estufa, o una línea de
+comandos con quince opciones. Esto es la capa que falta: la captura se queda en
+la GPU y empiezas a grabar en dos clics.
 
-- **Records any monitor, a region you drag, the focused window or a camera**,
-  with the encoding done on the GPU.
-- **Does not encode repeated frames**: an hour of a still screen does not weigh
-  like an hour of video. And it can **compress the recording afterwards**, by
-  CPU, without changing format.
-- **Audio-only mode**, to Opus, AAC, FLAC, WAV or MP3, without turning on video
-  capture at all.
-- **Pause and resume** mid-recording, plus **global shortcuts** to start and
-  stop, pause, discard and save the last bit without leaving what you are
-  doing. The window explains each one.
-- **Picks the audio device for you** — system audio, your microphone, or
-  several tracks at once — and **remembers where your recordings go**.
-- **Tells you what is missing before you press record**, instead of failing
-  halfway through: `easy-screen-recorder-cli --check`.
+- **Graba cualquier monitor, una región que eliges arrastrando, la ventana en
+  foco o una cámara**, con la codificación en la GPU.
+- **No codifica fotogramas repetidos**: una hora de pantalla quieta no pesa como
+  una hora de vídeo. Y al terminar puede **recomprimir la grabación** por
+  procesador, sin cambiar de formato.
+- **Modo de solo audio**, a Opus, AAC, FLAC, WAV o MP3, sin encender siquiera la captura de
+  vídeo.
+- **Pausa y reanuda** a media grabación, y **atajos globales** para empezar y
+  parar, pausar, descartar y guardar lo último sin salir de lo que estás
+  haciendo. La ventana explica cada uno.
+- **Elige el dispositivo de audio por ti** —el audio del sistema, el micrófono o varias
+  pistas a la vez— y **recuerda dónde van tus grabaciones**.
+- **Te dice qué falta antes de darle a grabar**, en vez de fallar a mitad:
+  `easy-screen-recorder-cli --check`.
 
-Sensible defaults out of the box: `.mkv`, the best hardware codec your GPU has,
-system audio and 60 fps. Everything else is an option.
+Sin tocar nada: `.mkv`, el mejor códec de hardware que tenga la GPU, el audio
+del sistema y 60 fps. Todo lo demás son opciones.
 
-There is a CLI as well as the GUI, and the rule is that the CLI comes first: if
-something does not work from the command line, the interface does not get it.
+Hay CLI además de interfaz gráfica, y la regla es que el CLI va primero: si algo
+no funciona por consola, no llega a la interfaz.
 
-## Install
+## Instalación
 
 | | |
 |---|---|
-| **Flatpak, from this project's own repo** | `flatpak install --user https://flatpak.solucionesconscientes.es/es.solucionesconscientes.EasyScreenRecorder.flatpakref` |
-| **`.deb`** | On the [releases page](https://github.com/solucionesconscientes/easy-screen-recorder/releases) |
-| **From source** | Below |
-| **Flathub** | Not submitted yet — see below |
+| **Flatpak, del repositorio propio** | `flatpak install --user https://flatpak.solucionesconscientes.es/es.solucionesconscientes.EasyScreenRecorder.flatpakref` |
+| **`.deb`** | En la [página de releases](https://github.com/solucionesconscientes/easy-screen-recorder/releases) |
+| **Desde el código** | Abajo |
+| **Flathub** | Todavía no enviado — ver abajo |
 
-Updates from the Flatpak repo come with `flatpak update`, like any other remote.
-The KDE runtime still comes from Flathub; this repo only hosts the app itself.
+Las actualizaciones del repositorio Flatpak llegan con `flatpak update`, como en
+cualquier otro remoto. El runtime de KDE sigue viniendo de Flathub; aquí solo se
+aloja la aplicación.
 
-### Why not on Flathub
+### Por qué no está en Flathub
 
-Flathub requires submitters to **disclose AI-generated material**, and reviewers
-may reject a submission based on *"the extent or role of generated material"*.
-This application was built largely with AI assistance, so that extent is
-substantial and honest disclosure is the only option. It also needs a real
-development history, which a project this young does not have yet.
+Flathub obliga a **declarar el material generado por IA**, y el revisor puede
+rechazar un envío según *«the extent or role of generated material»*. Esta
+aplicación se construyó en buena parte con asistencia de IA, así que esa
+extensión es grande y declararlo con honestidad es la única opción. Además pide
+un historial de desarrollo real, que un proyecto tan joven no tiene.
 
-So: self-distributed for now, submitted later with a full disclosure written by
-hand. Nothing about this is hidden — the commit history says
-`Co-Authored-By: Claude` throughout.
+Así que: distribución propia por ahora, y envío más adelante con la declaración
+completa escrita a mano. Nada de esto está escondido — el historial de commits
+dice `Co-Authored-By: Claude` de principio a fin.
 
-### From source
+### Desde el código
 
-Build dependencies, exactly what the CMake asks for:
+Dependencias de compilación, exactamente las que pide el CMake:
 
-- **CMake 3.25+** and a **C++20** compiler
-- **Ninja** (or any generator you prefer)
-- **Qt 6.4+**, components: `Core` `DBus` `Gui` `Qml` `Quick` `QuickControls2`
+- **CMake 3.25+** y un compilador de **C++20**
+- **Ninja** (o el generador que prefieras)
+- **Qt 6.4+**, componentes: `Core` `DBus` `Gui` `Qml` `Quick` `QuickControls2`
   `Widgets` `Concurrent`
-- **`lrelease`** (Debian: `qt6-l10n-tools`) to build the English translation
+- **`lrelease`** (Debian: `qt6-l10n-tools`) para compilar la traducción al inglés
 
-And at **run time**, two KDE QML modules the window imports:
+Y en **tiempo de ejecución**, dos módulos QML de KDE que la ventana importa:
 
 - **Kirigami** (Debian: `qml6-module-org-kde-kirigami`)
-- **Kirigami Addons**, for the settings cards
+- **Kirigami Addons**, para las tarjetas de ajustes
   (Debian: `qml6-module-org-kde-kirigamiaddons-formcard`)
 
-Both ship inside the `org.kde.Platform` runtime the flatpak uses, so there is
-nothing to install there. Checked on 6.11: the module sits in
+Los dos vienen dentro del runtime `org.kde.Platform` que usa el flatpak, así
+que ahí no hay nada que instalar. Comprobado en el 6.11: el módulo está en
 `files/lib/qml/org/kde/kirigamiaddons/formcard`.
 
-Qt is **optional**: without it the GUI is skipped and the CLI and the tests
-still build.
+Qt es **opcional**: sin él la interfaz gráfica no se compila, y el CLI y los
+tests sí.
 
 ```bash
 cmake -S . -B build -G Ninja
@@ -107,7 +108,7 @@ cmake --build build
 ctest --test-dir build --output-on-failure
 ```
 
-On Debian and Ubuntu:
+En Debian y Ubuntu:
 
 ```bash
 sudo apt install cmake ninja-build g++ qt6-base-dev qt6-declarative-dev \
@@ -115,111 +116,112 @@ sudo apt install cmake ninja-build g++ qt6-base-dev qt6-declarative-dev \
   qml6-module-org-kde-kirigamiaddons-formcard ffmpeg
 ```
 
-## Language
+## Idioma
 
-The interface follows your system language: **Spanish** if your system is in
-Spanish, **English** otherwise — including languages that are neither, because
-English is more useful to a German speaker than Spanish they cannot read.
+La interfaz sigue el idioma del sistema: **castellano** si tu sistema está en
+castellano, **inglés** en cualquier otro caso —incluidos los idiomas que no son
+ninguno de los dos, porque a un hablante de alemán le sirve más el inglés que un
+castellano que no entiende—.
 
-**Still in Spanish only:** the error messages that come from the core library
-(`libesr`), and the whole command-line interface. Those are plain strings in a
-Qt-free library, so translating them properly means returning error codes
-instead of text — a refactor in the files that build the recorder's command
-line, which is where a mistake does not fail a build, it breaks a recording.
-Tracked in `docs/ROADMAP.md`.
+**Todavía solo en castellano:** los mensajes de error que vienen de la
+biblioteca del núcleo (`libesr`) y toda la línea de comandos. Son cadenas planas
+en una biblioteca sin Qt, así que traducirlas bien significa devolver códigos de
+error en vez de texto: un refactor en los ficheros que construyen la línea de
+comandos del grabador, que es donde un error no rompe una compilación, rompe una
+grabación. Anotado en `docs/ROADMAP.md`.
 
-## Where it runs
+## Dónde funciona
 
-**Any Linux desktop, on Wayland and on X11.** The interface is Qt6/QML with
-Kirigami, and the capture is done by gpu-screen-recorder, which supports both
-display servers.
+**En cualquier escritorio de Linux, sobre Wayland y sobre X11.** La interfaz es
+Qt6/QML con Kirigami, y la captura la hace gpu-screen-recorder, que soporta los
+dos servidores gráficos.
 
-Two things are specific to KDE Plasma, and both degrade quietly elsewhere:
-
-| | |
-|---|---|
-| **Global shortcut** | Registered through KGlobalAccel, so it is configured in *System Settings → Shortcuts* like any other. Outside KDE it simply is not registered — everything else works |
-| **Tray icon** | Uses StatusNotifierItem, which is native on Plasma. Most desktops support it; GNOME needs an extension |
-
-Built and verified on KDE Plasma over Wayland, and verified running as an X11
-client through XWayland. **A pure X11 session has not been tested here** — this
-machine runs Wayland — but the capture is gpu-screen-recorder's, which supports
-X11 upstream.
-
-### Modest hardware is the point
-
-The encoding happens on the GPU, so the CPU stays free. That matters most
-exactly where a CPU-encoding recorder hurts most: a thin laptop with no thermal
-headroom.
-
-Measured on the development machine — an **Intel i5-6200U from 2015 with
-integrated HD Graphics 520**, which encodes H.264 and HEVC in hardware:
+Hay dos cosas atadas a KDE Plasma, y las dos se degradan sin ruido fuera:
 
 | | |
 |---|---|
-| CLI, minimum process cost | **0,00 s · 4 MB** of peak RAM |
-| CLI, full environment detection | **0,6–1,2 s · 49 MB** |
-| GUI, to the first painted frame | **1,0–1,6 s · 94 MB** |
+| **El atajo global** | Se registra en KGlobalAccel, así que se configura en *Preferencias del sistema → Atajos* como cualquier otro. Fuera de KDE no se registra y no pasa nada más |
+| **El icono de bandeja** | Usa StatusNotifierItem, que es lo nativo en Plasma. La mayoría de escritorios lo soportan; GNOME necesita una extensión |
 
-**The one thing to check first:** your GPU needs a hardware encoder. Without
-one, gpu-screen-recorder falls back to CPU encoding (`h264_software`) and the
-whole advantage disappears. `easy-screen-recorder-cli --check` prints which case
-you are in — look for the `por defecto (hardware)` line.
+Construido y verificado en KDE Plasma sobre Wayland, y verificado corriendo como
+cliente X11 a través de XWayland. **Una sesión X11 pura no se ha probado aquí**
+—esta máquina corre Wayland— pero la captura es de gpu-screen-recorder, que
+soporta X11 upstream.
 
-## Requirements
+### El hardware modesto es el caso, no la excepción
 
-**[gpu-screen-recorder][gsr] has to be installed.** It does the actual capture.
-It is not bundled with this program and it is not a library we link — it runs as
-a separate process.
+La codificación la hace la GPU, así que la CPU se queda libre. Eso importa justo
+donde más duele un grabador que recodifica en CPU: un portátil fino sin margen
+térmico.
+
+Medido en la máquina de desarrollo —un **Intel i5-6200U de 2015 con gráficos
+integrados HD Graphics 520**, que codifica H.264 y HEVC en hardware—:
+
+| | |
+|---|---|
+| CLI, coste mínimo del proceso | **0,00 s · 4 MB** de RAM de pico |
+| CLI, detección completa del entorno | **0,6–1,2 s · 49 MB** |
+| Interfaz, hasta el primer frame pintado | **1,0–1,6 s · 94 MB** |
+
+**Lo único que hay que comprobar antes:** que tu GPU tenga codificador por
+hardware. Si no lo tiene, gpu-screen-recorder cae a codificar en CPU
+(`h264_software`) y toda la ventaja desaparece. `easy-screen-recorder-cli
+--check` dice en qué caso estás: mira la línea `por defecto (hardware)`.
+
+## Requisitos
+
+**Hace falta [gpu-screen-recorder][gsr] instalado.** Es quien hace la captura de
+verdad. No va incluido en este programa y no es una biblioteca que enlacemos:
+corre como un proceso aparte.
 
 ```bash
 flatpak install flathub com.dec05eba.gpu_screen_recorder
 ```
 
-Install it **system-wide, not `--user`**: the lookup checks `/var/lib/flatpak`,
-and a user install lands somewhere else.
+Instálalo **a nivel de sistema, no con `--user`**: la búsqueda mira
+`/var/lib/flatpak`, y una instalación de usuario cae en otro sitio.
 
-`ffmpeg` is needed for the audio-only mode, which does not go through GSR at
-all.
+`ffmpeg` hace falta para el modo de solo audio, que no pasa por GSR.
 
-Not sure what you have? `easy-screen-recorder-cli --check` prints exactly what
-is there, what is missing, and what stops working because of it.
+¿No sabes qué tienes? `easy-screen-recorder-cli --check` dice exactamente qué
+hay, qué falta y qué deja de funcionar por ello.
 
 [gsr]: https://git.dec05eba.com/gpu-screen-recorder/about/
 
-## Architecture
+## Arquitectura
 
 ```
-Qt/QML/Kirigami UI  →  libesr  →  gpu-screen-recorder (external process)
+Interfaz Qt/QML/Kirigami  →  libesr  →  gpu-screen-recorder (proceso externo)
 ```
 
-`libesr` is the core: no Qt, no GUI, everything the UI and the CLI need to know
-about the environment. GSR is driven as a separate process — arguments out, JSON
-over a unix socket back — which is what keeps the two licences apart and lets
-the capture backend be swapped without rewriting the interface.
+`libesr` es el núcleo: sin Qt, sin interfaz, y con todo lo que la UI y el CLI
+necesitan saber del entorno. GSR se conduce como proceso aparte —argumentos de
+ida, JSON por un socket unix de vuelta—, que es lo que mantiene las dos
+licencias separadas y lo que permite cambiar de motor de captura sin reescribir
+la interfaz.
 
-## Credits
+## Créditos
 
-- **[gpu-screen-recorder][gsr]** by **dec05eba** — does the hard part. This is
-  an independent frontend, not affiliated with the project.
-- **[Qt](https://www.qt.io/)** and **[KDE Frameworks](https://develop.kde.org/products/frameworks/)**
-  — the interface.
-- **[FFmpeg](https://ffmpeg.org/)** — the audio-only path.
+- **[gpu-screen-recorder][gsr]**, de **dec05eba** — hace la parte difícil. Esto
+  es una interfaz independiente, sin relación con el proyecto.
+- **[Qt](https://www.qt.io/)** y **[KDE Frameworks](https://develop.kde.org/products/frameworks/)**
+  — la interfaz.
+- **[FFmpeg](https://ffmpeg.org/)** — la ruta de solo audio.
 
-## Need custom software?
+## ¿Necesitas software a medida?
 
-Built by **[Soluciones Conscientes](https://solucionesconscientes.es)**, which
-develops bespoke applications — desktop, web and the plumbing in between.
+Hecho por **[Soluciones Conscientes](https://solucionesconscientes.es)**, que
+desarrolla aplicaciones a medida: escritorio, web y la fontanería de en medio.
 
-If this is close to what you need but not quite, or you want it built for your
-own workflow, get in touch. Commercial licensing of this codebase is also
-available on request.
+Si esto se acerca a lo que necesitas pero no del todo, o lo quieres montado para
+tu forma de trabajar, escríbeme. También hay licencia comercial de este código a
+petición.
 
-## License
+## Licencia
 
-**GPL-3.0-or-later**, see [`LICENSE`](LICENSE). Uses gpu-screen-recorder
-(GPL-3.0-only) as a separate external program; it is not included or
-distributed. Commercial licensing available on request.
+**GPL-3.0-or-later**, ver [`LICENSE`](LICENSE). Usa gpu-screen-recorder
+(GPL-3.0-only) como programa externo independiente; no se incluye ni se
+distribuye. Licencia comercial disponible a petición.
 
-Contributions are welcome and require signing a CLA — you keep your copyright.
-See [`CONTRIBUTING.md`](CONTRIBUTING.md).
+Se aceptan contribuciones y requieren firmar un CLA — conservas tu copyright.
+Ver [`CONTRIBUTING.md`](CONTRIBUTING.md).
